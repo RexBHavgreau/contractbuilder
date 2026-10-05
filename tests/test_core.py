@@ -421,3 +421,103 @@ def test_vietnamese_names(tmp_path):
     lines = fill(tmp_path, ["{{Publisher}}, signed by {{Signatory | upper}}"],
                  {"Publisher": "Trích Dẫn Tin Lành", "Signatory": "Phạm Thị Anh Thư"})
     assert lines == ["Trích Dẫn Tin Lành, signed by PHẠM THỊ ANH THƯ"]
+
+
+# ---------------------------- lessons from the two-book Italian MOU (Oct 2026) ---
+
+def test_list_and_plural(tmp_path):
+    paras = ["Rights to {{Titles | list}} (the {{Titles | plural: work, works}}), which "
+             "{{Titles | plural: contains / contain}} no libel. Term: {{Years}} {{Years | plural: year, years}}."]
+    one = fill(tmp_path, paras, {"Titles": "Book A", "Years": "1"})
+    assert one == ["Rights to Book A (the work), which contains no libel. Term: 1 year."]
+    two = fill(tmp_path, paras, {"Titles": "Book A\nBook B\n", "Years": "10"})
+    assert two == ["Rights to Book A and Book B (the works), which contain no libel. Term: 10 years."]
+    three = fill(tmp_path, paras, {"Titles": "A\nB\nC", "Years": "2"})
+    assert three[0].startswith("Rights to A, B, and C (the works)")
+
+
+def test_list_and_plural_kinds(tmp_path):
+    t = core.Template(make_doc(tmp_path, ["{{Titles | list}} {{Titles | plural: work, works}} "
+                                          "{{Years | plural: year, years}} {{Bad | plural: only}}"]))
+    assert t.fields["titles"].kind == "long"
+    assert t.fields["years"].kind == "number"
+    assert any("needs two wordings" in p for p in t.problems)
+    assert t.fields["titles"].preview("A\nB") == "A and B  |  counts as 2"
+
+
+def test_list_joining_words_are_not_italic(tmp_path):
+    doc = Document()
+    doc.add_paragraph("Rights to ").add_run("{{Titles | list}}").italic = True
+    path = tmp_path / "t.docx"
+    doc.save(path)
+    out = tmp_path / "o.docx"
+    core.build_contract(core.Template(path), {"Titles": "Book A\nBook B"}, out)
+    runs = [(r.text, bool(r.italic)) for r in Document(out).paragraphs[0].runs]
+    assert runs == [("Rights to ", False), ("Book A", True), (" and ", False), ("Book B", True)]
+
+
+def test_money_whole():
+    assert core.format_value("money-whole", "11500") == "$11,500"
+    assert core.format_value("money-whole", "$11,499.50") == "$11,500"
+
+
+def test_whole_words_only(tmp_path):
+    src = make_doc(tmp_path, [["The works and networks", "\t", "Jordan Smith"]])
+    out = tmp_path / "made.docx"
+    counts = core.make_template(src, out, [("works", "Titles", "plural: work, works"),
+                                           ("Jordan Smith", "Signatory", "")])
+    assert counts == {"works": 1, "Jordan Smith": 1}
+    assert Document(out).paragraphs[0].text == \
+        "The {{Titles | plural: work, works}} and networks\t{{Signatory}}"
+
+
+def _tracked(tmp_path):
+    """A contract edited with Track Changes on, with a comment, as MOUs arrive."""
+    path = make_doc(tmp_path, ["Rights to the work by Alice.", "Second paragraph."])
+    W = b'w:author="BH" w:date="2026-10-01T00:00:00Z"'
+    _rewrite(path, "word/document.xml", lambda d: d.replace(
+        b"<w:r><w:t>Rights to the work by Alice.</w:t></w:r>",
+        b"<w:r><w:t>Rights to the work</w:t></w:r>"
+        b'<w:ins w:id="1" ' + W + b"><w:r><w:t>s</w:t></w:r></w:ins>"
+        b'<w:commentRangeStart w:id="0"/>'
+        b"<w:r><w:t xml:space=\"preserve\"> by </w:t></w:r>"
+        b'<w:del w:id="2" ' + W + b"><w:r><w:delText>Alice</w:delText></w:r></w:del>"
+        b'<w:ins w:id="3" ' + W + b"><w:r><w:t>Bob</w:t></w:r></w:ins>"
+        b'<w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r>'
+        b"<w:r><w:t>.</w:t></w:r>"))
+    return path
+
+
+def test_tracked_changes_accepted_when_making_template(tmp_path):
+    src = _tracked(tmp_path)
+    assert any("tracked change" in n for n in core.Template(src).warnings)
+    out = tmp_path / "made.docx"
+    notes = []
+    core.make_template(src, out, [("Bob", "Author", "")], notes=notes)
+    assert notes == ["accepted 3 tracked change(s)", "removed 1 comment(s)"]
+    xml = zipfile.ZipFile(out).read("word/document.xml")
+    for leftover in (b"<w:ins ", b"<w:del ", b"delText", b"comment"):
+        assert leftover not in xml
+    assert Document(out).paragraphs[0].text == "Rights to the works by {{Author}}."
+    t = core.Template(out)
+    assert t.warnings == [] and t.problems == []
+    kept = tmp_path / "kept.docx"
+    core.make_template(src, kept, [], accept_changes=False)
+    assert b"<w:del " in zipfile.ZipFile(kept).read("word/document.xml")
+
+
+def test_deleted_paragraph_mark_joins_paragraphs():
+    from lxml import etree
+    xml = (f'<w:body xmlns:w="{core.W_NS}"><w:p><w:pPr><w:rPr><w:del w:id="1" w:author="x"/></w:rPr></w:pPr>'
+           '<w:r><w:t>one </w:t></w:r></w:p><w:p><w:r><w:t>two</w:t></w:r></w:p></w:body>')
+    root = etree.fromstring(xml)
+    core.accept_revisions(root)
+    assert [core.para_text(p) for p in root.iter(core.w("p"))] == ["one two"]
+
+
+def test_link_warning(tmp_path):
+    path = make_doc(tmp_path, ["Email {{Email}}"])
+    _rewrite(path, "word/document.xml", lambda d: d.replace(
+        b"<w:r><w:t>Email {{Email}}</w:t></w:r>",
+        b'<w:r><w:t xml:space="preserve">Email </w:t></w:r><w:hyperlink w:anchor="x"><w:r><w:t>{{Email}}</w:t></w:r></w:hyperlink>'))
+    assert any("inside a link" in n for n in core.Template(path).warnings)

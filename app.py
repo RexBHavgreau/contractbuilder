@@ -1,6 +1,6 @@
 """
 TMAI Contract Builder
-Build 2
+Build 3
 
 Choose a contract template, fill in what changes, and get a finished Word
 contract. The wording that never changes comes from the template exactly as
@@ -20,8 +20,8 @@ import core
 GREY = "#666666"
 GOOD = "#1b6e2e"
 BAD = "#b00020"
-FORMATS = ["", "upper", "long", "date", "date-formal", "date-short",
-           "money", "money-words", "number", "number-words"]
+FORMATS = ["", "upper", "long", "list", "date", "date-formal", "date-short",
+           "money", "money-words", "money-whole", "number", "number-words", "plural: work, works"]
 
 
 def open_path(path):
@@ -158,6 +158,8 @@ class FieldRow:
         kind = self.field.kind
         if not str(raw).strip():
             hint = ("e.g. " + self.field.example) if self.field.example else ""
+            if "list" in self.field.formats:
+                hint = "One per line."
             if self.field.in_condition and not self.field.compared:
                 hint = (hint + ".  " if hint else "") + "Leave empty to leave out the part that depends on it."
             self.hint.config(text=hint, foreground=GREY)
@@ -211,10 +213,13 @@ class MakeTemplateDialog(tk.Toplevel):
                 row=0, column=col, sticky="w", pady=(0, 4))
         self.next_row = 1
 
+        self.accept_changes = tk.BooleanVar(value=True)
+        ttk.Checkbutton(top, variable=self.accept_changes, text=(
+            "Accept all tracked changes and remove comments first")).pack(anchor="w", pady=(10, 0))
         self.reset_spacing = tk.BooleanVar(value=True)
         ttk.Checkbutton(top, variable=self.reset_spacing, text=(
             "Reset letter spacing to normal (removes squeezed or stretched spacing left by "
-            "fitting lines by hand or converting from PDF)")).pack(anchor="w", pady=(10, 0))
+            "fitting lines by hand or converting from PDF)")).pack(anchor="w", pady=(2, 0))
 
         buttons = ttk.Frame(top)
         buttons.pack(fill="x", pady=(10, 0))
@@ -236,7 +241,7 @@ class MakeTemplateDialog(tk.Toplevel):
         widgets = [
             ttk.Entry(parent, textvariable=find),
             ttk.Entry(parent, textvariable=field),
-            ttk.Combobox(parent, textvariable=form, values=FORMATS, state="readonly", width=13),
+            ttk.Combobox(parent, textvariable=form, values=FORMATS, width=20),
         ]
         for col, wdg in enumerate(widgets):
             wdg.grid(row=r, column=col, sticky="ew", padx=(0, 6), pady=2)
@@ -308,7 +313,9 @@ class MakeTemplateDialog(tk.Toplevel):
                                  parent=self)
             return
         try:
-            counts = core.make_template(self.source, out, swaps, self.reset_spacing.get())
+            notes = []
+            counts = core.make_template(self.source, out, swaps, self.reset_spacing.get(),
+                                        self.accept_changes.get(), notes)
         except PermissionError:
             messagebox.showerror("Could not save", "That file is open in Word. Close it and try again.",
                                  parent=self)
@@ -326,6 +333,8 @@ class MakeTemplateDialog(tk.Toplevel):
             if not n:
                 missed.append(find)
         say(f"    wrote {pathlib.Path(out).name}")
+        for line in notes:
+            say("    " + line)
         say("    Track Changes is off in the new template" +
             (", and letter spacing is back to normal." if self.reset_spacing.get() else "."))
         note = ""
