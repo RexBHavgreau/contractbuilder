@@ -1,6 +1,6 @@
 """
 TMAI Contract Builder
-Build 1
+Build 2
 
 Choose a contract template, fill in what changes, and get a finished Word
 contract. The wording that never changes comes from the template exactly as
@@ -211,6 +211,11 @@ class MakeTemplateDialog(tk.Toplevel):
                 row=0, column=col, sticky="w", pady=(0, 4))
         self.next_row = 1
 
+        self.reset_spacing = tk.BooleanVar(value=True)
+        ttk.Checkbutton(top, variable=self.reset_spacing, text=(
+            "Reset letter spacing to normal (removes squeezed or stretched spacing left by "
+            "fitting lines by hand or converting from PDF)")).pack(anchor="w", pady=(10, 0))
+
         buttons = ttk.Frame(top)
         buttons.pack(fill="x", pady=(10, 0))
         ttk.Button(buttons, text="Add a row", command=self.add_row).pack(side="left")
@@ -303,7 +308,7 @@ class MakeTemplateDialog(tk.Toplevel):
                                  parent=self)
             return
         try:
-            counts = core.make_template(self.source, out, swaps)
+            counts = core.make_template(self.source, out, swaps, self.reset_spacing.get())
         except PermissionError:
             messagebox.showerror("Could not save", "That file is open in Word. Close it and try again.",
                                  parent=self)
@@ -321,6 +326,8 @@ class MakeTemplateDialog(tk.Toplevel):
             if not n:
                 missed.append(find)
         say(f"    wrote {pathlib.Path(out).name}")
+        say("    Track Changes is off in the new template" +
+            (", and letter spacing is back to normal." if self.reset_spacing.get() else "."))
         note = ""
         if missed:
             note = ("\n\nNot found, so not replaced:\n  " + "\n  ".join(missed) +
@@ -544,6 +551,8 @@ class App:
             self.say("    " + line)
         for problem in template.problems:
             self.say("    PROBLEM  " + problem)
+        for note in template.warnings:
+            self.say("    NOTE  " + note)
 
     def open_template(self):
         if self.template:
@@ -565,6 +574,8 @@ class App:
             body += "\n\nPROBLEMS\n" + "\n".join("• " + p for p in t.problems)
         else:
             body += "\n\nNo problems found."
+        if t.warnings:
+            body += "\n\nWORTH CHECKING\n" + "\n\n".join("• " + p for p in t.warnings)
         self.text_window(f"Check: {t.path.name}", body)
 
     # ----------------------------------------------------------------- form --
