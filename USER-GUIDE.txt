@@ -1,6 +1,6 @@
 ===============================================================
  TMAI CONTRACT BUILDER - USER GUIDE
- Build 1
+ Build 2
 ===============================================================
 
 This makes finished contracts from templates. The wording that
@@ -274,6 +274,33 @@ If everything in a paragraph is optional and it is left out,
 the empty paragraph is removed too.
 
 
+BLANK LINES BETWEEN CLAUSES
+---------------------------
+
+Many contracts separate clauses with an empty line. Leave
+those where they are, outside the {{#if}} and {{/if}} lines:
+
+    (empty line)
+    {{#if Financial Assistance}}
+    11. The publisher can apply for financial assistance ...
+    {{/if}}
+    (empty line)
+
+When the clause is left out, the two empty lines would end up
+together. The app keeps just one, so there is no hole. Empty
+lines you typed next to each other on purpose are left alone.
+
+
+SIGNATURE BLOCKS
+----------------
+
+Signature blocks laid out with tabs, two parties side by side,
+work, but a long name on the left pushes the right-hand column
+along, and a long name on the right wraps back to the margin.
+A table with its borders turned off keeps each party in its own
+column whatever the length of the name.
+
+
 CHECKING A TEMPLATE
 -------------------
 
@@ -286,6 +313,23 @@ as:
   - a format word it does not know
   - an {{#if}} line outside a table whose {{/if}} is inside
     one. Both must be in the same place.
+
+It also lists things WORTH CHECKING. They are not mistakes,
+but they would repeat in every contract:
+
+  - tracked changes in the template that were never accepted.
+    Filled-in wording inside them would show as a tracked
+    change. Review > Accept > Accept All Changes, then save.
+  - Track Changes switched on in the template
+  - wording formatted as struck through. Strikethrough typed
+    as formatting is not a tracked change: it prints, struck
+    through, in every contract.
+  - a field that is shaded or highlighted, such as an old
+    placeholder like NEED YOUR ADDRESS that was shaded grey.
+    What is filled in would be shaded too.
+  - comments, which are copied into every contract.
+
+These are shown in the report as NOTE.
 
 After editing a template in Word, save it and press Reload.
 
@@ -308,11 +352,27 @@ Template tools > Turn a contract into a template.
 
 3. Press Make template and choose where to save it.
 
+Curly and straight quotes count as the same, so typing
+God's finds the God’s that Word wrote.
+
+The same field can be given to two different pieces of
+wording. If a contract calls the other party one name in the
+heading and another in the body, list both and give both the
+same field name; from then on they always match.
+
 Every place each piece of wording appears is replaced. Longer
 wording is handled first, so "Acme Widgets, Inc." is replaced
 before "Acme" would be. The report says how many times each
 was found; "0" usually means the spelling or punctuation
 differs from the contract.
+
+The new template has Track Changes switched off, so the
+editing you do next is not recorded as revisions. With the
+tick box "Reset letter spacing to normal" (on unless you
+untick it), it also loses squeezed or stretched letter
+spacing. Contracts converted from PDF, or with lines fitted
+by hand, are full of it, and it leaves odd gaps once a
+different name changes the length of a line.
 
 The original contract is not changed. Open the new template in
 Word to add the {{#if}} markers around optional clauses, then

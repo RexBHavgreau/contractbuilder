@@ -1,6 +1,6 @@
 """
 TMAI Contract Builder - the engine.
-Build 1
+Build 2
 
 A contract template is an ordinary Word document. The wording that stays
 the same is simply typed. The parts that change each time are written in
@@ -25,7 +25,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from lxml import etree
 
-BUILD = "1"
+BUILD = "2"
 APP_NAME = "TMAI Contract Builder"
 BLANK = "__________"
 
@@ -84,6 +84,15 @@ class TemplateError(Exception):
 def key(name):
     """Field names match whatever their spacing or capitals."""
     return re.sub(r"\s+", " ", str(name).replace(" ", " ")).strip().lower()
+
+
+QUOTE_FOLD = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'", "\u2032": "'",
+                            "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u2033": '"', "\u00a0": " "})
+
+
+def fold(text):
+    """Curly and straight quotes, and non-breaking spaces, compare equal. Lengths are kept."""
+    return text.translate(QUOTE_FOLD)
 
 
 def tidy_name(name):
@@ -360,6 +369,7 @@ class Template:
         self.path = pathlib.Path(path)
         self.fields = {}
         self.problems = []
+        self.warnings = []          # not wrong, but worth knowing before relying on it
         self.conditions = 0
         self.places = 0
         self._scan()
@@ -387,6 +397,8 @@ class Template:
             raise TemplateError(
                 f"{self.path.name} could not be opened as a Word document ({exc}). "
                 "Templates must be .docx or .dotx files.") from None
+        self._check_word_features(parts)
+        marked = set()
         for name, root in parts.items():
             where = part_label(name)
             for p in root.iter(w("p")):
@@ -398,8 +410,15 @@ class Template:
                     if kind == "field":
                         fname, fmt, options = parse_field(arg)
                         if not fname:
-                            self.problems.append(f"Empty {{{{ }}}} in {where}: “{snippet(text)}”")
+                            self.problems.append(f"Empty {{{{ }}}} in {where}: \u201c{snippet(text)}\u201d")
                             continue
+                        marks = run_marks(run_at(p, _name_start(text, m.start(), m.end())))
+                        if marks and key(fname) not in marked:
+                            marked.add(key(fname))
+                            self.warnings.append(
+                                f"{{{{{fname}}}}} is {' and '.join(marks)} in the template, so what is "
+                                "filled in will be too, in every contract. Remove that formatting from "
+                                "the field in Word unless it is wanted.")
                         f = self._field(fname)
                         f.as_value = True
                         self.places += 1
@@ -442,6 +461,39 @@ class Template:
         except TemplateError as exc:
             self.problems.append(str(exc))
 
+    def _check_word_features(self, parts):
+        revisions = comments = 0
+        struck = []
+        for root in parts.values():
+            for tag in ("ins", "del", "moveFrom", "moveTo", "rPrChange", "pPrChange"):
+                revisions += sum(1 for _ in root.iter(w(tag)))
+            comments += sum(1 for _ in root.iter(w("commentReference")))
+            for r in root.iter(w("r")):
+                if "struck through" in run_marks(r):
+                    text = "".join(t.text or "" for t in r.findall(w("t")))
+                    if text.strip():
+                        struck.append(text)
+        if revisions:
+            self.warnings.append(
+                f"The template has {revisions} tracked change(s) not yet accepted. Anything filled in "
+                "inside them shows as a tracked change in every contract. In Word: Review \u2192 "
+                "Accept \u2192 Accept All Changes, then save.")
+        if comments:
+            self.warnings.append(f"The template has {comments} comment(s); they are copied into every contract.")
+        if struck:
+            self.warnings.append(
+                f"Some wording is formatted as struck through ({quoted_list(struck)}). This is "
+                "formatting, not a tracked change, so it appears struck through in every contract. "
+                "Delete it, or make it an optional clause with {{#if}}.")
+        with zipfile.ZipFile(self.path) as z:
+            if "word/settings.xml" in z.namelist():
+                settings = z.read("word/settings.xml")
+                if re.search(rb"<w:trackRevisions(?![^>]*w:val=\"(false|0|off)\")", settings):
+                    self.warnings.append(
+                        "Track Changes is switched on in this template, so every contract starts with "
+                        "it on, and edits made to the template itself are tracked. Turn it off in Word "
+                        "(Review \u2192 Track Changes) unless that is wanted.")
+
     def summary(self):
         lines = [f"{len(self.value_fields())} thing(s) to fill in, used in {self.places} place(s)."]
         yesno = [f for f in self.fields.values() if f.kind == "yesno"]
@@ -481,6 +533,42 @@ def para_texts(p):
 
 def para_text(p):
     return "".join(t.text or "" for t in para_texts(p))
+
+
+def run_at(p, pos):
+    """The run holding character pos of a paragraph."""
+    off = 0
+    for t in para_texts(p):
+        n = len(t.text or "")
+        if off <= pos < off + n:
+            return t.getparent()
+        off += n
+    return None
+
+
+def _on(el):
+    return el is not None and el.get(w("val"), "true").lower() not in ("false", "0", "off", "none")
+
+
+def run_marks(r):
+    """Formatting on a run that would follow filled-in wording around."""
+    out = []
+    rpr = r.find(w("rPr")) if r is not None else None
+    if rpr is None:
+        return out
+    if _on(rpr.find(w("strike"))) or _on(rpr.find(w("dstrike"))):
+        out.append("struck through")
+    if _on(rpr.find(w("highlight"))):
+        out.append("highlighted")
+    shd = rpr.find(w("shd"))
+    if shd is not None and shd.get(w("fill"), "auto").lower() not in ("auto", "ffffff", "none"):
+        out.append("shaded")
+    return out
+
+
+def quoted_list(texts, most=4):
+    shown = ", ".join("\u201c" + snippet(t, 40) + "\u201d" for t in texts[:most])
+    return shown + (f" and {len(texts) - most} more" if len(texts) > most else "")
 
 
 def _set_text(t, text):
@@ -653,6 +741,20 @@ def _drop(el):
         parent.remove(el)
 
 
+def _is_blank(el):
+    return (el is not None and el.tag == w("p") and not para_text(el).strip()
+            and not _has_objects(el) and el.find(f"{w('pPr')}/{w('sectPr')}") is None)
+
+
+def _close_gap(prev, nxt):
+    """
+    After a clause is removed, the blank lines that stood either side of it
+    would now sit together. Keep one, so removed clauses leave no hole.
+    """
+    if _is_blank(prev) and _is_blank(nxt) and prev.getnext() is nxt:
+        _drop(nxt)
+
+
 def _has_objects(p):
     for tag in ("drawing", "pict", "object", "sym", "fldChar", "fldSimple"):
         if p.find(f".//{w(tag)}") is not None:
@@ -765,8 +867,12 @@ class Renderer:
                 doomed = _siblings(start, mid if mid is not None else end)
                 if mid is not None:
                     doomed.append(end)
+            gap = (doomed[0].getprevious(), doomed[-1].getnext())
+            only_markers = all(el.tag == w("p") and TOKEN.fullmatch(para_text(el).strip()) for el in doomed)
             for el in doomed:
                 _drop(el)
+            if not only_markers:
+                _close_gap(*gap)
 
     # -- fields, and optional words within a single paragraph --
     def paragraph(self, p, where):
@@ -816,7 +922,9 @@ class Renderer:
         if all_gone and not _has_objects(p):
             parent = p.getparent()
             if parent is not None and not (parent.tag == w("tc") and len(parent.findall(w("p"))) == 1):
+                gap = (p.getprevious(), p.getnext())
                 _drop(p)
+                _close_gap(*gap)
 
     @staticmethod
     def _stray(where, text):
@@ -850,12 +958,32 @@ def render(template, values, highlight=False, check_only=False):
                 data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
             elif info.filename == "[Content_Types].xml":
                 data = data.replace(TEMPLATE_TYPE.encode(), DOCUMENT_TYPE.encode())
+            elif info.filename == "docProps/core.xml" and not check_only:
+                data = fresh_properties(data)
             if zout is not None:
                 zout.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
         if zout is not None:
             zout.close()
     return (None if check_only else out.getvalue()), r.report
 
+
+
+def fresh_properties(data):
+    """A new contract is a new document: its created date is now, not the template's."""
+    try:
+        root = etree.fromstring(data)
+    except etree.XMLSyntaxError:
+        return data
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for el in list(root):
+        name = etree.QName(el).localname
+        if name in ("created", "modified"):
+            el.text = now
+        elif name == "revision":
+            el.text = "1"
+        elif name == "lastPrinted":
+            root.remove(el)
+    return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
 def problems_with(template, values):
@@ -906,11 +1034,19 @@ def find_candidates(path):
     return [(text, fmt, n) for text, (fmt, n) in found.items()]
 
 
-def make_template(source, out_path, swaps):
+def make_template(source, out_path, swaps, reset_spacing=True):
     """
     Copy an existing contract with chosen wording swapped for fields.
     swaps: [(text to find, field name, format)]. Returns {text: times replaced}.
     Longest text first, so 'Acme Corporation' is taken before 'Acme'.
+    Curly and straight quotes match each other, since a typed God's must find
+    the God\u2019s that Word wrote.
+
+    The new template also has Track Changes switched off, so adding fields
+    and {{#if}} lines to it is not recorded as revisions. With reset_spacing
+    it loses the squeezed and stretched letter spacing left by hand-fitting
+    lines or by converting from PDF, which would otherwise leave odd gaps
+    once filled-in wording changes the line lengths.
     """
     counts = {find: 0 for find, _, _ in swaps}
     order = sorted([s for s in swaps if s[0]], key=lambda s: len(s[0]), reverse=True)
@@ -919,12 +1055,16 @@ def make_template(source, out_path, swaps):
             data = zin.read(info.filename)
             if CONTENT_PART.match(info.filename):
                 root = etree.fromstring(data)
+                if reset_spacing:
+                    for sp in list(root.iter(w("spacing"))):
+                        if sp.getparent().tag == w("rPr"):
+                            sp.getparent().remove(sp)
                 for p in root.iter(w("p")):
                     for find, name, fmt in order:
                         token = "{{" + name + (f" | {fmt}" if fmt else "") + "}}"
-                        target = find.replace(" ", " ")
+                        target = fold(find)
                         while True:
-                            text = para_text(p).replace(" ", " ")
+                            text = fold(para_text(p))
                             hits = [m.start() for m in re.finditer(re.escape(target), text)
                                     if not _inside_token(text, m.start())]
                             if not hits:
@@ -932,6 +1072,11 @@ def make_template(source, out_path, swaps):
                             start = hits[-1]
                             replace_span(p, start, start + len(target), token)
                             counts[find] += 1
+                data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+            elif info.filename == "word/settings.xml":
+                root = etree.fromstring(data)
+                for el in root.findall(w("trackRevisions")):
+                    root.remove(el)
                 data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
             zout.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
     return counts

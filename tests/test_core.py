@@ -338,3 +338,86 @@ def test_answers_round_trip(template, tmp_path):
     core.save_answers(template, {"client name": "Acme", "Include Non-Compete": True}, path)
     data = core.load_answers(path)
     assert data["values"] == {"Client Name": "Acme", "Include Non-Compete": True}
+
+
+# ------------------------------------- lessons from the sample MOU (Oct 2026) ---
+
+def _rewrite(path, name, change):
+    """Apply change(bytes) -> bytes to one part of a .docx, in place."""
+    tmp = path.with_suffix(".tmp")
+    with zipfile.ZipFile(path) as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for i in zin.infolist():
+            data = zin.read(i.filename)
+            zout.writestr(i, change(data) if i.filename == name else data)
+    tmp.replace(path)
+
+
+def test_straight_quotes_find_curly_ones(tmp_path):
+    src = make_doc(tmp_path, ["Rights to God’s High Calling for Women by “John”."])
+    out = tmp_path / "made.docx"
+    counts = core.make_template(src, out, [("God's High Calling for Women", "Book Title", ""),
+                                           ('"John"', "Author", "")])
+    assert counts == {"God's High Calling for Women": 1, '"John"': 1}
+    assert Document(out).paragraphs[0].text == "Rights to {{Book Title}} by {{Author}}."
+
+
+def test_new_template_is_cleaned(tmp_path):
+    src = make_doc(tmp_path, ["Between TMAI and Acme."])
+    _rewrite(src, "word/settings.xml",
+             lambda d: d.replace(b"</w:settings>", b"<w:trackRevisions/></w:settings>"))
+    _rewrite(src, "word/document.xml",
+             lambda d: d.replace(b"<w:t>Between", b'<w:rPr><w:spacing w:val="53"/></w:rPr><w:t>Between'))
+    assert any("Track Changes is switched on" in n for n in core.Template(src).warnings)
+    out = tmp_path / "made.docx"
+    core.make_template(src, out, [("Acme", "Client", "")])
+    z = zipfile.ZipFile(out)
+    assert b"trackRevisions" not in z.read("word/settings.xml")
+    assert b"w:spacing" not in z.read("word/document.xml")
+    kept = tmp_path / "kept.docx"
+    core.make_template(src, kept, [("Acme", "Client", "")], reset_spacing=False)
+    assert b'w:spacing w:val="53"' in zipfile.ZipFile(kept).read("word/document.xml")
+
+
+def test_warnings_for_struck_shaded_and_tracked(tmp_path):
+    doc = Document()
+    p = doc.add_paragraph("Pay ")
+    p.add_run("the one-time fee").font.strike = True
+    p.add_run(" to ")
+    p.add_run("{{Address}}")
+    doc.add_paragraph("Hello {{Name}}")
+    path = tmp_path / "t.docx"
+    doc.save(path)
+    _rewrite(path, "word/document.xml", lambda d: d.replace(
+        b"<w:t>{{Address}}</w:t>",
+        b'<w:rPr><w:shd w:val="clear" w:color="auto" w:fill="D9D9D9"/></w:rPr><w:t>{{Address}}</w:t>').replace(
+        b"<w:t>Hello {{Name}}</w:t></w:r>",
+        b'<w:t>Hello {{Name}}</w:t></w:r><w:ins w:id="1" w:author="x"><w:r><w:t>!</w:t></w:r></w:ins>'))
+    t = core.Template(path)
+    notes = " ".join(t.warnings)
+    assert "struck through" in notes and "one-time fee" in notes
+    assert "{{Address}} is shaded" in notes
+    assert "tracked change(s) not yet accepted" in notes
+    assert t.problems == []                     # notes, not problems
+
+
+def test_removed_clause_leaves_one_blank_line(tmp_path):
+    paras = ["A", "", "{{#if X}}", "clause", "{{/if}}", "", "B"]
+    assert fill(tmp_path, paras, {"X": False}) == ["A", "", "B"]
+    assert fill(tmp_path, paras, {"X": True}) == ["A", "", "clause", "", "B"]
+    inline = ["A", "", "{{#if X}}clause{{/if}}", "", "B"]
+    assert fill(tmp_path, inline, {"X": False}) == ["A", "", "B"]
+    spaced = ["A", "", "", "B"]                 # blank lines the author typed are left alone
+    assert fill(tmp_path, spaced, {}) == spaced
+
+
+def test_contract_gets_its_own_dates(template, tmp_path):
+    out = tmp_path / "c.docx"
+    core.build_contract(template, VALUES, out)
+    xml = zipfile.ZipFile(out).read("docProps/core.xml").decode()
+    assert datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d") in xml
+
+
+def test_vietnamese_names(tmp_path):
+    lines = fill(tmp_path, ["{{Publisher}}, signed by {{Signatory | upper}}"],
+                 {"Publisher": "Trích Dẫn Tin Lành", "Signatory": "Phạm Thị Anh Thư"})
+    assert lines == ["Trích Dẫn Tin Lành, signed by PHẠM THỊ ANH THƯ"]
