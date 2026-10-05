@@ -1,0 +1,109 @@
+BUILDING THE APP
+================
+
+The app is two Python files: app.py (the window) and core.py (the
+contract engine). It needs Python 3.9 or later and two packages:
+
+    pip install lxml openpyxl
+
+To run it without building anything:
+
+    python app.py
+
+UNZIP FIRST. Opening app.py from inside a zip file does not work:
+Windows unpacks one file to a temporary place, so core.py is not
+really there and the window closes immediately. Extract the whole
+folder first. The app notices this and says so.
+
+
+THE EASY WAY TO BUILD
+=====================
+
+Two scripts sit beside app.py and core.py:
+
+    build-windows.bat      double-click on Windows
+    build-mac.command      double-click on a Mac
+
+Either one finds its own folder, so it works from a USB stick or
+wherever the files happen to be. It installs anything missing, reads
+the build number out of core.py, and names the app to match, as in
+
+    TMAI Contract Builder 1.exe
+
+The finished app appears in a "dist" folder beside the scripts, and
+that folder opens by itself when the build finishes. The working
+files are cleaned up; only the app is left.
+
+Build ON THE MACHINE THE APP IS FOR. PyInstaller cannot build a Mac
+app on Windows or the reverse.
+
+On a Mac the first run of build-mac.command may be refused. Right-
+click it, choose Open, and confirm. The same applies to the app it
+builds.
+
+
+BY HAND
+=======
+
+    pip install pyinstaller lxml openpyxl
+    python -m PyInstaller --onefile --windowed --name "TMAI Contract Builder" --hidden-import openpyxl app.py
+
+The app appears in dist. The build folder and .spec file are scratch.
+
+
+IF THE BUILD FAILS
+==================
+
+Both build scripts write everything to build-log.txt beside
+themselves, as it happens. On failure they print the last 25 lines
+to the window and then open the whole log, so there is always
+something to read and copy.
+
+
+WHAT TO EXPECT THE FIRST TIME
+=============================
+
+The app is not signed, so each system will object once.
+
+Windows: SmartScreen shows "Windows protected your PC". Click
+"More info", then "Run anyway".
+
+macOS: Gatekeeper refuses to open it. Right-click (or Control-click)
+the app and choose Open, then confirm. After that it opens normally.
+
+
+NOTES FOR THE MAC BUILD
+=======================
+
+Use a Python from python.org rather than whatever Apple ships.
+The system Python's tkinter is often old or missing, and the window
+will not open. Check before building:
+
+    python3 -c "import tkinter; tkinter.Tk()"
+
+A small empty window should appear.
+
+If your team has both Apple Silicon and Intel Macs, an app built on
+one will not run on the other. Build on the oldest machine, or add:
+
+    --target-arch universal2
+
+
+TESTS
+=====
+
+For whoever changes the code:
+
+    pip install pytest python-docx
+    python -m pytest tests
+
+tests/sample.py rebuilds examples/Sample Services Agreement.docx,
+which the tests use.
+
+
+RELEASING A NEW BUILD
+=====================
+
+Change BUILD in core.py, and the "Build" line at the top of core.py,
+app.py and USER-GUIDE.txt. The build scripts pick the number up
+from core.py by themselves.

@@ -1,0 +1,475 @@
+===============================================================
+ TMAI CONTRACT BUILDER - USER GUIDE
+ Build 3
+===============================================================
+
+This makes finished contracts from templates. The wording that
+never changes lives in the template, written once and checked
+once. Each time, you fill in only what changes: the client,
+the dates, the fees, which optional clauses apply. The app
+writes a new Word document with all of it in place.
+
+The template itself is never changed.
+
+There are two audiences for this guide. People making
+contracts want the first half. Whoever looks after the
+templates wants the section headed WRITING A TEMPLATE.
+
+
+---------------------------------------------------------------
+ GETTING STARTED
+---------------------------------------------------------------
+
+The app is a single file. Nothing needs installing. Copy it
+where you like and double-click it.
+
+The first time it runs on a machine, the system will object,
+because the app is not signed:
+
+  Windows   "Windows protected your PC". Click More info,
+            then Run anyway.
+
+  macOS     It simply refuses. Right-click (or Control-click)
+            the app, choose Open, then confirm. After that it
+            opens normally.
+
+Then tell it where the templates are: File > Choose templates
+folder. A shared folder that everyone uses is ideal, so a
+corrected template reaches everyone at once. The folder is
+remembered.
+
+
+---------------------------------------------------------------
+ MAKING A CONTRACT
+---------------------------------------------------------------
+
+1. Pick the template from the list at the top.
+
+2. Fill in the form. It is built from the template, so it
+   asks for exactly what that contract needs, in the order
+   it appears in the contract.
+
+   Under dates, amounts and numbers, a green line shows how
+   it will read in the contract:
+
+     10/5/2026   ->  5th day of October, 2026
+     12500       ->  Twelve Thousand Five Hundred Dollars
+                     ($12,500.00)
+
+   A red line means it cannot be read. Fix it before going on.
+
+   Dates can be typed most ways: 10/5/2026, Oct 5 2026,
+   October 5, 2026. Month comes first, as usual in the US.
+   The Today button fills in today's date.
+
+   Amounts can be typed with or without $ and commas.
+
+3. Under "Optional sections", tick the clauses that apply.
+
+4. Press Create contract and choose where to save it.
+
+If something is left empty, the app says what and asks
+before going on. Empty things appear in the contract as a
+line, __________, so they can be filled in by hand.
+
+Two choices at the bottom of the window are remembered:
+
+  Highlight filled-in wording
+      Everything the app filled in is highlighted in yellow,
+      so a reviewer can see at a glance what changed from the
+      standard wording. Turn it off for the final copy, or
+      remove it in Word: select all, then set highlight to
+      No Color.
+
+  Open the contract when done
+      Opens the finished contract in Word straight away.
+
+Whatever you typed stays in the form when you switch to
+another template, so the same client details carry across to
+a second document.
+
+
+---------------------------------------------------------------
+ SAVING ANSWERS FOR NEXT TIME
+---------------------------------------------------------------
+
+File > Save answers writes what is in the form to a small file.
+File > Load answers fills the form from it again.
+
+Use this for renewals and amendments: load last year's
+answers, change the dates and fee, and create the new
+contract. Answers saved from one template can be loaded into
+another; anything that matches by name is filled in.
+
+
+---------------------------------------------------------------
+ MANY CONTRACTS AT ONCE
+---------------------------------------------------------------
+
+For a batch, such as the same agreement with twenty clients:
+
+1. Many contracts > Make a blank spreadsheet. It has one
+   column for each thing the template asks for. Hover over a
+   column heading to see what it expects. Choices and Yes/No
+   columns have drop-down lists.
+
+2. Fill in one row per contract. The last column, File Name,
+   is optional; left empty, each file is named after the
+   template and the client.
+
+3. Many contracts > Create contracts from a spreadsheet.
+   Choose the spreadsheet, then the folder for the contracts.
+
+A row with a mistake in it, such as a date that cannot be
+read, is skipped and the report says why. The others are
+still made. A .csv file works as well as an Excel one.
+
+
+---------------------------------------------------------------
+ THE REPORT PANEL
+---------------------------------------------------------------
+
+The panel at the bottom says what happened: how many places
+were filled in, which optional sections were included or left
+out, anything left blank, and where the contract was saved.
+
+When a template is chosen it also says what the template
+asks for, and lists any PROBLEM with how it is written.
+
+
+===============================================================
+ WRITING A TEMPLATE
+===============================================================
+
+A template is an ordinary Word document, .docx or .dotx. Type
+and format it exactly as the finished contract should look.
+Then, wherever something changes from one contract to the
+next, type a name for it in double braces:
+
+    This Agreement is made between TMAI and {{Client Name}}.
+
+The form will ask for "Client Name" once, and fill it in
+everywhere {{Client Name}} appears, including headers,
+footers, tables and footnotes. Capitals and spacing in the
+name do not matter: {{client name}} is the same field.
+
+The filled-in wording takes the formatting of the name, so
+make {{Client Name}} bold to get the client's name in bold.
+
+Help > How to write a template shows a short version of this
+section inside the app.
+
+The quickest start is usually a contract you already have:
+see TURNING A CONTRACT INTO A TEMPLATE below.
+
+
+FORMATS
+-------
+
+Add a bar and a format word to say how a value should read.
+
+    {{Start Date | date}}           October 5, 2026
+    {{Start Date | date-formal}}    5th day of October, 2026
+    {{Start Date | date-short}}     10/05/2026
+
+    {{Fee | money}}                 $12,500.00
+    {{Fee | money-words}}           Twelve Thousand Five
+                                    Hundred Dollars ($12,500.00)
+    {{Fee | money-whole}}           $12,500  (no cents)
+
+    {{Term | number}}               1,250
+    {{Notice Days | number-words}}  thirty (30)
+
+    {{Client Name | upper}}         ACME CORPORATION
+    {{Scope | long}}                a large box, for several
+                                    lines; each line stays a
+                                    line in the contract
+
+    {{Entity | choice: corporation, limited liability company}}
+                                    a drop-down list
+
+The format also decides what the form asks for. A date field
+only accepts dates, a money field only amounts.
+
+One field can appear in different formats in different
+places. It is still asked for once:
+
+    The fee is {{Fee | money-words}} ...
+    (and in the fee table)  {{Fee | money}}
+
+
+OPTIONAL CLAUSES
+----------------
+
+Put {{#if ...}} on a line of its own before the clause and
+{{/if}} on a line of its own after it:
+
+    {{#if Include Non-Compete}}
+    7. Non-Competition. Client shall not ...
+    {{/if}}
+
+The form shows "Include Non-Compete" as a tick box. Untick
+it and the clause, and the two marker lines, are left out.
+Anything can go between the markers: several paragraphs,
+headings, whole tables.
+
+Use Word's automatic numbering (Home > Numbering) for clause
+numbers, and the clauses after a removed one renumber
+themselves. Numbers typed by hand will not.
+
+A cross-reference to a clause number (Insert > Cross-
+reference) updates when you select all and press F9 in Word.
+
+
+ONE BOOK OR SEVERAL
+-------------------
+
+An agreement may cover one book, or a book and its workbook.
+The wording changes all through it: "the work contains"
+becomes "the works contain". Rather than a template for each,
+write one that follows the number of titles.
+
+Put the titles in one field, one per line, and show them with
+the list format:
+
+    publishing rights to {{Titles | list}} authored by ...
+
+One title gives just the title. Two give "A and B"; three or
+more give "A, B, and C". If the field is in italics in the
+template, the titles are italic and the "and" between them is
+not.
+
+Then, wherever a word depends on how many there are, give the
+wording for one and the wording for more:
+
+    The translated {{Titles | plural: work, works}}
+    {{Titles | plural: contains, contain}} no matter ...
+    shall be {{Titles | plural: an accurate translation,
+    accurate translations}}.
+
+When the wording itself has a comma in it, separate the two
+with a slash instead:
+
+    {{Titles | plural: it, as written / them, as written}}
+
+plural also follows a number. For "10 years":
+
+    for a period of {{Term}} {{Term | plural: year, years}}
+
+The form shows how many titles it has counted beneath the box.
+
+
+ALTERNATIVE CLAUSES
+-------------------
+
+Where the wording depends on a choice, compare the name with
+a value. {{else}} gives the wording for every other case:
+
+    {{#if Governing State = Texas}}
+    This Agreement is governed by the laws of Texas, and venue
+    lies in Tarrant County.
+    {{else}}
+    This Agreement is governed by the laws of
+    {{Governing State | choice: Texas, Oklahoma, Louisiana}}.
+    {{/if}}
+
+A name compared like this, and never printed, becomes a
+drop-down of the values it is compared with.
+
+Also allowed:
+
+    {{#if not Include Non-Compete}}    the opposite
+    {{#if State != Texas}}             anything but Texas
+
+
+CLAUSES THAT DEPEND ON A FIELD
+------------------------------
+
+A field name alone in an {{#if}} is true when it has been
+filled in:
+
+    {{#if Guarantor Name}}
+    Guarantee. {{Guarantor Name}} guarantees ...
+    {{/if}}
+
+Leave Guarantor Name empty and the guarantee is left out. The
+form says so beneath the box.
+
+
+OPTIONAL WORDS INSIDE A SENTENCE
+--------------------------------
+
+A short optional part can sit inside one paragraph. Both
+markers must then be in that same paragraph:
+
+    Invoices are due within 30 days{{#if Late Fee}}, and a
+    late fee of {{Late Fee | money}} applies{{/if}}.
+
+This works inside table cells too:
+
+    {{#if Late Fee}}{{Late Fee | money}}{{else}}None{{/if}}
+
+If everything in a paragraph is optional and it is left out,
+the empty paragraph is removed too.
+
+
+BLANK LINES BETWEEN CLAUSES
+---------------------------
+
+Many contracts separate clauses with an empty line. Leave
+those where they are, outside the {{#if}} and {{/if}} lines:
+
+    (empty line)
+    {{#if Financial Assistance}}
+    11. The publisher can apply for financial assistance ...
+    {{/if}}
+    (empty line)
+
+When the clause is left out, the two empty lines would end up
+together. The app keeps just one, so there is no hole. Empty
+lines you typed next to each other on purpose are left alone.
+
+
+SIGNATURE BLOCKS
+----------------
+
+Signature blocks laid out with tabs, two parties side by side,
+work, but a long name on the left pushes the right-hand column
+along, and a long name on the right wraps back to the margin.
+A table with its borders turned off keeps each party in its own
+column whatever the length of the name.
+
+
+CHECKING A TEMPLATE
+-------------------
+
+Template tools > Check this template lists every field the
+app found, what sort of box it gets, and any problems, such
+as:
+
+  - a {{#if}} with no {{/if}}
+  - {{Client Name} with a brace missing
+  - a format word it does not know
+  - an {{#if}} line outside a table whose {{/if}} is inside
+    one. Both must be in the same place.
+
+It also lists things WORTH CHECKING. They are not mistakes,
+but they would repeat in every contract:
+
+  - tracked changes in the template that were never accepted.
+    Filled-in wording inside them would show as a tracked
+    change. Review > Accept > Accept All Changes, then save.
+  - Track Changes switched on in the template
+  - wording formatted as struck through. Strikethrough typed
+    as formatting is not a tracked change: it prints, struck
+    through, in every contract.
+  - a field that is shaded or highlighted, such as an old
+    placeholder like NEED YOUR ADDRESS that was shaded grey.
+    What is filled in would be shaded too.
+  - comments, which are copied into every contract.
+  - a field inside a link. The words shown are filled in,
+    but the address the link goes to stays the same.
+
+These are shown in the report as NOTE.
+
+After editing a template in Word, save it and press Reload.
+
+
+TURNING A CONTRACT INTO A TEMPLATE
+----------------------------------
+
+Template tools > Turn a contract into a template.
+
+1. Choose a finished contract you already have.
+
+2. In each row, type the wording that changes exactly as it
+   appears in the contract, for example Acme Widgets, Inc.,
+   and the field name it should become, Client Name. Pick a
+   format if it is a date or an amount.
+
+   "Suggest dates and amounts" finds the dollar amounts and
+   dates in the contract and adds them as rows. Give each a
+   name, or remove the ones that never change.
+
+3. Press Make template and choose where to save it.
+
+Matching is exact about capitals ("Works" and "works" are
+separate rows) and only finds whole words, so "works" is not
+found inside "networks".
+
+Curly and straight quotes count as the same, so typing
+God's finds the God’s that Word wrote.
+
+The same field can be given to two different pieces of
+wording. If a contract calls the other party one name in the
+heading and another in the body, list both and give both the
+same field name; from then on they always match.
+
+Every place each piece of wording appears is replaced. Longer
+wording is handled first, so "Acme Widgets, Inc." is replaced
+before "Acme" would be. The report says how many times each
+was found; "0" usually means the spelling or punctuation
+differs from the contract.
+
+Each row turns one piece of wording into one field. For
+plural wording, type the format yourself in the Format box,
+such as  plural: work, works.  Anything more involved, like
+"10 years" becoming {{Term}} {{Term | plural: year, years}},
+is quickest done afterwards in Word.
+
+Contracts often arrive as an earlier agreement edited with
+Track Changes on, and with reviewers' comments. With the tick
+box "Accept all tracked changes and remove comments first"
+(on unless you untick it), the template starts from the
+wording as finally changed, exactly as if you had chosen
+Accept All Changes in Word, and none of the old redlines or
+comments reach a contract. The report says how many there
+were.
+
+The new template has Track Changes switched off, so the
+editing you do next is not recorded as revisions. With the
+tick box "Reset letter spacing to normal" (on unless you
+untick it), it also loses squeezed or stretched letter
+spacing. Contracts converted from PDF, or with lines fitted
+by hand, are full of it, and it leaves odd gaps once a
+different name changes the length of a line.
+
+The original contract is not changed. Open the new template in
+Word to add the {{#if}} markers around optional clauses, then
+put it in the templates folder.
+
+
+---------------------------------------------------------------
+ WHEN SOMETHING LOOKS WRONG
+---------------------------------------------------------------
+
+Read the report panel first.
+
+A {{field}} came through unchanged
+  The braces were typed with something between them that is
+  not a plain brace, or one is missing. Check this template
+  lists it as a problem.
+
+"is open in Word"
+  Word locks files it has open. Close the contract, or the
+  template, and try again.
+
+Clause numbers did not renumber
+  They were typed by hand. Use Word's automatic numbering.
+
+The wrong state's clause appeared
+  The {{#if}} compares exact wording (ignoring capitals).
+  "Texas" and "TX" are different. A choice field avoids this.
+
+
+---------------------------------------------------------------
+ WHICH BUILD
+---------------------------------------------------------------
+
+The build number is in the title bar and in Help > About.
+Settings (the templates folder, the last template, where
+contracts were last saved, the two tick boxes) are kept in a
+small file in your home folder, .tmai-contract-builder.json.
+Deleting it simply resets them.
+
+===============================================================
