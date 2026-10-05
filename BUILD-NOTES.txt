@@ -1,8 +1,10 @@
 BUILDING THE APP
 ================
 
-The app is two Python files: app.py (the window) and core.py (the
-contract engine). It needs Python 3.9 or later and two packages:
+The app is three Python files: app.py (the window), core.py (the
+contract engine) and fieldsets.py (what a publishing agreement, or any
+other kind, is expected to contain). It needs Python 3.9 or later and
+two packages:
 
     pip install lxml openpyxl
 
@@ -19,7 +21,7 @@ folder first. The app notices this and says so.
 THE EASY WAY TO BUILD
 =====================
 
-Two scripts sit beside app.py and core.py:
+Two scripts sit beside the Python files:
 
     build-windows.bat      double-click on Windows
     build-mac.command      double-click on a Mac
@@ -97,8 +99,8 @@ For whoever changes the code:
     pip install pytest python-docx
     python -m pytest tests
 
-tests/sample.py rebuilds examples/Sample Services Agreement.docx,
-which the tests use.
+tests/sample.py rebuilds the two templates in examples, which the
+tests use.
 
 
 RELEASING A NEW BUILD
@@ -107,3 +109,8 @@ RELEASING A NEW BUILD
 Change BUILD in core.py, and the "Build" line at the top of core.py,
 app.py and USER-GUIDE.txt. The build scripts pick the number up
 from core.py by themselves.
+
+To change the built-in Publishing agreement field set (its clusters,
+defaults such as Party 1, the rights options and their wording), edit
+CLUSTERS in fieldsets.py and rebuild. Field sets people make in the
+app need no rebuild: they live in the templates folder.

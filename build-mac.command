@@ -33,8 +33,8 @@ echo "  Building the TMAI Contract Builder"
 echo "  Folder: $(pwd)"
 echo
 
-if [ ! -f app.py ] || [ ! -f core.py ]; then
-    echo "  app.py and core.py must sit beside this file."
+if [ ! -f app.py ] || [ ! -f core.py ] || [ ! -f fieldsets.py ]; then
+    echo "  app.py, core.py and fieldsets.py must sit beside this file."
     echo "  Found here:"; ls -1 *.py 2>/dev/null
     echo; read -r -p "  Press Return to close. "; exit 1
 fi
