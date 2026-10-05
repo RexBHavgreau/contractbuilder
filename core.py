@@ -1,6 +1,6 @@
 """
 TMAI Contract Builder - the engine.
-Build 2
+Build 3
 
 A contract template is an ordinary Word document. The wording that stays
 the same is simply typed. The parts that change each time are written in
@@ -25,7 +25,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from lxml import etree
 
-BUILD = "2"
+BUILD = "3"
 APP_NAME = "TMAI Contract Builder"
 BLANK = "__________"
 
@@ -54,18 +54,23 @@ FORMAT_ALIASES = {
     "date-short": "date-short", "short-date": "date-short",
     "money": "money", "currency": "money", "dollars": "money",
     "money-words": "money-words", "dollars-words": "money-words",
+    "money-whole": "money-whole", "money-no-cents": "money-whole", "whole-dollars": "money-whole",
     "number": "number", "num": "number",
     "number-words": "number-words", "words": "number-words",
-    "choice": "choice", "list": "choice",
+    "choice": "choice",
+    "list": "list", "and-list": "list",
+    "plural": "plural", "singular-plural": "plural",
 }
 
 # What sort of box the form shows for each format.
 KIND_OF_FORMAT = {
     "": "text", "upper": "text", "long": "long",
     "date": "date", "date-formal": "date", "date-short": "date",
-    "money": "money", "money-words": "money",
+    "money": "money", "money-words": "money", "money-whole": "money",
     "number": "number", "number-words": "number",
     "choice": "choice",
+    "list": "long",
+    "plural": "count",      # follows whatever it counts; a number when used on its own
 }
 
 EXAMPLES = {
@@ -138,9 +143,10 @@ def parse_field(text):
     options = []
     head = fmt.split(":", 1)[0].strip().lower()
     head = re.sub(r"[\s_]+", "-", head)
-    if FORMAT_ALIASES.get(head) == "choice":
+    if FORMAT_ALIASES.get(head) in ("choice", "plural"):
         rest = fmt.split(":", 1)[1] if ":" in fmt else ""
-        options = [o.strip() for o in rest.split(",") if o.strip()]
+        sep = "/" if "/" in rest else ","        # a slash lets the words hold commas
+        options = [o.strip() for o in rest.split(sep) if o.strip()]
     return tidy_name(name), FORMAT_ALIASES.get(head, head), options
 
 
@@ -279,10 +285,51 @@ def fmt_money_words(d):
     return f"{text} ({fmt_money(d)})"
 
 
-def format_value(fmt, raw):
+def list_items(raw):
+    """Titles typed one per line."""
+    return [line.strip() for line in str(raw or "").splitlines() if line.strip()]
+
+
+def count_of(raw):
+    """How many: a number typed as such, or else how many lines were typed."""
+    try:
+        d = parse_amount(raw)
+    except ValueError:
+        return len(list_items(raw))
+    if d != d.to_integral_value():
+        raise ValueError("needs a whole number")
+    return int(d)
+
+
+def joined(items):
+    """['A', 'B', 'C'] -> [('A', False), (', ', True), ('B', False), (', and ', True), ('C', False)].
+    The True pieces are the joining words, kept out of any italics the titles have."""
+    out = []
+    for i, item in enumerate(items):
+        if i:
+            out.append((" and " if len(items) == 2 else ", and " if i == len(items) - 1 else ", ", True))
+        out.append((item, False))
+    return out
+
+
+class Pieces(list):
+    """Filled-in wording made of pieces, some of them plain joining words."""
+
+    def __str__(self):
+        return "".join(text for text, _ in self)
+
+
+def format_value(fmt, raw, options=None):
     """Turn what was typed into what the contract says. Raises ValueError with a reason."""
     if isinstance(raw, str):
         raw = raw.strip()
+    if fmt == "list":
+        return Pieces(joined(list_items(raw)))
+    if fmt == "plural":
+        n = count_of(raw)
+        if not options or len(options) != 2:
+            return ""                          # reported when the template is checked
+        return options[0] if n == 1 else options[1]
     if fmt in ("", "choice", "long"):
         return str(raw)
     if fmt == "upper":
@@ -298,6 +345,9 @@ def format_value(fmt, raw):
         return fmt_money(parse_amount(raw))
     if fmt == "money-words":
         return fmt_money_words(parse_amount(raw))
+    if fmt == "money-whole":
+        d = parse_amount(raw).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        return f"${d:,}"
     if fmt in ("number", "number-words"):
         d = parse_amount(raw)
         if d != d.to_integral_value():
@@ -331,8 +381,10 @@ class Field:
         if not self.as_value:
             return "yesno"
         for k in kinds:
-            if k != "text":
+            if k not in ("text", "count"):
                 return k
+        if "count" in kinds and "text" not in kinds:
+            return "number"
         return "text"
 
     @property
@@ -349,16 +401,18 @@ class Field:
 
     def preview(self, raw):
         """What the contract will say, for the hint beside the box."""
-        if self.kind in ("yesno", "long", "text", "choice"):
+        if self.kind in ("yesno", "text", "choice"):
             return ""
         if raw is None or not str(raw).strip():
             return ""
         shown = []
         for f in self.formats:
-            if KIND_OF_FORMAT.get(f) == self.kind:
-                v = format_value(f, raw)
+            if KIND_OF_FORMAT.get(f) == self.kind and f != "long":
+                v = str(format_value(f, raw))
                 if v not in shown:
                     shown.append(v)
+        if "plural" in self.formats:
+            shown.append(f"counts as {count_of(raw)}")
         return "  |  ".join(shown)
 
 
@@ -412,7 +466,14 @@ class Template:
                         if not fname:
                             self.problems.append(f"Empty {{{{ }}}} in {where}: \u201c{snippet(text)}\u201d")
                             continue
-                        marks = run_marks(run_at(p, _name_start(text, m.start(), m.end())))
+                        holder = run_at(p, _name_start(text, m.start(), m.end()))
+                        marks = run_marks(holder)
+                        if holder is not None and holder.getparent().tag == w("hyperlink") \
+                                and ("link", key(fname)) not in marked:
+                            marked.add(("link", key(fname)))
+                            self.warnings.append(
+                                f"{{{{{fname}}}}} is inside a link. The wording shown is filled in, but "
+                                "the address the link goes to is not. Remove the link from the field.")
                         if marks and key(fname) not in marked:
                             marked.add(key(fname))
                             self.warnings.append(
@@ -429,6 +490,12 @@ class Template:
                             fmt = ""
                         if fmt not in f.formats:
                             f.formats.append(fmt)
+                        if fmt == "plural":
+                            if len(options) != 2:
+                                self.problems.append(
+                                    f"{{{{{fname} | plural ...}}}} in {where} needs two wordings, "
+                                    "one for one and one for more, like {{Books | plural: work, works}}.")
+                            options = []
                         for o in options:
                             if key(o) not in [key(x) for x in f.options]:
                                 f.options.append(o)
@@ -448,7 +515,7 @@ class Template:
                         f"Unmatched braces in {where}: “{snippet(text)}”. "
                         "Each field needs two on each side, like {{Client Name}}.")
         for f in self.fields.values():
-            kinds = {KIND_OF_FORMAT.get(x, "text") for x in f.formats} - {"text"}
+            kinds = {KIND_OF_FORMAT.get(x, "text") for x in f.formats} - {"text", "count"}
             if len(kinds) > 1:
                 self.problems.append(
                     f"{f.name} is used as more than one kind of thing ({', '.join(sorted(kinds))}). "
@@ -664,7 +731,25 @@ def _highlight(r):
     rpr.append(mark)
 
 
+PLAIN_OFF = ("i", "iCs", "u")       # what joining words do not share with titles
+
+
 def _write_run(r, text, highlight):
+    if isinstance(text, Pieces):
+        pieces = [(t, plain) for t, plain in text if t]
+        _write_run(r, pieces[0][0] if pieces else "", highlight)
+        last = r
+        for piece, plain in pieces[1:]:
+            nr = copy.deepcopy(r)
+            rpr = nr.find(w("rPr"))
+            if plain and rpr is not None:
+                for tag in PLAIN_OFF:
+                    for el in rpr.findall(w(tag)):
+                        rpr.remove(el)
+            _write_run(nr, piece, highlight)
+            last.addnext(nr)
+            last = nr
+        return
     for c in list(r):
         if c.tag != w("rPr"):
             r.remove(c)
@@ -804,15 +889,18 @@ class Renderer:
         return result
 
     def value(self, text):
-        name, fmt, _ = parse_field(text)
+        name, fmt, options = parse_field(text)
         if fmt not in KIND_OF_FORMAT:
             fmt = ""
         raw = self.values.get(key(name))
         if raw is None or (isinstance(raw, str) and not raw.strip()):
-            self.report.blank(name)
-            return BLANK
+            if fmt == "plural":                # nothing listed counts as none
+                raw = "0"
+            else:
+                self.report.blank(name)
+                return BLANK
         try:
-            out = format_value(fmt, raw)
+            out = format_value(fmt, raw, options)
         except ValueError as exc:
             raise TemplateError(f"{name}: {exc}") from None
         self.report.filled += 1
@@ -996,7 +1084,7 @@ def problems_with(template, values):
             continue
         for fmt in f.formats:
             try:
-                format_value(fmt, raw)
+                format_value(fmt, raw, ["", ""])
             except ValueError as exc:
                 out.append((f.name, str(exc)))
                 break
@@ -1034,7 +1122,79 @@ def find_candidates(path):
     return [(text, fmt, n) for text, (fmt, n) in found.items()]
 
 
-def make_template(source, out_path, swaps, reset_spacing=True):
+REVISION_MARKS = ("rPrChange", "pPrChange", "sectPrChange", "tblPrChange", "tblPrExChange", "trPrChange",
+                  "tcPrChange", "tblGridChange", "numberingChange", "moveFromRangeStart", "moveFromRangeEnd",
+                  "moveToRangeStart", "moveToRangeEnd", "cellIns", "cellDel", "cellMerge")
+COMMENT_PARTS = ("word/comments.xml", "word/commentsExtended.xml", "word/commentsIds.xml",
+                 "word/commentsExtensible.xml")
+
+
+def accept_revisions(root):
+    """
+    Accept every tracked change, as Word's Accept All Changes does: inserted
+    wording stays, deleted wording goes, new formatting stays. Returns how
+    many changes there were.
+    """
+    n = 0
+    for p in list(root.iter(w("p"))):              # a deleted paragraph mark joins it to the next
+        mark = p.find(f"{w('pPr')}/{w('rPr')}/{w('del')}")
+        if mark is None:
+            continue
+        mark.getparent().remove(mark)
+        n += 1
+        nxt = p.getnext()
+        if nxt is not None and nxt.tag == w("p"):
+            at = 1 if nxt.find(w("pPr")) is not None else 0
+            for i, c in enumerate([c for c in p if c.tag != w("pPr")]):
+                nxt.insert(at + i, c)
+            p.getparent().remove(p)
+    for tag in ("del", "moveFrom"):
+        for el in list(root.iter(w(tag))):
+            parent = el.getparent()
+            if parent is None:
+                continue
+            if parent.tag == w("trPr"):             # a deleted table row
+                row = parent.getparent()
+                if row.getparent() is not None:
+                    row.getparent().remove(row)
+            else:
+                parent.remove(el)
+            n += 1
+    for tag in ("ins", "moveTo"):
+        for el in list(root.iter(w(tag))):
+            parent = el.getparent()
+            if parent is None:
+                continue
+            if parent.tag in (w("rPr"), w("trPr")) or len(el) == 0:
+                parent.remove(el)                   # an inserted paragraph mark or row
+            else:
+                at = parent.index(el)
+                for i, c in enumerate(list(el)):
+                    parent.insert(at + i, c)
+                parent.remove(el)
+            n += 1
+    for tag in REVISION_MARKS:
+        for el in list(root.iter(w(tag))):
+            el.getparent().remove(el)
+            n += 1
+    return n
+
+
+def strip_comments(root):
+    n = sum(1 for _ in root.iter(w("commentRangeStart")))
+    for tag in ("commentRangeStart", "commentRangeEnd"):
+        for el in list(root.iter(w(tag))):
+            el.getparent().remove(el)
+    for ref in list(root.iter(w("commentReference"))):
+        r = ref.getparent()
+        if r.tag == w("r") and all(c.tag in (w("rPr"), w("commentReference")) for c in r):
+            r.getparent().remove(r)
+        else:
+            r.remove(ref)
+    return n
+
+
+def make_template(source, out_path, swaps, reset_spacing=True, accept_changes=True, notes=None):
     """
     Copy an existing contract with chosen wording swapped for fields.
     swaps: [(text to find, field name, format)]. Returns {text: times replaced}.
@@ -1047,7 +1207,13 @@ def make_template(source, out_path, swaps, reset_spacing=True):
     it loses the squeezed and stretched letter spacing left by hand-fitting
     lines or by converting from PDF, which would otherwise leave odd gaps
     once filled-in wording changes the line lengths.
+
+    With accept_changes, tracked changes are accepted and comments removed
+    first, so the template starts from the wording as it was finally agreed,
+    and no contract made from it carries old redlines. What was done is
+    added to notes, if given.
     """
+    revisions = comments = 0
     counts = {find: 0 for find, _, _ in swaps}
     order = sorted([s for s in swaps if s[0]], key=lambda s: len(s[0]), reverse=True)
     with zipfile.ZipFile(source) as zin, zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zout:
@@ -1055,6 +1221,9 @@ def make_template(source, out_path, swaps, reset_spacing=True):
             data = zin.read(info.filename)
             if CONTENT_PART.match(info.filename):
                 root = etree.fromstring(data)
+                if accept_changes:
+                    comments += strip_comments(root)
+                    revisions += accept_revisions(root)
                 if reset_spacing:
                     for sp in list(root.iter(w("spacing"))):
                         if sp.getparent().tag == w("rPr"):
@@ -1065,8 +1234,10 @@ def make_template(source, out_path, swaps, reset_spacing=True):
                         target = fold(find)
                         while True:
                             text = fold(para_text(p))
+                            gaps = para_gaps(p)
                             hits = [m.start() for m in re.finditer(re.escape(target), text)
-                                    if not _inside_token(text, m.start())]
+                                    if whole_word(text, m.start(), m.end(), gaps)
+                                    and not _inside_token(text, m.start())]
                             if not hits:
                                 break
                             start = hits[-1]
@@ -1078,8 +1249,48 @@ def make_template(source, out_path, swaps, reset_spacing=True):
                 for el in root.findall(w("trackRevisions")):
                     root.remove(el)
                 data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+            elif accept_changes and info.filename in COMMENT_PARTS:
+                root = etree.fromstring(data)
+                for c in list(root):
+                    root.remove(c)
+                data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
             zout.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
+    if notes is not None:
+        if revisions:
+            notes.append(f"accepted {revisions} tracked change(s)")
+        if comments:
+            notes.append(f"removed {comments} comment(s)")
     return counts
+
+
+def para_gaps(p):
+    """
+    Places in a paragraph's text where a tab or line break sits. They are not
+    part of the text, but they still separate words: 'Publications<tab>Jordan'.
+    """
+    gaps, off = set(), 0
+    for el in p.iter(w("t"), w("tab"), w("br"), w("cr")):
+        anc = el.getparent()
+        while anc is not None and anc.tag != w("p"):
+            anc = anc.getparent()
+        if anc is not p:
+            continue
+        if el.tag == w("t"):
+            off += len(el.text or "")
+        elif el.getparent().tag == w("r"):       # not a tab stop definition in pPr
+            gaps.add(off)
+    return gaps
+
+
+def whole_word(text, start, end, gaps=()):
+    """True unless the match is part of a longer word: 'works' is not found in 'networks'."""
+    def joined(a, b):
+        return a.isalnum() and b.isalnum()
+    if start > 0 and start not in gaps and joined(text[start - 1], text[start]):
+        return False
+    if end < len(text) and end not in gaps and joined(text[end - 1], text[end]):
+        return False
+    return True
 
 
 def _inside_token(text, pos):
@@ -1323,6 +1534,12 @@ FORMATS: add a bar and a format word
     {{Notice Days | number-words}}  thirty (30)
     {{Client Name | upper}}         ACME CORPORATION
     {{Scope | long}}                several lines of text
+    {{Fee | money-whole}}           $12,500 (no cents)
+    {{Titles | list}}               one per line, joined:
+                                    A and B / A, B, and C
+    {{Titles | plural: work, works}}
+                                    "work" for one title,
+                                    "works" for more
     {{State | choice: Texas, Oklahoma, Louisiana}}
                                     a drop-down list
 
@@ -1364,4 +1581,16 @@ A short optional phrase can sit inside one paragraph:
 
 Use Word's automatic numbering for clauses, and removed
 clauses renumber themselves.
+
+ONE BOOK OR SEVERAL
+
+Type the titles one per line in a single field, show them
+with {{Titles | list}}, and let every word that changes with
+the number follow it:
+
+    the translated {{Titles | plural: work, works}}
+    {{Titles | plural: contains, contain}} no matter ...
+
+Use a slash when the wording holds a comma:
+    {{Titles | plural: it, as written / them, as written}}
 """
