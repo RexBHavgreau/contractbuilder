@@ -21,6 +21,7 @@ echo.
 
 if not exist "app.py"  goto nosource
 if not exist "core.py" goto nosource
+if not exist "fieldsets.py" goto nosource
 
 rem --- Python present? ---
 where python >nul 2>&1
@@ -82,7 +83,7 @@ pause
 exit /b 0
 
 :nosource
-echo   app.py and core.py must sit beside this file.
+echo   app.py, core.py and fieldsets.py must sit beside this file.
 echo   Found in %~dp0:
 dir /b *.py 2>nul
 echo.

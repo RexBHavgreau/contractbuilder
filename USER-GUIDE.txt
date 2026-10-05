@@ -1,6 +1,6 @@
 ===============================================================
  TMAI CONTRACT BUILDER - USER GUIDE
- Build 3
+ Build 4
 ===============================================================
 
 This makes finished contracts from templates. The wording that
@@ -43,11 +43,15 @@ remembered.
  MAKING A CONTRACT
 ---------------------------------------------------------------
 
-1. Pick the template from the list at the top.
+1. Pick the template from the list at the top. Beneath it,
+   the field set says what kind of contract it is, normally
+   "Publishing agreement". The app picks it by itself; see
+   FIELD SETS below.
 
-2. Fill in the form. It is built from the template, so it
-   asks for exactly what that contract needs, in the order
-   it appears in the contract.
+2. Fill in the form. It asks for exactly what the template
+   needs, grouped the way a publishing contract is: Parties,
+   Works, Edition, Rights and territory, Term and dates,
+   Copies and delivery, Fees and funding.
 
    Under dates, amounts and numbers, a green line shows how
    it will read in the contract:
@@ -68,9 +72,69 @@ remembered.
 
 4. Press Create contract and choose where to save it.
 
-If something is left empty, the app says what and asks
-before going on. Empty things appear in the contract as a
-line, __________, so they can be filled in by hand.
+Before the contract is made, the app warns about two things
+and asks whether to go on:
+
+  - anything a publishing agreement is expected to have that
+    is empty or marked not relevant, such as a territory or
+    the rights licensed. These fields have a * beside them.
+  - anything else left empty. Empty things appear in the
+    contract as a line, __________, to be filled in by hand.
+
+
+PARTIES
+-------
+
+The form starts with two parties. Party 1 starts as
+whoever was Party 1 last time: name, description, address
+and signatory. At first that is The Master’s Academy
+International, so normally only Party 2 needs filling in.
+
+"+ Add another party" adds a third, or more. "Remove this
+party" takes one away again; the first two always stay.
+
+
+WORKS
+-----
+
+The form starts with one work. For a book and its workbook,
+press "+ Add another work". The contract then talks about
+"the works" instead of "the work" throughout, lists both
+titles, and repeats anything that is said for each work,
+such as its copyright notice.
+
+A work left completely empty is ignored.
+
+
+RIGHTS AND TERRITORY
+--------------------
+
+Rights licensed is a set of tick boxes: Print, Electronic
+(with appropriate digital rights management), Audio book,
+Digital, and All formats. Tick any that apply. The green line
+shows how the contract will say it, "print and audio book".
+All formats covers everything, so the others are greyed out
+while it is ticked.
+
+Territory: type the countries or regions, or tick Worldwide.
+Worldwide reads "throughout the world" in the contract;
+otherwise it reads "in" and what you typed, "in Vietnam".
+
+
+A FIELD THAT DOES NOT APPLY
+---------------------------
+
+Every field has a tick box at its left. Untick it when the
+field is not relevant to this contract, say there is no
+one-time fee. The box greys out, and in the contract:
+
+  - wording that depends on it is left out, if the template
+    puts it inside {{#if ...}} (see WRITING A TEMPLATE)
+  - anywhere else, the field is simply left out, with no
+    __________ line
+
+Unticking a field marked * is allowed, but the app will
+remind you before the contract is made.
 
 Two choices at the bottom of the window are remembered:
 
@@ -85,8 +149,60 @@ Two choices at the bottom of the window are remembered:
       Opens the finished contract in Word straight away.
 
 Whatever you typed stays in the form when you switch to
-another template, so the same client details carry across to
-a second document.
+another template, so the same details carry across to a
+second document.
+
+Clear empties the form and puts back the defaults: two
+parties with Party 1 as last time, and one work.
+
+
+---------------------------------------------------------------
+ FIELD SETS
+---------------------------------------------------------------
+
+A field set says what a kind of contract should contain. It
+decides how the form is laid out, what box each field gets
+(tick boxes for rights, Worldwide for territory, a panel per
+work and per party), what is filled in to start with, and
+which fields are expected.
+
+"Publishing agreement" is built in. Its clusters:
+
+  Parties              repeats; starts with two
+  Works                repeats; starts with one
+  Edition              language, translator
+  Rights and territory rights licensed, territory, exclusive
+                       or non-exclusive
+  Term and dates       agreement date, term in years,
+                       expiration date, publication deadline,
+                       signing deadline
+  Copies and delivery  print and ebook copy limits, copies to
+                       the proprietor, free copies for training
+  Fees and funding     one-time fee, funding amount
+
+When a template is chosen, the app picks the field set whose
+fields it uses most. To choose another, or none, use the
+Field set list. The choice is remembered for that template.
+
+MAKING YOUR OWN
+
+Press "Field sets..." (or Template tools > Field sets).
+
+  New      start an empty one
+  Copy     start from the selected one, such as Publishing
+           agreement, which cannot itself be changed
+  Name it, tick the clusters it should have, and add any
+  fields of your own: a name, what kind of box (text, date,
+  amount, number, choose one, tick any, territory, yes/no),
+  the options for choose one and tick any, whether it is
+  expected, and a section heading to group it under.
+  Save.
+
+Field sets are saved in a "Field sets" folder inside the
+templates folder, so everyone who uses that folder has them.
+
+"Show field codes" lists the {{...}} codes for every field in
+the set, ready to copy into a Word template.
 
 
 ---------------------------------------------------------------
@@ -119,6 +235,13 @@ For a batch, such as the same agreement with twenty clients:
 
 3. Many contracts > Create contracts from a spreadsheet.
    Choose the spreadsheet, then the folder for the contracts.
+
+Works and parties get numbered columns: Work 1 Title, Work 2
+Title, Party 3 Name and so on, with one spare in case. Leave
+the spare ones empty when there is no second work or third
+party. Rights licensed takes the options separated by commas,
+"Print, Audio book". Territory takes "Worldwide" or the
+places. Type N/A in a cell for a field that is not relevant.
 
 A row with a mistake in it, such as a date that cannot be
 read, is skipped and the report says why. The others are
@@ -158,6 +281,70 @@ make {{Client Name}} bold to get the client's name in bold.
 
 Help > How to write a template shows a short version of this
 section inside the app.
+
+
+WRITING A TEMPLATE FOR A FIELD SET
+----------------------------------
+
+Use the field set's names, and the form, warnings and
+defaults all follow. Template tools > Field codes for this
+field set lists them. The ones that repeat work like this:
+
+    {{Party 1 Name}}, {{Party 2 Name}}    one party by number
+    {{Party Name | list}}                 all of them:
+                                          "A and B", "A, B, and C"
+    {{Work Title | list}}                 every title
+    {{Work Author | list}}                each author once, so
+                                          two books by the same
+                                          author name him once
+    {{Works | plural: work, works}}       follows how many works
+
+For wording that repeats for each work or each party, put
+{{#each ...}} and {{/each}} each on a line of their own around
+it. Everything between is written out once per work:
+
+    {{#each Works}}
+    "This book was first published by {{Work Original
+    Publisher}} with the title {{Work Title}}, copyright
+    {{Work Copyright}}."
+    {{/each}}
+
+Signature blocks are the usual case for parties:
+
+    {{#each Parties}}
+    ______________________________   Date ____________
+    {{Party Name}}
+    {{Party Signatory}}, {{Party Signatory Title}}
+    {{/each}}
+
+A third party, if there is one, can be mentioned with an
+optional phrase:
+
+    ...and {{Party 2 Name}}{{#if Party 3 Name}}, and
+    {{Party 3 Name}}{{/if}}, witnesses:
+
+Rights and territory read naturally inside a sentence:
+
+    ...in {{Rights Licensed}} {{Rights Licensed | plural:
+    format, formats}}, {{Territory}} (hereinafter the
+    territory)...
+
+gives "in print and audio book formats, throughout the
+world". And {{#if Rights Licensed = Audio book}} ... {{/if}}
+holds a clause that only applies when audio is licensed.
+
+Where a field might be marked not relevant, keep the words
+around it inside an {{#if}} so they go with it:
+
+    ({{#if Party 1 Description}}{{Party 1 Description}},
+    {{/if}}hereinafter the proprietor)
+
+The examples folder has "Publishing MOU TEMPLATE.docx",
+written this way, as a starting point.
+
+The field set also checks the template: if it has no field
+for something expected, such as the territory, Check this
+template says so.
 
 The quickest start is usually a contract you already have:
 see TURNING A CONTRACT INTO A TEMPLATE below.
@@ -367,6 +554,8 @@ but they would repeat in every contract:
     placeholder like NEED YOUR ADDRESS that was shaded grey.
     What is filled in would be shaded too.
   - comments, which are copied into every contract.
+  - with a field set chosen, anything expected that the
+    template has no field for.
   - a field inside a link. The words shown are filled in,
     but the address the link goes to stays the same.
 
@@ -467,7 +656,8 @@ The wrong state's clause appeared
 ---------------------------------------------------------------
 
 The build number is in the title bar and in Help > About.
-Settings (the templates folder, the last template, where
+Settings (the templates folder, the last template, the field
+set chosen for each template, Party 1 as last used, where
 contracts were last saved, the two tick boxes) are kept in a
 small file in your home folder, .tmai-contract-builder.json.
 Deleting it simply resets them.

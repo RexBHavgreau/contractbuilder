@@ -1,6 +1,6 @@
 """
 TMAI Contract Builder - the engine.
-Build 3
+Build 4
 
 A contract template is an ordinary Word document. The wording that stays
 the same is simply typed. The parts that change each time are written in
@@ -25,7 +25,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from lxml import etree
 
-BUILD = "3"
+BUILD = "4"
 APP_NAME = "TMAI Contract Builder"
 BLANK = "__________"
 
@@ -123,7 +123,8 @@ def part_label(name):
 
 
 def classify(inner):
-    """What a {{...}} is: ('if', expression), ('else', None), ('end', None) or ('field', text)."""
+    """What a {{...}} is: ('if', expression), ('else', None), ('end', None),
+    ('each', group name), ('endeach', None) or ('field', text)."""
     s = inner.strip()
     m = re.match(r"#\s*if\b(.*)$", s, re.I | re.S)
     if m:
@@ -133,6 +134,11 @@ def classify(inner):
         return "else", None
     if low in ("/if", "endif", "#endif", "/endif"):
         return "end", None
+    m = re.match(r"#\s*each\b(.*)$", s, re.I | re.S)
+    if m:
+        return "each", m.group(1).strip()
+    if low in ("/each", "endeach", "#endeach", "/endeach"):
+        return "endeach", None
     return "field", s
 
 
@@ -361,6 +367,44 @@ def format_value(fmt, raw, options=None):
 
 # ------------------------------------------------------------- the model ---
 
+NOT_RELEVANT = {"not relevant": True}
+NOT_RELEVANT_WORDS = ("n/a", "na", "not relevant", "not applicable")
+INDEX = re.compile(r"\s\d+(?=\s|$)")
+
+
+def is_excluded(raw):
+    """True for a field the person marked as not relevant to this contract."""
+    return isinstance(raw, dict) and bool(raw.get("not relevant"))
+
+
+def is_empty(raw):
+    if raw is None:
+        return True
+    if is_excluded(raw) or isinstance(raw, bool):
+        return False
+    if isinstance(raw, dict):                         # a territory
+        return not raw.get("worldwide") and not str(raw.get("place", "")).strip()
+    if isinstance(raw, (list, tuple)):
+        return not any(str(x).strip() for x in raw)
+    return not str(raw).strip()
+
+
+def territory_parts(raw):
+    """(worldwide?, place) from the form's {'worldwide': .., 'place': ..} or typed text."""
+    if isinstance(raw, dict):
+        return bool(raw.get("worldwide")), str(raw.get("place", "")).strip()
+    text = str(raw or "").strip()
+    if key(text) in ("worldwide", "world", "the world", "throughout the world", "everywhere"):
+        return True, ""
+    return False, text
+
+
+def pick(options, n):
+    if not options or len(options) != 2:
+        return ""
+    return options[0] if n == 1 else options[1]
+
+
 class Field:
     """One thing that changes from contract to contract."""
 
@@ -372,9 +416,14 @@ class Field:
         self.as_value = False      # printed somewhere in the contract
         self.in_condition = False  # decides whether a clause appears
         self.compared = []         # values conditions compare it with
+        self.spec = None           # what a field set says about it
+        self.section = None
+        self.group = None          # the Group it repeats in, if any
 
     @property
     def kind(self):
+        if self.spec:
+            return self.spec.get("kind", "text")
         kinds = [KIND_OF_FORMAT.get(f, "text") for f in self.formats]
         if "choice" in kinds or (not self.as_value and self.compared):
             return "choice"
@@ -389,11 +438,47 @@ class Field:
 
     @property
     def choices(self):
+        if self.spec and self.spec.get("options"):
+            return [o["label"] for o in self.spec["options"]]
         out = []
         for o in self.options + self.compared:
             if key(o) not in [key(x) for x in out]:
                 out.append(o)
         return out
+
+    def option(self, text):
+        """The field set's option matching a label or its wording."""
+        for o in (self.spec or {}).get("options", []):
+            if key(text) in (key(o["label"]), key(o.get("wording", o["label"]))):
+                return o
+        return None
+
+    @property
+    def expected(self):
+        return bool(self.spec and self.spec.get("expected"))
+
+    @property
+    def help(self):
+        return (self.spec or {}).get("help", "")
+
+    @property
+    def remember(self):
+        return bool(self.spec and self.spec.get("remember"))
+
+    def default(self, index=None):
+        """What the form starts with: the field set's default, for this item of a group."""
+        if not self.spec:
+            return None
+        if index is not None and "defaults" in self.spec:
+            return self.spec["defaults"].get(str(index))
+        return self.spec.get("default")
+
+    @property
+    def label(self):
+        """The name without its group's word: 'Title' for Work Title, inside Work 1."""
+        if self.group and self.name.lower().startswith(self.group.item.lower() + " "):
+            return self.name[len(self.group.item) + 1:]
+        return self.name
 
     @property
     def example(self):
@@ -401,9 +486,9 @@ class Field:
 
     def preview(self, raw):
         """What the contract will say, for the hint beside the box."""
-        if self.kind in ("yesno", "text", "choice"):
+        if self.kind in ("yesno", "text", "choice", "checklist", "territory"):
             return ""
-        if raw is None or not str(raw).strip():
+        if raw is None or is_excluded(raw) or not str(raw).strip():
             return ""
         shown = []
         for f in self.formats:
@@ -411,21 +496,59 @@ class Field:
                 v = str(format_value(f, raw))
                 if v not in shown:
                     shown.append(v)
+        if self.kind in ("money", "date", "number") and not shown:
+            shown.append(str(format_value({"money": "money", "date": "date"}.get(self.kind, "number"), raw)))
         if "plural" in self.formats:
             shown.append(f"counts as {count_of(raw)}")
         return "  |  ".join(shown)
 
 
+class Group:
+    """Fields that repeat: one set for each work, or for each party."""
+
+    def __init__(self, name, item=None, minimum=1, start=1):
+        self.name = tidy_name(name)
+        self.key = key(name)
+        self.item = item or (self.name[:-1] if self.name.lower().endswith("s") else self.name)
+        self.minimum = minimum
+        self.start = start
+        self.members = []
+        self.member_keys = set()
+        self.highest = 0           # the largest number a template uses, as in {{Party 3 Name}}
+        self.counted = False       # the template asks how many, {{Works | plural: ...}}
+        self.cluster = None
+
+    @property
+    def first_count(self):
+        """How many the form starts with. A field set says; otherwise as many as the template names."""
+        if self.cluster is not None:
+            return max(self.minimum, self.start, 1)
+        return max(self.minimum, self.start, self.highest, 1)
+
+    def indexed_name(self, field, i):
+        """'Work 2 Title': how one item's field is named in templates and spreadsheets."""
+        if field.name.lower().startswith(self.item.lower() + " "):
+            return f"{self.item} {i} {field.name[len(self.item) + 1:]}"
+        return f"{field.name} {i}"
+
+    @property
+    def used(self):
+        return bool(self.members) or self.counted
+
+
 class Template:
     """A contract template, read and checked. Fields are in reading order."""
 
-    def __init__(self, path):
+    def __init__(self, path, fieldset=None):
         self.path = pathlib.Path(path)
+        self.fieldset = fieldset
         self.fields = {}
+        self.groups = {}
         self.problems = []
         self.warnings = []          # not wrong, but worth knowing before relying on it
         self.conditions = 0
         self.places = 0
+        self._names = []
         self._scan()
 
     @property
@@ -438,11 +561,42 @@ class Template:
     def value_fields(self):
         return [f for f in self.fields.values() if f.kind != "yesno"]
 
+    def field_for(self, name):
+        """The Field a name in a template refers to, whatever its numbering."""
+        return self.fields.get(self.resolve(name)[3] or "")
+
+    def token_names(self):
+        return list(self._names)
+
     def _field(self, name):
         k = key(name)
         if k not in self.fields:
             self.fields[k] = Field(name)
         return self.fields[k]
+
+    def resolve(self, name):
+        """
+        What a name in a template refers to:
+          ('count', group)               {{Works | plural: ...}}
+          ('member', group, key)          {{Work Title}}: this work, or all of them
+          ('indexed', group, n, key)      {{Party 2 Name}}
+          ('plain', key)                  anything else
+        Always returned as (mode, group, n, key).
+        """
+        k = key(name)
+        if k in self.groups:
+            return "count", self.groups[k], None, None
+        for g in self.groups.values():
+            if k in g.member_keys:
+                return "member", g, None, k
+        words_ = k.split(" ")
+        for i, word in enumerate(words_):
+            if word.isdigit():
+                rest = " ".join(words_[:i] + words_[i + 1:])
+                for g in self.groups.values():
+                    if rest in g.member_keys:
+                        return "indexed", g, int(word), rest
+        return "plain", None, None, k
 
     def _scan(self):
         try:
@@ -452,19 +606,33 @@ class Template:
                 f"{self.path.name} could not be opened as a Word document ({exc}). "
                 "Templates must be .docx or .dotx files.") from None
         self._check_word_features(parts)
+        found = []                  # (kind, name, format, options, compared value, where)
+        loops = {}                  # {{#each X}} name -> names used inside it
         marked = set()
         for name, root in parts.items():
             where = part_label(name)
+            open_loops = []
             for p in root.iter(w("p")):
                 text = para_text(p)
                 if "{" not in text and "}" not in text:
                     continue
+                lone = TOKEN.fullmatch(text.strip())
+                if lone:
+                    kind, arg = classify(lone.group(1))
+                    if kind == "each":
+                        open_loops.append(arg)
+                        loops.setdefault(key(arg), (arg, []))
+                        continue
+                    if kind == "endeach":
+                        if open_loops:
+                            open_loops.pop()
+                        continue
                 for m in TOKEN.finditer(text):
                     kind, arg = classify(m.group(1))
                     if kind == "field":
                         fname, fmt, options = parse_field(arg)
                         if not fname:
-                            self.problems.append(f"Empty {{{{ }}}} in {where}: \u201c{snippet(text)}\u201d")
+                            self.problems.append(f"Empty {{{{ }}}} in {where}: “{snippet(text)}”")
                             continue
                         holder = run_at(p, _name_start(text, m.start(), m.end()))
                         marks = run_marks(holder)
@@ -480,41 +648,106 @@ class Template:
                                 f"{{{{{fname}}}}} is {' and '.join(marks)} in the template, so what is "
                                 "filled in will be too, in every contract. Remove that formatting from "
                                 "the field in Word unless it is wanted.")
-                        f = self._field(fname)
-                        f.as_value = True
-                        self.places += 1
-                        if fmt not in KIND_OF_FORMAT:
-                            self.problems.append(
-                                f"Unknown format “{fmt}” for {fname} in {where}; "
-                                "it will be filled in as plain text.")
-                            fmt = ""
-                        if fmt not in f.formats:
-                            f.formats.append(fmt)
-                        if fmt == "plural":
-                            if len(options) != 2:
-                                self.problems.append(
-                                    f"{{{{{fname} | plural ...}}}} in {where} needs two wordings, "
-                                    "one for one and one for more, like {{Books | plural: work, works}}.")
-                            options = []
-                        for o in options:
-                            if key(o) not in [key(x) for x in f.options]:
-                                f.options.append(o)
+                        found.append(("field", fname, fmt, options, None, where))
+                        if open_loops:
+                            loops[key(open_loops[-1])][1].append(fname)
                     elif kind == "if":
-                        self.conditions += 1
                         cname, value, _ = parse_condition(arg)
                         if not cname:
                             self.problems.append(f"{{{{#if}}}} with no name in {where}: “{snippet(text)}”")
                             continue
-                        f = self._field(cname)
-                        f.in_condition = True
-                        if value and key(value) not in [key(x) for x in f.compared]:
-                            f.compared.append(value)
+                        self.conditions += 1
+                        found.append(("if", cname, None, None, value, where))
+                        if open_loops:
+                            loops[key(open_loops[-1])][1].append(cname)
                 rest = TOKEN.sub("", text)
                 if "{{" in rest or "}}" in rest:
                     self.problems.append(
                         f"Unmatched braces in {where}: “{snippet(text)}”. "
                         "Each field needs two on each side, like {{Client Name}}.")
+        self._names = [x[1] for x in found]
+
+        # Groups: those the field set defines, then any the template repeats with {{#each}}.
+        specs = {}
+        if self.fieldset:
+            for c, sp in self.fieldset.specs():
+                specs[key(sp["name"])] = (c, sp)
+            for c in self.fieldset.groups():
+                g = c["group"]
+                group = Group(g["name"], g.get("item"), g.get("min", 1), g.get("start", 1))
+                group.cluster = c["name"]
+                group.member_keys = {key(sp["name"]) for sp in c["fields"]}
+                self.groups[group.key] = group
+        for k, (gname, names) in loops.items():
+            if k not in self.groups:
+                group = Group(gname)
+                group.member_keys = {key(INDEX.sub("", n)) for n in names}
+                self.groups[k] = group
+
+        for kind, fname, fmt, options, value, where in found:
+            mode, group, n, k = self.resolve(fname)
+            if mode == "count":
+                group.counted = True
+                if kind == "field":
+                    self.places += 1
+                    if fmt == "plural" and len(options) != 2:
+                        self.problems.append(self._plural_problem(fname, where))
+                continue
+            if k in specs:
+                display = specs[k][1]["name"]
+            elif mode == "indexed":
+                display = tidy_name(INDEX.sub("", fname))
+            else:
+                display = fname
+            f = self._field(display)
+            if group is not None:
+                f.group = group
+                if f not in group.members:
+                    group.members.append(f)
+                if n:
+                    group.highest = max(group.highest, n)
+            if kind == "field":
+                f.as_value = True
+                self.places += 1
+                if fmt not in KIND_OF_FORMAT:
+                    self.problems.append(
+                        f"Unknown format “{fmt}” for {fname} in {where}; "
+                        "it will be filled in as plain text.")
+                    fmt = ""
+                if fmt not in f.formats:
+                    f.formats.append(fmt)
+                if fmt == "plural":
+                    if len(options) != 2:
+                        self.problems.append(self._plural_problem(fname, where))
+                    options = []
+                for o in options:
+                    if key(o) not in [key(x) for x in f.options]:
+                        f.options.append(o)
+            else:
+                f.in_condition = True
+                if value and key(value) not in [key(x) for x in f.compared]:
+                    f.compared.append(value)
+
+        for k, f in self.fields.items():
+            if k in specs:
+                f.section, f.spec = specs[k][0]["name"], specs[k][1]
+        order = list(specs)
+        for group in self.groups.values():
+            group.members.sort(key=lambda f: order.index(f.key) if f.key in order else len(order))
+
+        if self.fieldset:
+            for c, sp in self.fieldset.specs():
+                if sp.get("expected") and key(sp["name"]) not in self.fields:
+                    g = c.get("group")
+                    code = sp["name"]
+                    if g and code.lower().startswith(g["item"].lower() + " "):
+                        code = f"{g['item']} 1 {code[len(g['item']) + 1:]}"
+                    self.warnings.append(
+                        f"A {self.fieldset.name.lower()} is expected to state {sp['name']}, but this "
+                        f"template has no field for it, such as {{{{{code}}}}}.")
         for f in self.fields.values():
+            if f.spec:
+                continue
             kinds = {KIND_OF_FORMAT.get(x, "text") for x in f.formats} - {"text", "count"}
             if len(kinds) > 1:
                 self.problems.append(
@@ -522,11 +755,105 @@ class Template:
                     f"The form will treat it as {f.kind}.")
             if f.kind == "choice" and not f.choices:
                 self.problems.append(f"{f.name} is a choice with no options listed.")
-        # Trial run: structural mistakes in the {{#if}} blocks show up here.
+        # Trial run: structural mistakes in the {{#if}} and {{#each}} blocks show up here.
         try:
             render(self, {}, check_only=True)
         except TemplateError as exc:
             self.problems.append(str(exc))
+
+    @staticmethod
+    def _plural_problem(name, where):
+        return (f"{{{{{name} | plural ...}}}} in {where} needs two wordings, one for one and one "
+                "for more, like {{Books | plural: work, works}}.")
+
+    def layout(self):
+        """The form, in sections: [(title, [Field or Group])]."""
+        out, placed = [], set()
+        if self.fieldset:
+            for c in self.fieldset.clusters():
+                entries = []
+                g = c.get("group")
+                if g:
+                    group = self.groups.get(key(g["name"]))
+                    if group and group.used:
+                        entries.append(group)
+                        placed.update(f.key for f in group.members)
+                else:
+                    for sp in c["fields"]:
+                        f = self.fields.get(key(sp["name"]))
+                        if f is not None:
+                            entries.append(f)
+                            placed.add(f.key)
+                if entries:
+                    out.append((c["name"], entries))
+        for group in self.groups.values():
+            if group.cluster is None and group.used:
+                out.append((group.name, [group]))
+                placed.update(f.key for f in group.members)
+        others = [f for f in self.fields.values() if f.key not in placed and f.kind != "yesno"]
+        if others:
+            out.append(("Other details" if out else "Details", others))
+        switches = [f for f in self.fields.values() if f.key not in placed and f.kind == "yesno"]
+        if switches:
+            out.append(("Optional sections", switches))
+        return out
+
+    def normalize(self, values):
+        """
+        Values ready for filling in: ordinary fields by key, and each group as
+        a list of {field key: value}, one per item. Takes the form's values,
+        saved answers, or a spreadsheet row with columns like 'Work 2 Title';
+        N/A in a spreadsheet means not relevant.
+        """
+        def clean(v):
+            if isinstance(v, str) and v.strip().lower() in NOT_RELEVANT_WORDS:
+                return dict(NOT_RELEVANT)
+            return v
+
+        out = {}
+        for name, v in values.items():
+            mode, group, n, k = self.resolve(name)
+            if mode == "count":
+                if isinstance(v, list):
+                    items = out.setdefault(group.key, [])
+                    for i, item in enumerate(v):
+                        while len(items) <= i:
+                            items.append({})
+                        for ik, iv in (item or {}).items():
+                            items[i][key(INDEX.sub("", ik))] = clean(iv)
+                continue
+            if mode == "indexed":
+                items = out.setdefault(group.key, [])
+                while len(items) < n:
+                    items.append({})
+                items[n - 1][k] = clean(v)
+            elif mode == "member":
+                items = out.setdefault(group.key, [])
+                if not items:
+                    items.append({})
+                items[0][k] = clean(v)
+            else:
+                out[k] = clean(v)
+        return out
+
+    def expected_gaps(self, values):
+        """Expected fields left empty or marked not relevant, as lines for a warning."""
+        vals = self.normalize(values)
+        out = []
+        for f in self.fields.values():
+            if not f.expected or f.kind == "yesno":
+                continue
+            if f.group is not None:
+                items = vals.get(f.group.key) or [{}]
+                pairs = [(f.group.indexed_name(f, i), item.get(f.key)) for i, item in enumerate(items, 1)]
+            else:
+                pairs = [(f.name, vals.get(f.key))]
+            for label, raw in pairs:
+                if is_excluded(raw):
+                    out.append(f"{label} (marked not relevant)")
+                elif is_empty(raw):
+                    out.append(f"{label} (empty)")
+        return out
 
     def _check_word_features(self, parts):
         revisions = comments = 0
@@ -849,10 +1176,41 @@ def _has_objects(p):
 
 # ------------------------------------------------------------- rendering ---
 
+def picked_options(field, raw):
+    """The ticked options of a checklist, as option dicts."""
+    labels = raw if isinstance(raw, (list, tuple)) else re.split(r"\s*[;,]\s*", str(raw or ""))
+    out = []
+    for label in labels:
+        if str(label).strip():
+            out.append(field.option(label) if field and field.option(label)
+                       else {"label": str(label).strip(), "wording": str(label).strip()})
+    return out
+
+
+def word_value(field, fmt, raw, options=None):
+    """One value, as the contract words it."""
+    kind = field.kind if field else "text"
+    if kind == "checklist":
+        picked = picked_options(field, raw)
+        everything = [o for o in picked if o.get("all")]
+        if fmt == "plural":
+            return pick(options, 2 if everything else len(picked))
+        return Pieces(joined([o["wording"] for o in (everything[:1] or picked)]))
+    if kind == "territory":
+        world, place = territory_parts(raw)
+        sp = field.spec or {}
+        text = sp.get("worldwide", "throughout the world") if world else sp.get("place", "{}").format(place)
+        return format_value("upper" if fmt == "upper" else "", text)
+    if kind == "choice" and field and field.option(raw) and fmt in ("", "choice"):
+        return field.option(raw).get("wording", raw)
+    return format_value(fmt, raw, options)
+
+
 class Report:
     def __init__(self):
         self.filled = 0
         self.blanks = []
+        self.left_out = []
         self.kept = 0
         self.removed = 0
 
@@ -860,27 +1218,80 @@ class Report:
         if name not in self.blanks:
             self.blanks.append(name)
 
+    def leave_out(self, name):
+        if name not in self.left_out:
+            self.left_out.append(name)
+
 
 class Renderer:
     def __init__(self, template, values, highlight=False, check_only=False):
         self.template = template
-        self.values = {key(k): v for k, v in values.items()}
+        self.values = template.normalize(values)
         self.highlight = highlight
         self.check_only = check_only
         self.report = Report()
+        self.context = None         # (group, item values, number) inside {{#each}}
+        self.done = set()           # paragraphs already filled in by {{#each}}
+
+    # -- finding values --
+    def items(self, group):
+        """A group's items, leaving out any with nothing in them."""
+        return [it for it in self.values.get(group.key, [])
+                if any(not is_empty(v) and not is_excluded(v) for v in it.values())]
+
+    def lookup(self, name):
+        """(how, value, field): how is 'one', 'many' (every item of a group) or 'count'."""
+        mode, group, n, k = self.template.resolve(name)
+        field = self.template.fields.get(k) if k else None
+        if mode == "count":
+            return "count", len(self.items(group)), field
+        if mode == "member":
+            if self.context and self.context[0] is group:
+                return "one", self.context[1].get(k), field
+            return "many", [it.get(k) for it in self.items(group)], field
+        if mode == "indexed":
+            items = self.values.get(group.key, [])
+            return "one", (items[n - 1].get(k) if n <= len(items) else None), field
+        return "one", self.values.get(k), field
+
+    picked = staticmethod(lambda field, raw: picked_options(field, raw))
+
+    def holds(self, field, raw, value):
+        """Whether a condition is true for one value."""
+        if raw is None or is_excluded(raw):
+            return False
+        kind = field.kind if field else "text"
+        if kind == "checklist":
+            picked = self.picked(field, raw)
+            if value is None:
+                return bool(picked)
+            if any(o.get("all") for o in picked):
+                return True
+            return any(key(value) in (key(o["label"]), key(o["wording"])) for o in picked)
+        if kind == "territory":
+            world, place = territory_parts(raw)
+            if value is None:
+                return world or bool(place)
+            if key(value) in ("worldwide", "world", "the world"):
+                return world
+            return not world and key(place) == key(value)
+        if value is not None:
+            return key(str(raw)) == key(value)
+        if kind == "yesno":
+            return as_bool(raw)
+        return not is_empty(raw)
 
     def truth(self, expr):
         if self.check_only:
             return True
         name, value, negate = parse_condition(expr)
-        raw = self.values.get(key(name))
-        f = self.template.fields.get(key(name))
-        if value is not None:
-            result = key(str(raw or "")) == key(value)
-        elif f is not None and f.kind == "yesno":
-            result = as_bool(raw)
+        how, raw, field = self.lookup(name)
+        if how == "count":
+            result = raw > 0 if value is None else str(raw) == value.strip()
+        elif how == "many":
+            result = any(self.holds(field, r, value) for r in raw)
         else:
-            result = bool(str(raw if raw is not None else "").strip())
+            result = self.holds(field, raw, value)
         result = result != negate
         if result:
             self.report.kept += 1
@@ -888,25 +1299,52 @@ class Renderer:
             self.report.removed += 1
         return result
 
+    @staticmethod
+    def one(field, fmt, raw, options):
+        return word_value(field, fmt, raw, options)
+
     def value(self, text):
         name, fmt, options = parse_field(text)
         if fmt not in KIND_OF_FORMAT:
             fmt = ""
-        raw = self.values.get(key(name))
-        if raw is None or (isinstance(raw, str) and not raw.strip()):
-            if fmt == "plural":                # nothing listed counts as none
-                raw = "0"
-            else:
-                self.report.blank(name)
-                return BLANK
+        how, raw, field = self.lookup(name)
         try:
-            out = format_value(fmt, raw, options)
+            if how == "count":
+                out = pick(options, raw) if fmt == "plural" else format_value(
+                    fmt if fmt in ("number", "number-words") else "number", raw)
+            elif how == "many":
+                live = [r for r in raw if not is_excluded(r) and not is_empty(r)]
+                if fmt == "plural":
+                    out = pick(options, len(live))
+                elif not live:
+                    if raw and all(is_excluded(r) for r in raw):
+                        self.report.leave_out(name)
+                        return ""
+                    self.report.blank(name)
+                    return BLANK
+                else:
+                    shown = []
+                    for r in live:
+                        v = str(self.one(field, "" if fmt == "list" else fmt, r, options))
+                        if key(v) not in [key(x) for x in shown]:
+                            shown.append(v)
+                    out = Pieces(joined(shown))
+            elif is_excluded(raw):
+                self.report.leave_out(name)
+                return ""
+            elif is_empty(raw):
+                if fmt != "plural":
+                    self.report.blank(name)
+                    return BLANK
+                out = pick(options, 0)
+            else:
+                out = self.one(field, fmt, raw, options)
         except ValueError as exc:
             raise TemplateError(f"{name}: {exc}") from None
         self.report.filled += 1
         return out
 
-    # -- optional clauses that are whole paragraphs, tables and all --
+    # -- optional clauses, and repeated ones, that are whole paragraphs --
     def blocks(self, root, where):
         markers = []
         for p in root.iter(w("p")):
@@ -918,35 +1356,58 @@ class Renderer:
         stack, found = [], []
         for p, kind, arg in markers:
             line = snippet(para_text(p))
-            if kind == "if":
-                stack.append({"start": p, "expr": arg, "else": None, "line": line, "n": len(found) + len(stack)})
+            if kind == "each" and (self.context is not None or any(b["kind"] == "each" for b in stack)):
+                raise TemplateError(f"\u201c{line}\u201d in {where} is inside another {{{{#each}}}}; "
+                                    "one repeat cannot sit inside another.")
+            if kind in ("if", "each"):
+                stack.append({"kind": kind, "start": p, "expr": arg, "else": None, "line": line,
+                              "n": len(found) + len(stack)})
             elif kind == "else":
-                if not stack:
+                if not stack or stack[-1]["kind"] != "if":
                     raise TemplateError(f"An {{{{else}}}} in {where} has no {{{{#if ...}}}} before it.")
                 if stack[-1]["else"] is not None:
                     raise TemplateError(f"“{stack[-1]['line']}” in {where} has two {{{{else}}}} lines.")
                 stack[-1]["else"] = p
+            elif kind == "endeach":
+                if not stack or stack[-1]["kind"] != "each":
+                    raise TemplateError(f"A {{{{/each}}}} line in {where} has no {{{{#each ...}}}} line "
+                                        "before it, or an {{#if}} inside it is not closed first.")
+                b = stack.pop()
+                b["end"] = p
+                found.append(b)
             else:
                 if not stack:
                     raise TemplateError(
                         f"A {{{{/if}}}} line in {where} has no {{{{#if ...}}}} line before it. "
                         "An {{#if ...}} that shares its paragraph with other words only covers that "
                         "paragraph; to cover several, put it on a line of its own.")
+                if stack[-1]["kind"] != "if":
+                    raise TemplateError(f"“{stack[-1]['line']}” in {where} needs its {{{{/each}}}} "
+                                        "before the next {{/if}}.")
                 b = stack.pop()
                 b["end"] = p
                 found.append(b)
         if stack:
-            raise TemplateError(f"“{stack[-1]['line']}” in {where} is never closed with {{{{/if}}}}.")
+            closer = "{{/each}}" if stack[-1]["kind"] == "each" else "{{/if}}"
+            raise TemplateError(f"“{stack[-1]['line']}” in {where} is never closed with {closer}.")
         for b in sorted(found, key=lambda b: b["n"]):
             start, mid, end = b["start"], b["else"], b["end"]
             if not _attached(start, root):
                 continue                     # inside a section already removed
             parent = start.getparent()
+            closer = "{{/each}}" if b["kind"] == "each" else "{{/if}}"
             if end.getparent() is not parent or (mid is not None and mid.getparent() is not parent):
                 raise TemplateError(
-                    f"“{b['line']}” in {where} and its {{{{/if}}}} are in different places, "
+                    f"“{b['line']}” in {where} and its {closer} are in different places, "
                     "for example one inside a table and one outside it. Put both in the main text, "
                     "or both in the same table cell.")
+            if b["kind"] == "each":
+                if self.context is not None:
+                    raise TemplateError(f"“{b['line']}” in {where} is inside another "
+                                        "{{#each}}; one repeat cannot sit inside another.")
+                if not self.check_only:
+                    self.repeat(b, where)
+                continue
             if self.check_only:
                 continue
             if self.truth(b["expr"]):
@@ -962,6 +1423,35 @@ class Renderer:
             if not only_markers:
                 _close_gap(*gap)
 
+    def repeat(self, b, where):
+        """{{#each Works}} ... {{/each}}: the part between, once for each work."""
+        start, end = b["start"], b["end"]
+        group = self.template.groups.get(key(b["expr"]))
+        if group is None:
+            raise TemplateError(f"“{b['line']}” in {where}: nothing called {b['expr']} repeats.")
+        region = _siblings(start, end)[1:-1]
+        for i, item in enumerate(self.items(group), 1):
+            holder = etree.Element(w("body"))
+            for el in region:
+                holder.append(copy.deepcopy(el))
+            self.context = (group, item, i)
+            try:
+                self.blocks(holder, where)
+                for p in list(holder.iter(w("p"))):
+                    if _attached(p, holder):
+                        self.paragraph(p, where)
+            finally:
+                self.context = None
+            for el in list(holder):
+                end.addprevious(el)
+                self.done.update(el.iter(w("p")))
+        gap = (start.getprevious(), end.getnext())
+        nothing = not self.items(group)
+        for el in [start] + region + [end]:
+            _drop(el)
+        if nothing:
+            _close_gap(*gap)
+
     # -- fields, and optional words within a single paragraph --
     def paragraph(self, p, where):
         text = para_text(p)
@@ -973,6 +1463,9 @@ class Renderer:
         toks = [(m.start(), m.end(), *classify(m.group(1))) for m in TOKEN.finditer(text)]
         deletions, stack = [], []
         for start, end, kind, arg in toks:
+            if kind in ("each", "endeach"):
+                raise TemplateError(f"In {where}, “{snippet(text)}”: {{{{#each ...}}}} and "
+                                    "{{/each}} must each be on a line of their own.")
             if kind == "if":
                 stack.append([start, end, arg, None])
             elif kind == "else":
@@ -1023,7 +1516,7 @@ class Renderer:
     def part(self, root, where):
         self.blocks(root, where)
         for p in list(root.iter(w("p"))):
-            if _attached(p, root):
+            if p not in self.done and _attached(p, root):
                 self.paragraph(p, where)
         for tc in root.iter(w("tc")):            # a table cell must keep one paragraph
             if tc.find(w("p")) is None:
@@ -1077,19 +1570,42 @@ def fresh_properties(data):
 def problems_with(template, values):
     """Typed values that cannot be used, as [(field name, reason)]."""
     out = []
-    vals = {key(k): v for k, v in values.items()}
-    for f in template.value_fields():
-        raw = vals.get(f.key)
-        if raw is None or (isinstance(raw, str) and not raw.strip()):
+    vals = template.normalize(values)
+
+    def check(f, raw, label):
+        if raw is None or is_excluded(raw) or is_empty(raw):
+            return
+        kind = f.kind
+        try:
+            if kind == "date":
+                parse_date(raw)
+            elif kind in ("money", "number"):
+                parse_amount(raw)
+            for fmt in f.formats:
+                if fmt == "plural" and kind not in ("checklist", "territory"):
+                    count_of(raw)
+                elif KIND_OF_FORMAT.get(fmt) == kind and kind in ("date", "money", "number"):
+                    format_value(fmt, raw)
+        except ValueError as exc:
+            out.append((label, str(exc)))
+            return
+        if kind == "choice" and f.choices and not isinstance(raw, (list, dict)) \
+                and key(raw) not in [key(c) for c in f.choices]:
+            out.append((label, f"must be one of: {', '.join(f.choices)}"))
+        if kind == "checklist" and f.spec:
+            labels = raw if isinstance(raw, (list, tuple)) else re.split(r"\s*[;,]\s*", str(raw))
+            bad = [str(x) for x in labels if str(x).strip() and not f.option(x)]
+            if bad:
+                out.append((label, f"not one of the options: {', '.join(bad)}"))
+
+    for f in template.fields.values():
+        if f.kind == "yesno":
             continue
-        for fmt in f.formats:
-            try:
-                format_value(fmt, raw, ["", ""])
-            except ValueError as exc:
-                out.append((f.name, str(exc)))
-                break
-        if f.kind == "choice" and f.choices and key(raw) not in [key(c) for c in f.choices]:
-            out.append((f.name, f"must be one of: {', '.join(f.choices)}"))
+        if f.group is not None:
+            for i, item in enumerate(vals.get(f.group.key, []), 1):
+                check(f, item.get(f.key), f.group.indexed_name(f, i))
+        else:
+            check(f, vals.get(f.key), f.name)
     return out
 
 
@@ -1315,8 +1831,16 @@ def blank_sheet(template, out_path):
     wb = Workbook()
     ws = wb.active
     ws.title = "Contracts"
-    fields = template.field_list()
-    headers = [f.name for f in fields] + [FILE_NAME_COLUMN]
+    columns = []                                  # (heading, field)
+    for _, entries in template.layout():
+        for entry in entries:
+            if isinstance(entry, Group):
+                for i in range(1, entry.first_count + 2):     # one spare, for another work or party
+                    columns += [(entry.indexed_name(f, i), f) for f in entry.members]
+            else:
+                columns.append((entry.name, entry))
+    fields = [f for _, f in columns]
+    headers = [h for h, _ in columns] + [FILE_NAME_COLUMN]
     ws.append(headers)
     for col, name in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col)
@@ -1334,7 +1858,15 @@ def blank_sheet(template, out_path):
                 "money": "An amount, such as 12500.",
                 "number": "A number.",
                 "long": "Several lines allowed: Alt+Enter starts a new line in a cell.",
-                "choice": "One of: " + ", ".join(f.choices)}.get(f.kind, "Text.")
+                "choice": "One of: " + ", ".join(f.choices),
+                "checklist": "Any of these, separated by commas: " + ", ".join(f.choices),
+                "territory": "Worldwide, or the countries or regions."}.get(f.kind, "Text.")
+        if f.kind != "yesno":
+            note += " Type N/A if it does not apply to this contract."
+        if f.expected:
+            note = "Expected. " + note
+        if f.group is not None:
+            note += f" Leave a whole {f.group.item.lower()} empty if there is no such {f.group.item.lower()}."
         cell.comment = Comment(note, APP_NAME)
         allowed = {"yesno": ["Yes", "No"], "choice": f.choices}.get(f.kind)
         if allowed and len(",".join(allowed)) < 250 and not any("," in a for a in allowed):
@@ -1389,10 +1921,24 @@ def unique_path(folder, stem, suffix=".docx"):
 
 
 def suggested_name(template, values):
-    vals = {key(k): v for k, v in values.items()}
+    vals = template.normalize(values)
+    parts = []
+    for f in template.value_fields():             # what the field set says names a file
+        which = (f.spec or {}).get("file_name")
+        if not which:
+            continue
+        if f.group is not None:
+            items = vals.get(f.group.key, [])
+            v = items[int(which) - 1].get(f.key) if len(items) >= int(which) else None
+        else:
+            v = vals.get(f.key)
+        if isinstance(v, str) and v.strip():
+            parts.append(v.strip().splitlines()[0])
+    if parts:
+        return safe_filename(" - ".join([template.name] + parts))
     for f in template.value_fields():
         v = vals.get(f.key)
-        if f.kind in ("text", "choice") and v and str(v).strip():
+        if f.group is None and f.kind in ("text", "choice") and isinstance(v, str) and v.strip():
             return safe_filename(f"{template.name} - {v}")
     return safe_filename(f"{template.name} - {datetime.date.today():%Y-%m-%d}")
 
@@ -1439,6 +1985,7 @@ def batch(template, sheet_path, out_folder, highlight=False, say=print):
 
 def save_answers(template, values, path):
     names = {f.key: f.name for f in template.field_list()}
+    names.update({g.key: g.name for g in template.groups.values()})
     data = {
         "app": APP_NAME, "build": BUILD, "template": template.path.name,
         "saved": datetime.datetime.now().isoformat(timespec="minutes"),
@@ -1593,4 +2140,23 @@ the number follow it:
 
 Use a slash when the wording holds a comma:
     {{Titles | plural: it, as written / them, as written}}
+
+FIELD SETS (Publishing agreement)
+
+With a field set chosen beside the template, use its names;
+Template tools > Field codes lists them all. Works and
+parties repeat:
+
+    {{Party 1 Name}}  {{Party 2 Name}}   one by number
+    {{Work Title | list}}                 all the titles
+    {{Works | plural: work, works}}       follows how many
+
+Wording written once for each work, or each party:
+
+    {{#each Works}}
+    ... {{Work Title}} ... {{Work Copyright}} ...
+    {{/each}}
+
+    {{Rights Licensed}}   the ticked rights, in words
+    {{Territory}}         "throughout the world" or "in ..."
 """

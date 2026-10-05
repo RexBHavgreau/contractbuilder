@@ -521,3 +521,195 @@ def test_link_warning(tmp_path):
         b"<w:r><w:t>Email {{Email}}</w:t></w:r>",
         b'<w:r><w:t xml:space="preserve">Email </w:t></w:r><w:hyperlink w:anchor="x"><w:r><w:t>{{Email}}</w:t></w:r></w:hyperlink>'))
     assert any("inside a link" in n for n in core.Template(path).warnings)
+
+
+# ----------------------- field sets, works, parties, rights, territory (Build 4) ---
+
+import fieldsets                                              # noqa: E402
+
+PUB = fieldsets.BUILTIN[0]
+
+
+@pytest.fixture(scope="module")
+def mou(tmp_path_factory):
+    path = sample.build_mou(tmp_path_factory.mktemp("m") / "MOU.docx")
+    return core.Template(path, PUB)
+
+
+def mou_values(**changes):
+    v = {
+        "Parties": [
+            {"Party Name": fieldsets.TMAI, "Party Role": "proprietor",
+             "Party Description": "the authorized representative of the author",
+             "Party Address": "13248 Roscoe Blvd., Sun Valley, CA, U.S.A.",
+             "Party Signatory": "Rick Kress", "Party Signatory Title": "VP of Global Publications"},
+            {"Party Name": "Trích Dẫn Tin Lành", "Party Role": "publisher", "Party Address": "Hà Nội",
+             "Party Signatory": "Thu Pham", "Party Signatory Title": "Director"}],
+        "Works": [{"Work Title": "God’s High Calling for Women", "Work Author": "John MacArthur",
+                   "Work Original Publisher": "Moody Publishers", "Work Copyright": "©1987 by John MacArthur"}],
+        "Language": "Vietnamese", "Rights Licensed": ["Print"], "Territory": {"worldwide": False, "place": "Vietnam"},
+        "License Type": "Exclusive", "Term Years": "1", "Expiration Date": "12/1/2034",
+        "Publication Deadline Months": "18", "Copies to Proprietor": "7", "Signing Deadline": "10/15/2026",
+    }
+    v.update(changes)
+    return v
+
+
+def mou_text(template, values, tmp_path):
+    out = tmp_path / "c.docx"
+    report = core.build_contract(template, values, out)
+    return "\n".join(p.text for p in Document(out).paragraphs), report
+
+
+def test_mou_template_reads_cleanly(mou):
+    assert mou.problems == [] and mou.warnings == []
+    sections = [title for title, _ in mou.layout()]
+    assert sections[:3] == ["Parties", "Works", "Edition"]
+    assert mou.groups["parties"].first_count == 2          # not 3, though {{Party 3 Name}} is used
+    assert mou.groups["works"].first_count == 1
+    assert mou.fields["rights licensed"].kind == "checklist"
+    assert mou.fields["territory"].kind == "territory"
+    assert fieldsets.best_for(mou.path, fieldsets.BUILTIN) is PUB
+
+
+def test_one_work_one_format_one_place(mou, tmp_path):
+    text, report = mou_text(mou, mou_values(), tmp_path)
+    assert "rights to God’s High Calling for Women authored by John MacArthur (hereinafter the work)" in text
+    assert "edition of the work in print format, in Vietnam (hereinafter the territory), for a period " \
+           "of one (1) year" in text
+    assert "The translated work shall be an accurate translation." in text
+    assert text.count("This book was first published by") == 1
+    assert "an exclusive agreement" in text
+    assert "waives any licensing fee" in text and "Party 3" not in text
+    assert text.count("______________________________   Date") == 2
+    assert report.blanks == []
+
+
+def test_several_works_and_rights(mou, tmp_path):
+    works = [{"Work Title": "Twelve Extraordinary Women", "Work Author": "John MacArthur"},
+             {"Work Title": "Twelve Extraordinary Women Workbook", "Work Author": "John MacArthur"}]
+    text, _ = mou_text(mou, mou_values(Works=works, **{
+        "Rights Licensed": ["Print", "Electronic (with appropriate digital rights management)", "Audio book"],
+        "Territory": {"worldwide": True, "place": "ignored"}, "Term Years": "10"}), tmp_path)
+    assert "rights to Twelve Extraordinary Women and Twelve Extraordinary Women Workbook authored by " \
+           "John MacArthur (hereinafter the works)" in text      # the author once, not twice
+    assert "in print, electronic (with the appropriate digital rights management), and audio book formats, " \
+           "throughout the world" in text
+    assert text.count("This book was first published by") == 2
+    assert "The translated works shall be accurate translations." in text
+
+
+def test_all_formats_wins(mou, tmp_path):
+    text, _ = mou_text(mou, mou_values(**{"Rights Licensed": ["Print", "All formats"]}), tmp_path)
+    assert "in all formats," in text
+
+
+def test_a_third_party(mou, tmp_path):
+    parties = mou_values()["Parties"] + [{"Party Name": "Third Ministry", "Party Role": "distributor",
+                                          "Party Address": "Paris", "Party Signatory": "A. B."}]
+    text, _ = mou_text(mou, mou_values(Parties=parties), tmp_path)
+    assert "and Third Ministry (hereinafter the distributor), Paris, witnesses" in text
+    assert text.splitlines()[0] == \
+        "The Master’s Academy International, Trích Dẫn Tin Lành, and Third Ministry"
+    assert text.count("______________________________   Date") == 3
+
+
+def test_not_relevant_fields(mou, tmp_path):
+    values = mou_values(**{"Funding Amount": "11500", "Free Copies for Training": core.NOT_RELEVANT})
+    values["Parties"][0]["Party Description"] = core.NOT_RELEVANT
+    text, report = mou_text(mou, values, tmp_path)
+    assert "fund $11,500 US dollars" in text
+    assert "training centers" not in text                    # the clause depending on it went
+    assert "International (hereinafter the proprietor)" in text
+    assert report.blanks == []
+
+
+def test_expected_gaps(mou):
+    values = mou_values(Language="", Territory=core.NOT_RELEVANT)
+    values["Works"].append({"Work Title": "Second", "Work Author": ""})
+    gaps = mou.expected_gaps(values)
+    assert "Language (empty)" in gaps
+    assert "Territory (marked not relevant)" in gaps
+    assert "Work 2 Author (empty)" in gaps
+    assert mou.expected_gaps(mou_values()) == []
+
+
+def test_template_missing_expected_fields(tmp_path):
+    t = core.Template(make_doc(tmp_path, ["Between {{Party 1 Name}} and {{Party 2 Name}} for {{Work Title}}."]), PUB)
+    notes = " ".join(t.warnings)
+    assert "Territory" in notes and "Rights Licensed" in notes and "Language" in notes
+    assert "Party Name" not in notes and "Work Title" not in notes
+
+
+def test_problems_with_publishing_values(mou):
+    bad = mou_values(**{"Expiration Date": "someday", "Rights Licensed": ["Print", "Hologram"]})
+    bad["Works"][0]["Work Title"] = core.NOT_RELEVANT          # not relevant is not a problem
+    names = {n for n, _ in core.problems_with(mou, bad)}
+    assert names == {"Expiration Date", "Rights Licensed"}
+
+
+def test_each_without_field_set(tmp_path):
+    paras = ["Books: {{Book Title | list}}.", "{{#each Books}}", "{{Book Title}} by {{Book Author}}",
+             "{{/each}}", "End."]
+    t = core.Template(make_doc(tmp_path, paras))
+    assert t.problems == [] and "books" in t.groups
+    lines = fill(tmp_path, paras, {"Books": [{"Book Title": "A", "Book Author": "X"},
+                                             {"Book Title": "B", "Book Author": "Y"}]})
+    assert lines == ["Books: A and B.", "A by X", "B by Y", "End."]
+
+
+@pytest.mark.parametrize("paras, words", [
+    (["{{#each Works}}", "x"], "never closed with {{/each}}"),
+    (["x", "{{/each}}"], "no {{#each"),
+    (["{{#each A}}", "{{#each B}}", "x", "{{/each}}", "{{/each}}"], "inside another"),
+    (["Titles {{#each Works}} here"], "line of their own"),
+])
+def test_each_mistakes(tmp_path, paras, words):
+    t = core.Template(make_doc(tmp_path, paras))
+    assert any(words in p for p in t.problems), t.problems
+
+
+def test_spreadsheet_with_works_and_parties(mou, tmp_path):
+    from openpyxl import load_workbook
+    sheet = tmp_path / "s.xlsx"
+    core.blank_sheet(mou, sheet)
+    ws = load_workbook(sheet).active
+    headers = [c.value for c in ws[1]]
+    assert {"Party 1 Name", "Party 3 Name", "Work 1 Title", "Work 2 Title", "Rights Licensed",
+            "Territory"} <= set(headers)
+    row = {"Party 1 Name": "TMAI", "Party 1 Role": "proprietor", "Party 2 Name": "Pub", "Party 2 Role": "publisher",
+           "Work 1 Title": "One", "Work 1 Author": "MacArthur", "Work 2 Title": "Two", "Work 2 Author": "MacArthur",
+           "Language": "Italian", "Rights Licensed": "Print, Audio book", "Territory": "Worldwide",
+           "Expiration Date": datetime.datetime(2036, 9, 18), "One-time Fee": "N/A"}
+    wb = load_workbook(sheet)
+    wb.active.append([row.get(h, "") for h in headers])
+    wb.save(sheet)
+    lines = []
+    made, skipped = core.batch(mou, sheet, tmp_path, say=lines.append)
+    assert (made, skipped) == (1, 0), lines
+    out = next(tmp_path.glob("MOU - *.docx"))
+    assert out.name == "MOU - Pub - One.docx"
+    text = "\n".join(p.text for p in Document(out).paragraphs)
+    assert "rights to One and Two" in text and "in print and audio book formats, throughout the world" in text
+
+
+def test_field_sets_saved_and_loaded(tmp_path):
+    fs = fieldsets.FieldSet("Audio rights", ["Parties", "Rights and territory"],
+                            [{"name": "Narrator", "kind": "text", "expected": True, "section": "Recording"}])
+    path = fieldsets.save(fs, tmp_path)
+    assert path.parent.name == "Field sets"
+    loaded = fieldsets.find(fieldsets.load_all(tmp_path), "audio rights")
+    assert [c["name"] for c in loaded.clusters()] == ["Parties", "Rights and territory", "Recording"]
+    t = core.Template(make_doc(tmp_path, ["{{Party 1 Name}} {{Narrator}} {{Territory}}"]), loaded)
+    assert any("Rights Licensed" in n for n in t.warnings)
+    assert t.fields["narrator"].expected
+    assert "{{Narrator}}  (expected)" in loaded.codes()
+    fieldsets.delete(loaded)
+    assert fieldsets.find(fieldsets.load_all(tmp_path), "audio rights") is None
+
+
+def test_answers_with_groups_round_trip(mou, tmp_path):
+    path = tmp_path / "a.json"
+    core.save_answers(mou, mou_values(), path)
+    again = core.load_answers(path)["values"]
+    assert mou.normalize(again) == mou.normalize(mou_values())
