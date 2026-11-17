@@ -67,7 +67,7 @@ profile. Changes made in the contract form apply only to that contract.
 
 Publisher profiles are stored in a local SQLite database in your user data
 directory. On Windows, this is normally under
-%LOCALAPPDATA%\\TMAI Contract Builder. On macOS, it is under
+%LOCALAPPDATA%\TMAI Contract Builder. On macOS, it is under
 ~/Library/Application Support/TMAI Contract Builder. On Linux, it is under
 $XDG_DATA_HOME/TMAI Contract Builder or ~/.local/share/TMAI Contract Builder.
 Back up publisher_profiles.sqlite3 if you need to move your saved profiles to
