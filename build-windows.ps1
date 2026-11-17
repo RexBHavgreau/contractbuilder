@@ -13,34 +13,54 @@ function Write-Log {
     $Message | Tee-Object -FilePath $Log -Append
 }
 
+function Write-DiscoveryLog {
+    param([string]$Message)
+    Add-Content -LiteralPath $Log -Value $Message -Encoding UTF8
+}
+
 function Find-UsablePython {
     $candidates = [System.Collections.Generic.List[string]]::new()
 
+    # The Python install manager places managed installations under
+    # %LOCALAPPDATA%\Python and registers them with the py launcher.
     $pyCommand = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($pyCommand) {
+        Write-DiscoveryLog "Python launcher: $($pyCommand.Source)"
         foreach ($arguments in @(@("-0p"), @("list", "--format=exe"))) {
             try {
                 $lines = & $pyCommand.Source @arguments 2>$null
                 foreach ($line in $lines) {
-                    if ("$line" -match '([A-Za-z]:\\.*?python(?:w)?\.exe)\s*$') {
+                    Write-DiscoveryLog "py $($arguments -join ' '): $line"
+                    if ("$line" -match '(?i)([A-Z]:\\.*?pythonw?\.exe)\s*$') {
                         $candidates.Add($Matches[1])
                     }
                 }
-            } catch {}
+            } catch {
+                Write-DiscoveryLog "Python launcher query failed: $($_.Exception.Message)"
+            }
         }
+    } else {
+        Write-DiscoveryLog "Python launcher (py.exe): not found on PATH."
     }
 
     foreach ($commandName in @("python.exe", "python3.exe")) {
         $command = Get-Command $commandName -ErrorAction SilentlyContinue
-        if ($command -and $command.Source) { $candidates.Add($command.Source) }
+        if ($command -and $command.Source) {
+            Write-DiscoveryLog "$commandName on PATH: $($command.Source)"
+            $candidates.Add($command.Source)
+        }
     }
 
     try {
         $whereOutput = & where.exe python.exe 2>$null
         foreach ($line in $whereOutput) {
-            if ("$line" -match '^[A-Za-z]:\\.*python\.exe$') { $candidates.Add("$line") }
+            if ("$line" -match '(?i)^[A-Z]:\\.*python\.exe$') {
+                $candidates.Add("$line")
+            }
         }
-    } catch {}
+    } catch {
+        Write-DiscoveryLog "where.exe python.exe could not be run: $($_.Exception.Message)"
+    }
 
     # setup-python supplies a known-good CPython directory in CI. Prefer it
     # directly rather than resolving a PATH alias.
@@ -50,48 +70,79 @@ function Find-UsablePython {
         if (Test-Path -LiteralPath $runtimePython -PathType Leaf) {
             $runtimeFile = Get-Item -LiteralPath $runtimePython
             if ($runtimeFile.Length -gt 0) {
+                Write-DiscoveryLog "Using configured Python runtime: $runtimePython"
                 return (Resolve-Path -LiteralPath $runtimePython).Path
             }
         }
     }
 
-    # GitHub Actions exposes its selected interpreter through pythonLocation.
-    # Python_ROOT_DIR variants are also used by common Windows CI environments.
-    foreach ($runtimeRoot in @($env:pythonLocation, $env:Python_ROOT_DIR, $env:Python3_ROOT_DIR)) {
-        if ($runtimeRoot) {
-            $runtimePython = Join-Path $runtimeRoot "python.exe"
-            if (Test-Path -LiteralPath $runtimePython) { $candidates.Add($runtimePython) }
-        }
-    }
-
+    # Include both layouts: the Python install manager's %LOCALAPPDATA%\Python
+    # and the older python.org installer layout under Programs\Python.
     $roots = @(
+        (Join-Path $env:LOCALAPPDATA "Python"),
         (Join-Path $env:LOCALAPPDATA "Programs\Python"),
         (Join-Path $env:ProgramFiles "Python"),
         (Join-Path $env:ProgramFiles "Python Software Foundation")
-    ) | Where-Object { $_ -and (Test-Path $_) }
+    ) | Where-Object { $_ }
 
     foreach ($base in $roots) {
-        Get-ChildItem -Path $base -Directory -ErrorAction SilentlyContinue |
+        if (-not (Test-Path -LiteralPath $base -PathType Container)) {
+            Write-DiscoveryLog "Install folder not present: $base"
+            continue
+        }
+
+        Write-DiscoveryLog "Searching install folder: $base"
+        $directPython = Join-Path $base "python.exe"
+        if (Test-Path -LiteralPath $directPython -PathType Leaf) {
+            $candidates.Add($directPython)
+        }
+
+        Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue |
             ForEach-Object {
                 $candidate = Join-Path $_.FullName "python.exe"
-                if (Test-Path $candidate) { $candidates.Add($candidate) }
+                if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                    $candidates.Add($candidate)
+                }
             }
     }
 
     $seen = @{}
     $probe = 'import os,sys; p=getattr(sys,"_base_executable",sys.executable); sys.exit(0 if os.path.isfile(p) and os.path.getsize(p)>0 else 17)'
     foreach ($candidate in $candidates) {
-        if (-not $candidate -or $seen.ContainsKey($candidate)) { continue }
+        if (-not $candidate) { continue }
+        $candidate = "$candidate".Trim()
+        if ($seen.ContainsKey($candidate)) { continue }
         $seen[$candidate] = $true
-        if ($candidate -match '\\WindowsApps\\') { continue }
-        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+
+        if ($candidate -match '(?i)\\WindowsApps\\') {
+            Write-DiscoveryLog "Skipping Windows app execution alias: $candidate"
+            continue
+        }
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            Write-DiscoveryLog "Candidate does not exist: $candidate"
+            continue
+        }
         $candidateFile = Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue
-        if (-not $candidateFile -or $candidateFile.Length -eq 0) { continue }
+        if (-not $candidateFile -or $candidateFile.Length -eq 0) {
+            Write-DiscoveryLog "Candidate is empty or unreadable: $candidate"
+            continue
+        }
+
+        Write-DiscoveryLog "Testing Python candidate: $candidate"
         try {
             & $candidate -c $probe *>$null
-            if ($LASTEXITCODE -eq 0) { return (Resolve-Path -LiteralPath $candidate).Path }
-        } catch {}
+            $probeExitCode = $LASTEXITCODE
+            if ($probeExitCode -eq 0) {
+                Write-DiscoveryLog "Accepted Python interpreter: $candidate"
+                return (Resolve-Path -LiteralPath $candidate).Path
+            }
+            Write-DiscoveryLog "Rejected candidate (probe exit code $probeExitCode): $candidate"
+        } catch {
+            Write-DiscoveryLog "Rejected candidate (launch error): $candidate - $($_.Exception.Message)"
+        }
     }
+
+    Write-DiscoveryLog "No candidate passed the executable verification test."
     return $null
 }
 
@@ -107,15 +158,13 @@ try {
     $PythonExe = Find-UsablePython
     if (-not $PythonExe) {
         throw @"
-No usable Python installation was found.
+No usable Python installation was found in the registered interpreters, PATH,
+or the standard per-user/system installation folders.
 
-The Python command on this computer appears to point to the Microsoft Store
-version, which can expose an empty launcher executable that PyInstaller
-cannot use.
-
-Install Python from https://www.python.org/downloads/windows/ (not the
-Microsoft Store). During installation, enable the Python launcher if offered.
-Then close and reopen this window and run build-windows.bat again.
+Review the Python discovery details above in build-log.txt. The command named
+'python' on PATH may belong to another application (for example, LibreOffice)
+or may be a Microsoft Store execution alias. The build needs a regular CPython
+installation whose underlying python.exe is present and usable.
 
 You can check registered interpreters with:  py -0p
 "@
