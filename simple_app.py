@@ -6,6 +6,7 @@ packaged application starts here and exposes only the single-document workflow.
 from __future__ import annotations
 
 import pathlib
+import sqlite3
 import sys
 import threading
 import tkinter as tk
@@ -13,6 +14,7 @@ import webbrowser
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 import core
+from publisher_profiles import PublisherProfileStore, values_for_template
 from update_checker import UpdateCheckError, check_for_update
 from version import APP_NAME, APP_VERSION, GITHUB_REPOSITORY
 
@@ -121,6 +123,16 @@ class FieldInput:
             return self.text.get("1.0", "end-1c")
         return self.variable.get()
 
+    def set(self, value):
+        """Set this field from a saved publisher profile."""
+        if self.field.kind == "yesno":
+            self.variable.set(core.as_bool(value))
+        elif self.text is not None:
+            self.text.delete("1.0", "end")
+            self.text.insert("1.0", "" if value is None else str(value))
+        else:
+            self.variable.set("" if value is None else str(value))
+
     def clear(self):
         if self.field.kind == "yesno":
             self.variable.set(False)
@@ -128,6 +140,192 @@ class FieldInput:
             self.text.delete("1.0", "end")
         else:
             self.variable.set("")
+
+
+class PublisherProfileDialog:
+    """Create, edit, and delete locally stored publisher profiles."""
+
+    FORM_FIELDS = (
+        ("Publisher name *", "publisher_name"),
+        ("Primary contact", "contact_name"),
+        ("Contact title", "contact_title"),
+        ("Contact email", "contact_email"),
+        ("Contact phone", "contact_phone"),
+        ("Website", "website"),
+        ("Address line 1", "address_line1"),
+        ("Address line 2", "address_line2"),
+        ("City", "city"),
+        ("State / Province / Region", "region"),
+        ("Postal code", "postal_code"),
+        ("Country", "country"),
+    )
+
+    def __init__(self, parent, store, on_close=None):
+        self.parent = parent
+        self.store = store
+        self.on_close = on_close
+        self.current_id = None
+
+        self.window = tk.Toplevel(parent)
+        self.window.title("Publisher Profiles")
+        self.window.geometry("940x650")
+        self.window.minsize(760, 520)
+        self.window.transient(parent)
+        self.window.protocol("WM_DELETE_WINDOW", self.close)
+
+        outer = ttk.Frame(self.window, padding=14)
+        outer.pack(fill="both", expand=True)
+        ttk.Label(
+            outer,
+            text="Publisher Profiles",
+            font=("TkDefaultFont", 15, "bold"),
+        ).pack(anchor="w")
+        ttk.Label(
+            outer,
+            text=(
+                "Save publisher and primary-contact details once, then load them "
+                "into matching fields in any contract template."
+            ),
+            wraplength=860,
+        ).pack(anchor="w", pady=(3, 12))
+
+        body = ttk.Frame(outer)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=2)
+        body.rowconfigure(0, weight=1)
+
+        list_frame = ttk.LabelFrame(body, text="Saved publishers", padding=8)
+        list_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        list_frame.rowconfigure(0, weight=1)
+        list_frame.columnconfigure(0, weight=1)
+        self.tree = ttk.Treeview(list_frame, columns=("publisher",), show="headings")
+        self.tree.heading("publisher", text="Publisher")
+        self.tree.column("publisher", width=245, anchor="w")
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        tree_scroll = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
+        tree_scroll.grid(row=0, column=1, sticky="ns")
+        self.tree.configure(yscrollcommand=tree_scroll.set)
+        self.tree.bind("<<TreeviewSelect>>", self.select_profile)
+
+        list_buttons = ttk.Frame(list_frame)
+        list_buttons.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        ttk.Button(list_buttons, text="New profile", command=self.new_profile).pack(
+            side="left", fill="x", expand=True
+        )
+        ttk.Button(list_buttons, text="Delete", command=self.delete_profile).pack(
+            side="left", padx=(6, 0)
+        )
+
+        form = ttk.LabelFrame(body, text="Publisher information", padding=10)
+        form.grid(row=0, column=1, sticky="nsew")
+        form.columnconfigure(1, weight=1)
+        self.variables = {}
+        for row, (label, name) in enumerate(self.FORM_FIELDS):
+            ttk.Label(form, text=label).grid(
+                row=row, column=0, sticky="w", padx=(0, 12), pady=4
+            )
+            variable = tk.StringVar(master=self.window)
+            self.variables[name] = variable
+            ttk.Entry(form, textvariable=variable).grid(
+                row=row, column=1, sticky="ew", pady=4
+            )
+
+        notes_row = len(self.FORM_FIELDS)
+        ttk.Label(form, text="Notes").grid(
+            row=notes_row, column=0, sticky="nw", padx=(0, 12), pady=(8, 0)
+        )
+        self.notes = tk.Text(
+            form, height=4, wrap="word", undo=True,
+            font="TkDefaultFont", relief="solid", borderwidth=1,
+        )
+        self.notes.grid(row=notes_row, column=1, sticky="ew", pady=(8, 0))
+
+        footer = ttk.Frame(outer)
+        footer.pack(fill="x", pady=(12, 0))
+        self.status = ttk.Label(footer, text="", foreground="#555555")
+        self.status.pack(side="left", fill="x", expand=True)
+        ttk.Button(footer, text="Close", command=self.close).pack(side="right")
+        ttk.Button(footer, text="Save profile", command=self.save_profile).pack(
+            side="right", padx=(0, 8)
+        )
+
+        self.refresh_profiles()
+
+    def refresh_profiles(self, selected_id=None):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        profiles = self.store.list_profiles()
+        for profile in profiles:
+            profile_id = str(profile["id"])
+            self.tree.insert("", "end", iid=profile_id, values=(profile["publisher_name"],))
+        if selected_id is not None and self.tree.exists(str(selected_id)):
+            self.tree.selection_set(str(selected_id))
+            self.tree.focus(str(selected_id))
+            self.tree.see(str(selected_id))
+            self._load_profile(int(selected_id))
+        elif profiles:
+            first_id = str(profiles[0]["id"])
+            self.tree.selection_set(first_id)
+            self.tree.focus(first_id)
+            self._load_profile(int(first_id))
+        else:
+            self.new_profile()
+
+    def select_profile(self, _event=None):
+        selection = self.tree.selection()
+        if selection:
+            self._load_profile(int(selection[0]))
+
+    def _load_profile(self, profile_id):
+        profile = self.store.get_profile(profile_id)
+        if profile is None:
+            return
+        self.current_id = profile_id
+        for name, variable in self.variables.items():
+            variable.set(str(profile.get(name) or ""))
+        self.notes.delete("1.0", "end")
+        self.notes.insert("1.0", str(profile.get("notes") or ""))
+        self.status.config(text=f"Editing {profile['publisher_name']}.")
+
+    def new_profile(self):
+        self.current_id = None
+        for variable in self.variables.values():
+            variable.set("")
+        self.notes.delete("1.0", "end")
+        self.tree.selection_remove(self.tree.selection())
+        self.status.config(text="New publisher profile.")
+
+    def save_profile(self):
+        profile = {name: variable.get().strip() for name, variable in self.variables.items()}
+        profile["notes"] = self.notes.get("1.0", "end-1c").strip()
+        try:
+            profile_id = self.store.save_profile(profile, self.current_id)
+        except (ValueError, OSError, sqlite3.Error) as exc:
+            messagebox.showerror("Could not save profile", str(exc), parent=self.window)
+            return
+        self.status.config(text="Profile saved.")
+        self.refresh_profiles(profile_id)
+
+    def delete_profile(self):
+        if self.current_id is None:
+            messagebox.showinfo("No saved profile", "Select a saved profile to delete.", parent=self.window)
+            return
+        name = self.variables["publisher_name"].get() or "this publisher"
+        if not messagebox.askyesno(
+            "Delete publisher profile",
+            f"Delete the profile for {name}? This cannot be undone.",
+            parent=self.window,
+        ):
+            return
+        self.store.delete_profile(self.current_id)
+        self.refresh_profiles()
+        self.status.config(text="Profile deleted.")
+
+    def close(self):
+        if self.on_close is not None:
+            self.on_close()
+        self.window.destroy()
 
 
 class WordTemplateFiller:
@@ -140,6 +338,13 @@ class WordTemplateFiller:
         self.template = None
         self.inputs = []
         self.update_checking = False
+        self.publisher_store = None
+        self.publisher_store_error = None
+        self.publisher_profile_ids = {}
+        try:
+            self.publisher_store = PublisherProfileStore()
+        except (OSError, sqlite3.Error) as exc:
+            self.publisher_store_error = str(exc)
 
         self._build_menu()
         self._build_window()
@@ -148,6 +353,12 @@ class WordTemplateFiller:
 
     def _build_menu(self):
         menu = tk.Menu(self.root)
+        publisher_menu = tk.Menu(menu, tearoff=False)
+        publisher_menu.add_command(
+            label="Manage publisher profiles…", command=self.manage_publisher_profiles
+        )
+        menu.add_cascade(label="Publishers", menu=publisher_menu)
+
         help_menu = tk.Menu(menu, tearoff=False)
         help_menu.add_command(label="User instructions", command=self.show_user_guide)
         help_menu.add_command(label="Check for updates", command=lambda: self.check_for_updates(manual=True))
@@ -180,6 +391,23 @@ class WordTemplateFiller:
         self.template_name.pack(side="left", padx=(10, 10), fill="x", expand=True)
         ttk.Button(template_row, text="Browse…", command=self.choose_template).pack(side="right")
 
+        publisher_frame = ttk.LabelFrame(outer, text="Saved publisher", padding=8)
+        publisher_frame.pack(fill="x", pady=(0, 10))
+        self.publisher_variable = tk.StringVar(master=outer)
+        self.publisher_combo = ttk.Combobox(
+            publisher_frame, textvariable=self.publisher_variable, state="disabled"
+        )
+        self.publisher_combo.pack(side="left", fill="x", expand=True)
+        self.load_publisher_button = ttk.Button(
+            publisher_frame, text="Load into fields",
+            command=self.load_publisher_profile, state="disabled",
+        )
+        self.load_publisher_button.pack(side="left", padx=(8, 0))
+        ttk.Button(
+            publisher_frame, text="Manage profiles…",
+            command=self.manage_publisher_profiles,
+        ).pack(side="left", padx=(8, 0))
+
         self.summary = ttk.Label(
             outer, text="Select a .docx or .dotx file to begin.", foreground="#555555"
         )
@@ -207,6 +435,7 @@ class WordTemplateFiller:
 
         self.status = ttk.Label(outer, text="", foreground="#555555", wraplength=760)
         self.status.pack(anchor="w", pady=(8, 0))
+        self.refresh_publisher_profiles()
 
     def _show_welcome(self):
         self.scroll.clear()
@@ -286,6 +515,107 @@ class WordTemplateFiller:
             self.status.config(text="Correct the template problems before continuing.", foreground="#a00000")
         else:
             self.status.config(text="", foreground="#555555")
+
+    def refresh_publisher_profiles(self):
+        if self.publisher_store is None:
+            self.publisher_combo.configure(state="disabled", values=[])
+            self.load_publisher_button.configure(state="disabled")
+            if self.publisher_store_error:
+                self.status.config(
+                    text=f"Publisher profiles are unavailable: {self.publisher_store_error}",
+                    foreground="#8a5a00",
+                )
+            return
+        try:
+            profiles = self.publisher_store.list_profiles()
+        except sqlite3.Error as exc:
+            self.publisher_combo.configure(state="disabled", values=[])
+            self.load_publisher_button.configure(state="disabled")
+            self.status.config(
+                text=f"Could not read publisher profiles: {exc}", foreground="#a00000"
+            )
+            return
+        self.publisher_profile_ids = {
+            str(profile["publisher_name"]): int(profile["id"]) for profile in profiles
+        }
+        names = list(self.publisher_profile_ids)
+        self.publisher_combo.configure(values=names, state="readonly" if names else "disabled")
+        self.load_publisher_button.configure(state="normal" if names else "disabled")
+        self.publisher_variable.set("")
+
+    def manage_publisher_profiles(self):
+        if self.publisher_store is None:
+            messagebox.showerror(
+                "Publisher profiles unavailable",
+                self.publisher_store_error or "The local profile database could not be opened.",
+                parent=self.root,
+            )
+            return
+        PublisherProfileDialog(
+            self.root, self.publisher_store, on_close=self.refresh_publisher_profiles
+        )
+
+    def load_publisher_profile(self):
+        if self.template is None:
+            messagebox.showinfo(
+                "Choose a template first",
+                "Select a Word template before loading a publisher profile.",
+                parent=self.root,
+            )
+            return
+        name = self.publisher_variable.get()
+        profile_id = self.publisher_profile_ids.get(name)
+        if profile_id is None or self.publisher_store is None:
+            return
+        try:
+            profile = self.publisher_store.get_profile(profile_id)
+        except sqlite3.Error as exc:
+            messagebox.showerror("Could not load publisher profile", str(exc), parent=self.root)
+            return
+        if profile is None:
+            self.refresh_publisher_profiles()
+            messagebox.showwarning(
+                "Profile not found",
+                "That publisher profile was removed. Refresh the list and try again.",
+                parent=self.root,
+            )
+            return
+
+        field_names = [control.field.name for control in self.inputs]
+        values = values_for_template(profile, field_names)
+        if not values:
+            messagebox.showinfo(
+                "No matching fields",
+                "This template has no fields recognized by the publisher profile. "
+                "The existing contract fields have not been changed.",
+                parent=self.root,
+            )
+            return
+        overwritten = [
+            field_name for field_name, value in values.items()
+            if any(
+                control.field.name == field_name and str(control.get()).strip()
+                for control in self.inputs
+            )
+        ]
+        if overwritten and not messagebox.askyesno(
+            "Replace existing entries?",
+            "Loading this profile will replace these non-empty fields:\n\n"
+            + "\n".join("• " + field for field in overwritten)
+            + "\n\nContinue?",
+            parent=self.root,
+        ):
+            return
+        for control in self.inputs:
+            if control.field.name in values:
+                control.set(values[control.field.name])
+        self.status.config(
+            text=(
+                f"Loaded {len(values)} field(s) from {profile['publisher_name']}. "
+                "Review the remaining contract fields before creating the document."
+            ),
+            foreground="#1b6e2e",
+        )
 
     def collect_values(self):
         return {control.field.name: control.get() for control in self.inputs}
