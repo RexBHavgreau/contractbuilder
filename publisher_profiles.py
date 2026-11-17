@@ -151,9 +151,16 @@ class PublisherProfileStore:
     """CRUD access to publisher profiles in a local SQLite database."""
 
     def __init__(self, path: str | Path | None = None):
+        use_default_path = path is None
         self.path = Path(path) if path is not None else default_database_path()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        if use_default_path and os.name != "nt":
+            # Publisher contact details are personal/business data; keep the
+            # per-user database directory private on POSIX systems.
+            self.path.parent.chmod(0o700)
         self._initialize()
+        if use_default_path and os.name != "nt":
+            self.path.chmod(0o600)
 
     @contextmanager
     def _connection(self) -> Iterator[sqlite3.Connection]:
