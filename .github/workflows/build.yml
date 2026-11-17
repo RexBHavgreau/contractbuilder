@@ -72,6 +72,60 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v7
 
+      # Use Windows PowerShell 5.1, matching build-windows.bat, so syntax
+      # errors are caught before the build starts.
+      - name: Validate Windows build scripts
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $scriptPath = Join-Path $env:GITHUB_WORKSPACE "build-windows.ps1"
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            $scriptPath,
+            [ref]$tokens,
+            [ref]$parseErrors
+          ) | Out-Null
+
+          if ($parseErrors.Count -gt 0) {
+            foreach ($parseError in $parseErrors) {
+              Write-Error ("{0} (line {1}, column {2})" -f
+                $parseError.Message,
+                $parseError.Extent.StartLineNumber,
+                $parseError.Extent.StartColumnNumber)
+            }
+            throw "build-windows.ps1 has PowerShell syntax errors."
+          }
+          Write-Host "build-windows.ps1 parses successfully in Windows PowerShell 5.1."
+
+          # Check the bytes, not a decoded string: Git can otherwise hide
+          # mixed LF/CRLF endings during text handling.
+          $batchPath = Join-Path $env:GITHUB_WORKSPACE "build-windows.bat"
+          $bytes = [System.IO.File]::ReadAllBytes($batchPath)
+          if ($bytes.Length -eq 0) {
+            throw "build-windows.bat is empty."
+          }
+
+          $lineBreakCount = 0
+          for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -eq 10) {
+              $lineBreakCount++
+              if ($i -eq 0 -or $bytes[$i - 1] -ne 13) {
+                throw "build-windows.bat contains an LF line ending without a preceding CR."
+              }
+            }
+            if ($bytes[$i] -eq 13) {
+              if ($i + 1 -ge $bytes.Length -or $bytes[$i + 1] -ne 10) {
+                throw "build-windows.bat contains a CR not followed by LF."
+              }
+            }
+          }
+          if ($lineBreakCount -eq 0) {
+            throw "build-windows.bat has no CRLF line endings."
+          }
+          Write-Host "build-windows.bat uses CRLF line endings."
+
       - name: Set up Python
         uses: actions/setup-python@v7
         with:

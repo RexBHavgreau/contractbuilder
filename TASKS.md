@@ -121,17 +121,17 @@ job is deliberately optional with the reason written down.
 
 ## T-005 Check the PowerShell build script in CI before building
 
-- **Status:** open
+- **Status:** done (2026-11-17, [PR #7](https://github.com/RexBHavgreau/contractbuilder/pull/7))
 - **Size:** S
 - **Agent:** any
 
 A syntax slip in `build-windows.ps1` only shows when someone builds. Add a
 step at the start of the Windows CI job:
 
-- [ ] Parse `build-windows.ps1` with
+- [x] Parse `build-windows.ps1` with
       `[System.Management.Automation.Language.Parser]::ParseFile(...)` under
       `powershell.exe` (5.1) and fail on any parse error
-- [ ] Fail if `build-windows.bat` lacks CRLF line endings
+- [x] Fail if `build-windows.bat` lacks CRLF line endings
 
 **Done when:** a deliberately broken copy of the script fails that step
 (try it on a branch, then revert).
