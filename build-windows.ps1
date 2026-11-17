@@ -32,7 +32,7 @@ function Find-UsablePython {
                 foreach ($line in $lines) {
                     Write-DiscoveryLog "py $($arguments -join ' '): $line"
                     if ("$line" -match '(?i)([A-Z]:\\.*?pythonw?\.exe)\s*$') {
-                        $candidates.Add($Matches[1])
+                        [void]$candidates.Add($Matches[1])
                     }
                 }
             } catch {
@@ -47,7 +47,7 @@ function Find-UsablePython {
         $command = Get-Command $commandName -ErrorAction SilentlyContinue
         if ($command -and $command.Source) {
             Write-DiscoveryLog "$commandName on PATH: $($command.Source)"
-            $candidates.Add($command.Source)
+            [void]$candidates.Add($command.Source)
         }
     }
 
@@ -55,7 +55,7 @@ function Find-UsablePython {
         $whereOutput = & where.exe python.exe 2>$null
         foreach ($line in $whereOutput) {
             if ("$line" -match '(?i)^[A-Z]:\\.*python\.exe$') {
-                $candidates.Add("$line")
+                [void]$candidates.Add("$line")
             }
         }
     } catch {
@@ -94,14 +94,14 @@ function Find-UsablePython {
         Write-DiscoveryLog "Searching install folder: $base"
         $directPython = Join-Path $base "python.exe"
         if (Test-Path -LiteralPath $directPython -PathType Leaf) {
-            $candidates.Add($directPython)
+            [void]$candidates.Add($directPython)
         }
 
         Get-ChildItem -LiteralPath $base -Directory -ErrorAction SilentlyContinue |
             ForEach-Object {
                 $candidate = Join-Path $_.FullName "python.exe"
                 if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-                    $candidates.Add($candidate)
+                    [void]$candidates.Add($candidate)
                 }
             }
     }
