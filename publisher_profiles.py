@@ -103,7 +103,7 @@ def default_database_path() -> Path:
 
 
 def _normalize_field_name(value: str) -> str:
-    value = re.sub(r"['’]s\\b", "", str(value).casefold())
+    value = re.sub(r"['’]s\b", "", str(value).casefold())
     return re.sub(r"[^a-z0-9]+", " ", value).strip()
 
 
