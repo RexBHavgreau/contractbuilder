@@ -90,7 +90,7 @@ def test_template_field_mapping_uses_exact_template_labels():
         "International Publisher Name": "Éditions Exemple",
         "International Publisher's Contact": "Camille Martin",
         "International Publisher Address": (
-            "12 Rue de Paris\nBâtiment B\nLyon, Auvergne-Rhône-Alpes 69002\nFrance"
+            "12 Rue de Paris, Bâtiment B, Lyon, Auvergne-Rhône-Alpes 69002, France"
         ),
         "International Publisher Contact Email": "camille@example.org",
         "International Publisher Country": "France",
