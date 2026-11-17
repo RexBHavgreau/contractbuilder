@@ -40,6 +40,15 @@ function Find-UsablePython {
         }
     } catch {}
 
+    # GitHub Actions exposes its selected interpreter through pythonLocation.
+    # Python_ROOT_DIR variants are also used by common Windows CI environments.
+    foreach ($runtimeRoot in @($env:pythonLocation, $env:Python_ROOT_DIR, $env:Python3_ROOT_DIR)) {
+        if ($runtimeRoot) {
+            $runtimePython = Join-Path $runtimeRoot "python.exe"
+            if (Test-Path -LiteralPath $runtimePython) { $candidates.Add($runtimePython) }
+        }
+    }
+
     $roots = @(
         (Join-Path $env:LOCALAPPDATA "Programs\Python"),
         (Join-Path $env:ProgramFiles "Python"),
