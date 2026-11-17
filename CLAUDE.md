@@ -51,7 +51,10 @@ trace.
   tags `vX.Y.Z` and publishes the release with
   `Word-Template-Filler-windows-x64.exe` attached. The updater looks for
   exactly that file name; do not rename it.
-- `build-windows.bat` must keep CRLF line endings.
+- `build-windows.bat` must keep CRLF line endings. The Windows CI job
+  checks the file's bytes for CRLF (and rejects mixed endings), and parses
+  `build-windows.ps1` with Windows PowerShell 5.1 before building. This
+  catches syntax and line-ending slips before PyInstaller runs.
 - Never put a token, password or key in the code, a template, the build or
   the repository. The update token is entered per user in the app.
 - Work on a branch and open a pull request into `main`. Keep commits small
