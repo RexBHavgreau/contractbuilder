@@ -1,4 +1,6 @@
-$ErrorActionPreference = "Stop"
+# Native build tools such as PyInstaller write normal progress messages to stderr.
+# Continue those streams and use $LASTEXITCODE to detect a real build failure.
+$ErrorActionPreference = "Continue"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
 
