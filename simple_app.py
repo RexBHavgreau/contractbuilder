@@ -165,6 +165,7 @@ class PublisherProfileDialog:
         self.store = store
         self.on_close = on_close
         self.current_id = None
+        self.loaded_snapshot = None
 
         self.window = tk.Toplevel(parent)
         self.window.title("Publisher Profiles")
@@ -272,10 +273,33 @@ class PublisherProfileDialog:
         else:
             self.new_profile()
 
+    def _current_form_values(self):
+        values = {name: variable.get() for name, variable in self.variables.items()}
+        values["notes"] = self.notes.get("1.0", "end-1c")
+        return values
+
+    def _has_unsaved_changes(self):
+        current = self._current_form_values()
+        if self.loaded_snapshot is None:
+            return any(str(value).strip() for value in current.values())
+        return current != self.loaded_snapshot
+
     def select_profile(self, _event=None):
         selection = self.tree.selection()
-        if selection:
-            self._load_profile(int(selection[0]))
+        if not selection:
+            return
+        if self._has_unsaved_changes() and not messagebox.askyesno(
+            "Discard unsaved changes?",
+            "Discard the unsaved changes to this profile and open the selected publisher?",
+            parent=self.window,
+        ):
+            if self.current_id is not None and self.tree.exists(str(self.current_id)):
+                self.tree.selection_set(str(self.current_id))
+                self.tree.focus(str(self.current_id))
+            else:
+                self.tree.selection_remove(*selection)
+            return
+        self._load_profile(int(selection[0]))
 
     def _load_profile(self, profile_id):
         profile = self.store.get_profile(profile_id)
@@ -286,13 +310,21 @@ class PublisherProfileDialog:
             variable.set(str(profile.get(name) or ""))
         self.notes.delete("1.0", "end")
         self.notes.insert("1.0", str(profile.get("notes") or ""))
+        self.loaded_snapshot = self._current_form_values()
         self.status.config(text=f"Editing {profile['publisher_name']}.")
 
     def new_profile(self):
+        if self._has_unsaved_changes() and not messagebox.askyesno(
+            "Discard unsaved changes?",
+            "Discard the unsaved changes and start a new publisher profile?",
+            parent=self.window,
+        ):
+            return
         self.current_id = None
         for variable in self.variables.values():
             variable.set("")
         self.notes.delete("1.0", "end")
+        self.loaded_snapshot = self._current_form_values()
         selection = self.tree.selection()
         if selection:
             self.tree.selection_remove(*selection)
