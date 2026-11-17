@@ -408,7 +408,8 @@ class WordTemplateFiller:
             return
 
         self.update_checking = True
-        self.status.config(text="Checking for updates…", foreground="#555555")
+        if manual:
+            self.status.config(text="Checking for updates…", foreground="#555555")
 
         def worker():
             try:
@@ -449,8 +450,7 @@ class WordTemplateFiller:
                 f"You are using the latest published version ({APP_VERSION}).",
                 parent=self.root,
             )
-        else:
-            self.status.config(text="", foreground="#555555")
+
 
 
 def main():
