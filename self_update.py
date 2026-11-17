@@ -183,6 +183,29 @@ def start_swap(target: Path, new_file: Path) -> None:
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+
+def cleanup_stale_update_download(target: Path, now: float | None = None,
+                                  max_age: float = 24 * 60 * 60) -> bool:
+    """Remove an abandoned .new update download older than max_age seconds.
+
+    A recent file is left alone because the update swap may still be running.
+    Only a regular, non-symlink file is eligible. Returns whether it was removed.
+    """
+    candidate = Path(target).with_name(Path(target).name + ".new")
+    try:
+        info = candidate.lstat()
+        if not candidate.is_file() or candidate.is_symlink():
+            return False
+        current_time = __import__("time").time() if now is None else now
+        if current_time - info.st_mtime <= max_age:
+            return False
+        candidate.unlink()
+        return True
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return False
+
 def leftover_note(target: Path) -> str:
     """The note a failed swap leaves beside the app, if any, removed once read."""
     note = target.with_name(target.name + ".update-failed.txt")
