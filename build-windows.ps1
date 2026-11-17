@@ -40,6 +40,19 @@ function Find-UsablePython {
         }
     } catch {}
 
+    # setup-python supplies a known-good CPython directory in CI. Prefer it
+    # directly rather than resolving a PATH alias.
+    foreach ($runtimeRoot in @($env:pythonLocation, $env:Python_ROOT_DIR, $env:Python3_ROOT_DIR)) {
+        if (-not $runtimeRoot) { continue }
+        $runtimePython = Join-Path $runtimeRoot "python.exe"
+        if (Test-Path -LiteralPath $runtimePython -PathType Leaf) {
+            $runtimeFile = Get-Item -LiteralPath $runtimePython
+            if ($runtimeFile.Length -gt 0) {
+                return (Resolve-Path -LiteralPath $runtimePython).Path
+            }
+        }
+    }
+
     # GitHub Actions exposes its selected interpreter through pythonLocation.
     # Python_ROOT_DIR variants are also used by common Windows CI environments.
     foreach ($runtimeRoot in @($env:pythonLocation, $env:Python_ROOT_DIR, $env:Python3_ROOT_DIR)) {
