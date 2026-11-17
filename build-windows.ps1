@@ -276,3 +276,6 @@ catch {
     }
     exit 1
 }
+
+# Temporary negative test: the CI parser must reject this incomplete statement.
+if (
