@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -59,10 +59,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -83,7 +83,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "dist/Word Template Filler.app" "dist/Word-Template-Filler-${{ matrix.target }}.zip"
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.target }}
           path: |
@@ -100,7 +100,7 @@ jobs:
       contents: write
     steps:
       - name: Download platform builds
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: build-*
           path: release-assets
