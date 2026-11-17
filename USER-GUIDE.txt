@@ -1,665 +1,147 @@
-===============================================================
- TMAI CONTRACT BUILDER - USER GUIDE
- Build 4
-===============================================================
+WORD TEMPLATE FILLER
+USER INSTRUCTIONS
 
-This makes finished contracts from templates. The wording that
-never changes lives in the template, written once and checked
-once. Each time, you fill in only what changes: the client,
-the dates, the fees, which optional clauses apply. The app
-writes a new Word document with all of it in place.
+WHAT THIS DOES
 
-The template itself is never changed.
+Word Template Filler reads a Word document containing placeholders, asks you
+to fill in those placeholders, and saves a completed copy as a new .docx file.
+The original template is never changed.
 
-There are two audiences for this guide. People making
-contracts want the first half. Whoever looks after the
-templates wants the section headed WRITING A TEMPLATE.
+1. CHOOSE A TEMPLATE
 
+Click Browse and select a Word .docx or .dotx file.
 
----------------------------------------------------------------
- GETTING STARTED
----------------------------------------------------------------
+The application scans the document and finds each unique placeholder. A
+placeholder is a field name enclosed in double curly braces, for example:
 
-The app is a single file. Nothing needs installing. Copy it
-where you like and double-click it.
+    {{Recipient Name}}
 
-The first time it runs on a machine, the system will object,
-because the app is not signed:
+2. FILL IN THE FIELDS
 
-  Windows   "Windows protected your PC". Click More info,
-            then Run anyway.
+The application creates one input for each unique field, in the order the
+fields first appear in the document.
 
-  macOS     It simply refuses. Right-click (or Control-click)
-            the app, choose Open, then confirm. After that it
-            opens normally.
+Type the information requested. If the same placeholder appears several
+times, you only need to fill it in once; every occurrence will receive the
+same value.
 
-Then tell it where the templates are: File > Choose templates
-folder. A shared folder that everyone uses is ideal, so a
-corrected template reaches everyone at once. The folder is
-remembered.
+A placeholder can appear in the main text, tables, headers, footers,
+footnotes, or endnotes. The application fills in all of these locations.
 
+Some templates may use specialized fields, such as dates, amounts, lists, or
+choices. The application applies the formatting specified by the template.
+For ordinary text fields, your entry is inserted as you type it.
 
----------------------------------------------------------------
- MAKING A CONTRACT
----------------------------------------------------------------
+PUBLISHER PROFILES
 
-1. Pick the template from the list at the top. Beneath it,
-   the field set says what kind of contract it is, normally
-   "Publishing agreement". The app picks it by itself; see
-   FIELD SETS below.
+The application can save reusable international-publisher information locally.
 
-2. Fill in the form. It asks for exactly what the template
-   needs, grouped the way a publishing contract is: Parties,
-   Works, Edition, Rights and territory, Term and dates,
-   Copies and delivery, Fees and funding.
+1. Choose Publishers > Manage publisher profiles.
+2. Select New profile and enter the publisher name and any available contact,
+   website, and mailing-address information.
+3. Click Save profile. You can return later to edit or delete the record.
+4. Choose a Word template, select the publisher in the Saved publisher list,
+   and click Load into fields.
 
-   Under dates, amounts and numbers, a green line shows how
-   it will read in the contract:
+The application fills only template fields it recognizes. The initial field
+mapping includes common labels such as:
 
-     10/5/2026   ->  5th day of October, 2026
-     12500       ->  Twelve Thousand Five Hundred Dollars
-                     ($12,500.00)
+    {{International Publisher Name}}
+    {{Publisher Name}}
+    {{International Publisher Contact}}
+    {{Contact Person}}
+    {{International Publisher Contact Title}}
+    {{International Publisher Email}}
+    {{International Publisher Phone}}
+    {{International Publisher Website}}
+    {{International Publisher Address}}
+    {{International Publisher Country}}
 
-   A red line means it cannot be read. Fix it before going on.
+Address components are assembled into a multiline postal address when the
+template uses a general publisher-address field. A template field that does
+not match a known publisher field is left alone for you to complete.
 
-   Dates can be typed most ways: 10/5/2026, Oct 5 2026,
-   October 5, 2026. Month comes first, as usual in the US.
-   The Today button fills in today's date.
+If loading a profile would replace information already entered, the application
+asks before making the change. Loading a profile does not modify the saved
+profile. Changes made in the contract form apply only to that contract.
 
-   Amounts can be typed with or without $ and commas.
+Publisher profiles are stored in a local SQLite database in your user data
+directory. On Windows, this is normally under
+%LOCALAPPDATA%\TMAI Contract Builder. On macOS, it is under
+~/Library/Application Support/TMAI Contract Builder. On Linux, it is under
+$XDG_DATA_HOME/TMAI Contract Builder or ~/.local/share/TMAI Contract Builder.
+Back up publisher_profiles.sqlite3 if you need to move your saved profiles to
+another computer or preserve them during a system migration.
 
-3. Under "Optional sections", tick the clauses that apply.
+3. CREATE THE DOCUMENT
 
-4. Press Create contract and choose where to save it.
+Click Create document and choose where to save the completed file.
 
-Before the contract is made, the app warns about two things
-and asks whether to go on:
+The application checks formatted entries before creating the document. If a
+field is empty, it tells you and asks whether to continue. Empty fields are
+represented by an underline (__________) so they can be completed later in Word.
 
-  - anything a publishing agreement is expected to have that
-    is empty or marked not relevant, such as a territory or
-    the rights licensed. These fields have a * beside them.
-  - anything else left empty. Empty things appear in the
-    contract as a line, __________, to be filled in by hand.
+The completed document is saved separately. The template remains unchanged.
 
+HIGHLIGHTING
 
-PARTIES
--------
+Select Highlight inserted text for review to mark the wording inserted by the
+application in yellow. This can help you review the completed document. It
+does not change the template.
 
-The form starts with two parties. Party 1 starts as
-whoever was Party 1 last time: name, description, address
-and signatory. At first that is The Master’s Academy
-International, so normally only Party 2 needs filling in.
+WRITING A SIMPLE TEMPLATE
 
-"+ Add another party" adds a third, or more. "Remove this
-party" takes one away again; the first two always stay.
+Open a new or existing Word document and type the wording that should remain
+the same. Wherever something needs to change, insert a field name between
+double curly braces:
 
+    Prepared for {{Recipient Name}}.
 
-WORKS
------
+    Dear {{Recipient Name}},
 
-The form starts with one work. For a book and its workbook,
-press "+ Add another work". The contract then talks about
-"the works" instead of "the work" throughout, lists both
-titles, and repeats anything that is said for each work,
-such as its copyright notice.
+    Your appointment is scheduled for {{Appointment Date}}.
 
-A work left completely empty is ignored.
+    Please contact {{Contact Person}} with any questions.
 
+Use the same field name wherever the same information should appear. The
+application ignores differences in capitalization and extra spaces when it
+matches field names, so {{recipient name}} and {{Recipient Name}} are treated
+as the same field.
 
-RIGHTS AND TERRITORY
---------------------
+Format the placeholder in Word as you want the inserted wording to appear.
+The inserted text takes its formatting from the field name inside the braces.
+For example, make the field name bold if the completed name should be bold.
 
-Rights licensed is a set of tick boxes: Print, Electronic
-(with appropriate digital rights management), Audio book,
-Digital, and All formats. Tick any that apply. The green line
-shows how the contract will say it, "print and audio book".
-All formats covers everything, so the others are greyed out
-while it is ticked.
+Save the Word document and select it in Word Template Filler.
 
-Territory: type the countries or regions, or tick Worldwide.
-Worldwide reads "throughout the world" in the contract;
-otherwise it reads "in" and what you typed, "in Vietnam".
+TEMPLATE CHECKS
 
+The application detects common placeholder mistakes, including missing
+braces and invalid template syntax. Correct reported problems in Word and
+select the template again.
 
-A FIELD THAT DOES NOT APPLY
----------------------------
+A note about tracked changes, comments, highlighting, or other unusual Word
+formatting does not necessarily mean the template is invalid. Review such
+notes before relying on the completed document.
 
-Every field has a tick box at its left. Untick it when the
-field is not relevant to this contract, say there is no
-one-time fee. The box greys out, and in the contract:
+UPDATES
 
-  - wording that depends on it is left out, if the template
-    puts it inside {{#if ...}} (see WRITING A TEMPLATE)
-  - anywhere else, the field is simply left out, with no
-    __________ line
+Word Template Filler checks for a newer published GitHub release when it
+starts. You can also choose Help > Check for updates.
 
-Unticking a field marked * is allowed, but the app will
-remind you before the contract is made.
+If an update is available, choose to open the release page and download the
+version for your operating system. Close the application before replacing
+the installed copy.
 
-Two choices at the bottom of the window are remembered:
+This repository is private. To let the application check its releases, set
+the CONTRACTBUILDER_GITHUB_TOKEN environment variable to a GitHub fine-grained
+personal access token that has read-only Contents permission for this
+repository. Do not put a token in a template, script, or shared file. If the
+repository is made public, no token is needed.
 
-  Highlight filled-in wording
-      Everything the app filled in is highlighted in yellow,
-      so a reviewer can see at a glance what changed from the
-      standard wording. Turn it off for the final copy, or
-      remove it in Word: select all, then set highlight to
-      No Color.
+PRIVACY
 
-  Open the contract when done
-      Opens the finished contract in Word straight away.
-
-Whatever you typed stays in the form when you switch to
-another template, so the same details carry across to a
-second document.
-
-Clear empties the form and puts back the defaults: two
-parties with Party 1 as last time, and one work.
-
-
----------------------------------------------------------------
- FIELD SETS
----------------------------------------------------------------
-
-A field set says what a kind of contract should contain. It
-decides how the form is laid out, what box each field gets
-(tick boxes for rights, Worldwide for territory, a panel per
-work and per party), what is filled in to start with, and
-which fields are expected.
-
-"Publishing agreement" is built in. Its clusters:
-
-  Parties              repeats; starts with two
-  Works                repeats; starts with one
-  Edition              language, translator
-  Rights and territory rights licensed, territory, exclusive
-                       or non-exclusive
-  Term and dates       agreement date, term in years,
-                       expiration date, publication deadline,
-                       signing deadline
-  Copies and delivery  print and ebook copy limits, copies to
-                       the proprietor, free copies for training
-  Fees and funding     one-time fee, funding amount
-
-When a template is chosen, the app picks the field set whose
-fields it uses most. To choose another, or none, use the
-Field set list. The choice is remembered for that template.
-
-MAKING YOUR OWN
-
-Press "Field sets..." (or Template tools > Field sets).
-
-  New      start an empty one
-  Copy     start from the selected one, such as Publishing
-           agreement, which cannot itself be changed
-  Name it, tick the clusters it should have, and add any
-  fields of your own: a name, what kind of box (text, date,
-  amount, number, choose one, tick any, territory, yes/no),
-  the options for choose one and tick any, whether it is
-  expected, and a section heading to group it under.
-  Save.
-
-Field sets are saved in a "Field sets" folder inside the
-templates folder, so everyone who uses that folder has them.
-
-"Show field codes" lists the {{...}} codes for every field in
-the set, ready to copy into a Word template.
-
-
----------------------------------------------------------------
- SAVING ANSWERS FOR NEXT TIME
----------------------------------------------------------------
-
-File > Save answers writes what is in the form to a small file.
-File > Load answers fills the form from it again.
-
-Use this for renewals and amendments: load last year's
-answers, change the dates and fee, and create the new
-contract. Answers saved from one template can be loaded into
-another; anything that matches by name is filled in.
-
-
----------------------------------------------------------------
- MANY CONTRACTS AT ONCE
----------------------------------------------------------------
-
-For a batch, such as the same agreement with twenty clients:
-
-1. Many contracts > Make a blank spreadsheet. It has one
-   column for each thing the template asks for. Hover over a
-   column heading to see what it expects. Choices and Yes/No
-   columns have drop-down lists.
-
-2. Fill in one row per contract. The last column, File Name,
-   is optional; left empty, each file is named after the
-   template and the client.
-
-3. Many contracts > Create contracts from a spreadsheet.
-   Choose the spreadsheet, then the folder for the contracts.
-
-Works and parties get numbered columns: Work 1 Title, Work 2
-Title, Party 3 Name and so on, with one spare in case. Leave
-the spare ones empty when there is no second work or third
-party. Rights licensed takes the options separated by commas,
-"Print, Audio book". Territory takes "Worldwide" or the
-places. Type N/A in a cell for a field that is not relevant.
-
-A row with a mistake in it, such as a date that cannot be
-read, is skipped and the report says why. The others are
-still made. A .csv file works as well as an Excel one.
-
-
----------------------------------------------------------------
- THE REPORT PANEL
----------------------------------------------------------------
-
-The panel at the bottom says what happened: how many places
-were filled in, which optional sections were included or left
-out, anything left blank, and where the contract was saved.
-
-When a template is chosen it also says what the template
-asks for, and lists any PROBLEM with how it is written.
-
-
-===============================================================
- WRITING A TEMPLATE
-===============================================================
-
-A template is an ordinary Word document, .docx or .dotx. Type
-and format it exactly as the finished contract should look.
-Then, wherever something changes from one contract to the
-next, type a name for it in double braces:
-
-    This Agreement is made between TMAI and {{Client Name}}.
-
-The form will ask for "Client Name" once, and fill it in
-everywhere {{Client Name}} appears, including headers,
-footers, tables and footnotes. Capitals and spacing in the
-name do not matter: {{client name}} is the same field.
-
-The filled-in wording takes the formatting of the name, so
-make {{Client Name}} bold to get the client's name in bold.
-
-Help > How to write a template shows a short version of this
-section inside the app.
-
-
-WRITING A TEMPLATE FOR A FIELD SET
-----------------------------------
-
-Use the field set's names, and the form, warnings and
-defaults all follow. Template tools > Field codes for this
-field set lists them. The ones that repeat work like this:
-
-    {{Party 1 Name}}, {{Party 2 Name}}    one party by number
-    {{Party Name | list}}                 all of them:
-                                          "A and B", "A, B, and C"
-    {{Work Title | list}}                 every title
-    {{Work Author | list}}                each author once, so
-                                          two books by the same
-                                          author name him once
-    {{Works | plural: work, works}}       follows how many works
-
-For wording that repeats for each work or each party, put
-{{#each ...}} and {{/each}} each on a line of their own around
-it. Everything between is written out once per work:
-
-    {{#each Works}}
-    "This book was first published by {{Work Original
-    Publisher}} with the title {{Work Title}}, copyright
-    {{Work Copyright}}."
-    {{/each}}
-
-Signature blocks are the usual case for parties:
-
-    {{#each Parties}}
-    ______________________________   Date ____________
-    {{Party Name}}
-    {{Party Signatory}}, {{Party Signatory Title}}
-    {{/each}}
-
-A third party, if there is one, can be mentioned with an
-optional phrase:
-
-    ...and {{Party 2 Name}}{{#if Party 3 Name}}, and
-    {{Party 3 Name}}{{/if}}, witnesses:
-
-Rights and territory read naturally inside a sentence:
-
-    ...in {{Rights Licensed}} {{Rights Licensed | plural:
-    format, formats}}, {{Territory}} (hereinafter the
-    territory)...
-
-gives "in print and audio book formats, throughout the
-world". And {{#if Rights Licensed = Audio book}} ... {{/if}}
-holds a clause that only applies when audio is licensed.
-
-Where a field might be marked not relevant, keep the words
-around it inside an {{#if}} so they go with it:
-
-    ({{#if Party 1 Description}}{{Party 1 Description}},
-    {{/if}}hereinafter the proprietor)
-
-The examples folder has "Publishing MOU TEMPLATE.docx",
-written this way, as a starting point.
-
-The field set also checks the template: if it has no field
-for something expected, such as the territory, Check this
-template says so.
-
-The quickest start is usually a contract you already have:
-see TURNING A CONTRACT INTO A TEMPLATE below.
-
-
-FORMATS
--------
-
-Add a bar and a format word to say how a value should read.
-
-    {{Start Date | date}}           October 5, 2026
-    {{Start Date | date-formal}}    5th day of October, 2026
-    {{Start Date | date-short}}     10/05/2026
-
-    {{Fee | money}}                 $12,500.00
-    {{Fee | money-words}}           Twelve Thousand Five
-                                    Hundred Dollars ($12,500.00)
-    {{Fee | money-whole}}           $12,500  (no cents)
-
-    {{Term | number}}               1,250
-    {{Notice Days | number-words}}  thirty (30)
-
-    {{Client Name | upper}}         ACME CORPORATION
-    {{Scope | long}}                a large box, for several
-                                    lines; each line stays a
-                                    line in the contract
-
-    {{Entity | choice: corporation, limited liability company}}
-                                    a drop-down list
-
-The format also decides what the form asks for. A date field
-only accepts dates, a money field only amounts.
-
-One field can appear in different formats in different
-places. It is still asked for once:
-
-    The fee is {{Fee | money-words}} ...
-    (and in the fee table)  {{Fee | money}}
-
-
-OPTIONAL CLAUSES
-----------------
-
-Put {{#if ...}} on a line of its own before the clause and
-{{/if}} on a line of its own after it:
-
-    {{#if Include Non-Compete}}
-    7. Non-Competition. Client shall not ...
-    {{/if}}
-
-The form shows "Include Non-Compete" as a tick box. Untick
-it and the clause, and the two marker lines, are left out.
-Anything can go between the markers: several paragraphs,
-headings, whole tables.
-
-Use Word's automatic numbering (Home > Numbering) for clause
-numbers, and the clauses after a removed one renumber
-themselves. Numbers typed by hand will not.
-
-A cross-reference to a clause number (Insert > Cross-
-reference) updates when you select all and press F9 in Word.
-
-
-ONE BOOK OR SEVERAL
--------------------
-
-An agreement may cover one book, or a book and its workbook.
-The wording changes all through it: "the work contains"
-becomes "the works contain". Rather than a template for each,
-write one that follows the number of titles.
-
-Put the titles in one field, one per line, and show them with
-the list format:
-
-    publishing rights to {{Titles | list}} authored by ...
-
-One title gives just the title. Two give "A and B"; three or
-more give "A, B, and C". If the field is in italics in the
-template, the titles are italic and the "and" between them is
-not.
-
-Then, wherever a word depends on how many there are, give the
-wording for one and the wording for more:
-
-    The translated {{Titles | plural: work, works}}
-    {{Titles | plural: contains, contain}} no matter ...
-    shall be {{Titles | plural: an accurate translation,
-    accurate translations}}.
-
-When the wording itself has a comma in it, separate the two
-with a slash instead:
-
-    {{Titles | plural: it, as written / them, as written}}
-
-plural also follows a number. For "10 years":
-
-    for a period of {{Term}} {{Term | plural: year, years}}
-
-The form shows how many titles it has counted beneath the box.
-
-
-ALTERNATIVE CLAUSES
--------------------
-
-Where the wording depends on a choice, compare the name with
-a value. {{else}} gives the wording for every other case:
-
-    {{#if Governing State = Texas}}
-    This Agreement is governed by the laws of Texas, and venue
-    lies in Tarrant County.
-    {{else}}
-    This Agreement is governed by the laws of
-    {{Governing State | choice: Texas, Oklahoma, Louisiana}}.
-    {{/if}}
-
-A name compared like this, and never printed, becomes a
-drop-down of the values it is compared with.
-
-Also allowed:
-
-    {{#if not Include Non-Compete}}    the opposite
-    {{#if State != Texas}}             anything but Texas
-
-
-CLAUSES THAT DEPEND ON A FIELD
-------------------------------
-
-A field name alone in an {{#if}} is true when it has been
-filled in:
-
-    {{#if Guarantor Name}}
-    Guarantee. {{Guarantor Name}} guarantees ...
-    {{/if}}
-
-Leave Guarantor Name empty and the guarantee is left out. The
-form says so beneath the box.
-
-
-OPTIONAL WORDS INSIDE A SENTENCE
---------------------------------
-
-A short optional part can sit inside one paragraph. Both
-markers must then be in that same paragraph:
-
-    Invoices are due within 30 days{{#if Late Fee}}, and a
-    late fee of {{Late Fee | money}} applies{{/if}}.
-
-This works inside table cells too:
-
-    {{#if Late Fee}}{{Late Fee | money}}{{else}}None{{/if}}
-
-If everything in a paragraph is optional and it is left out,
-the empty paragraph is removed too.
-
-
-BLANK LINES BETWEEN CLAUSES
----------------------------
-
-Many contracts separate clauses with an empty line. Leave
-those where they are, outside the {{#if}} and {{/if}} lines:
-
-    (empty line)
-    {{#if Financial Assistance}}
-    11. The publisher can apply for financial assistance ...
-    {{/if}}
-    (empty line)
-
-When the clause is left out, the two empty lines would end up
-together. The app keeps just one, so there is no hole. Empty
-lines you typed next to each other on purpose are left alone.
-
-
-SIGNATURE BLOCKS
-----------------
-
-Signature blocks laid out with tabs, two parties side by side,
-work, but a long name on the left pushes the right-hand column
-along, and a long name on the right wraps back to the margin.
-A table with its borders turned off keeps each party in its own
-column whatever the length of the name.
-
-
-CHECKING A TEMPLATE
--------------------
-
-Template tools > Check this template lists every field the
-app found, what sort of box it gets, and any problems, such
-as:
-
-  - a {{#if}} with no {{/if}}
-  - {{Client Name} with a brace missing
-  - a format word it does not know
-  - an {{#if}} line outside a table whose {{/if}} is inside
-    one. Both must be in the same place.
-
-It also lists things WORTH CHECKING. They are not mistakes,
-but they would repeat in every contract:
-
-  - tracked changes in the template that were never accepted.
-    Filled-in wording inside them would show as a tracked
-    change. Review > Accept > Accept All Changes, then save.
-  - Track Changes switched on in the template
-  - wording formatted as struck through. Strikethrough typed
-    as formatting is not a tracked change: it prints, struck
-    through, in every contract.
-  - a field that is shaded or highlighted, such as an old
-    placeholder like NEED YOUR ADDRESS that was shaded grey.
-    What is filled in would be shaded too.
-  - comments, which are copied into every contract.
-  - with a field set chosen, anything expected that the
-    template has no field for.
-  - a field inside a link. The words shown are filled in,
-    but the address the link goes to stays the same.
-
-These are shown in the report as NOTE.
-
-After editing a template in Word, save it and press Reload.
-
-
-TURNING A CONTRACT INTO A TEMPLATE
-----------------------------------
-
-Template tools > Turn a contract into a template.
-
-1. Choose a finished contract you already have.
-
-2. In each row, type the wording that changes exactly as it
-   appears in the contract, for example Acme Widgets, Inc.,
-   and the field name it should become, Client Name. Pick a
-   format if it is a date or an amount.
-
-   "Suggest dates and amounts" finds the dollar amounts and
-   dates in the contract and adds them as rows. Give each a
-   name, or remove the ones that never change.
-
-3. Press Make template and choose where to save it.
-
-Matching is exact about capitals ("Works" and "works" are
-separate rows) and only finds whole words, so "works" is not
-found inside "networks".
-
-Curly and straight quotes count as the same, so typing
-God's finds the God’s that Word wrote.
-
-The same field can be given to two different pieces of
-wording. If a contract calls the other party one name in the
-heading and another in the body, list both and give both the
-same field name; from then on they always match.
-
-Every place each piece of wording appears is replaced. Longer
-wording is handled first, so "Acme Widgets, Inc." is replaced
-before "Acme" would be. The report says how many times each
-was found; "0" usually means the spelling or punctuation
-differs from the contract.
-
-Each row turns one piece of wording into one field. For
-plural wording, type the format yourself in the Format box,
-such as  plural: work, works.  Anything more involved, like
-"10 years" becoming {{Term}} {{Term | plural: year, years}},
-is quickest done afterwards in Word.
-
-Contracts often arrive as an earlier agreement edited with
-Track Changes on, and with reviewers' comments. With the tick
-box "Accept all tracked changes and remove comments first"
-(on unless you untick it), the template starts from the
-wording as finally changed, exactly as if you had chosen
-Accept All Changes in Word, and none of the old redlines or
-comments reach a contract. The report says how many there
-were.
-
-The new template has Track Changes switched off, so the
-editing you do next is not recorded as revisions. With the
-tick box "Reset letter spacing to normal" (on unless you
-untick it), it also loses squeezed or stretched letter
-spacing. Contracts converted from PDF, or with lines fitted
-by hand, are full of it, and it leaves odd gaps once a
-different name changes the length of a line.
-
-The original contract is not changed. Open the new template in
-Word to add the {{#if}} markers around optional clauses, then
-put it in the templates folder.
-
-
----------------------------------------------------------------
- WHEN SOMETHING LOOKS WRONG
----------------------------------------------------------------
-
-Read the report panel first.
-
-A {{field}} came through unchanged
-  The braces were typed with something between them that is
-  not a plain brace, or one is missing. Check this template
-  lists it as a problem.
-
-"is open in Word"
-  Word locks files it has open. Close the contract, or the
-  template, and try again.
-
-Clause numbers did not renumber
-  They were typed by hand. Use Word's automatic numbering.
-
-The wrong state's clause appeared
-  The {{#if}} compares exact wording (ignoring capitals).
-  "Texas" and "TX" are different. A choice field avoids this.
-
-
----------------------------------------------------------------
- WHICH BUILD
----------------------------------------------------------------
-
-The build number is in the title bar and in Help > About.
-Settings (the templates folder, the last template, the field
-set chosen for each template, Party 1 as last used, where
-contracts were last saved, the two tick boxes) are kept in a
-small file in your home folder, .tmai-contract-builder.json.
-Deleting it simply resets them.
-
-===============================================================
+Templates, publisher profiles, and completed documents are processed locally
+on your computer. Publisher details are stored in a SQLite database in your
+user data directory. The application contacts GitHub only to check the latest
+published release. It does not upload your Word documents or publisher data.

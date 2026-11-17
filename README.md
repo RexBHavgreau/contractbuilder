@@ -1,37 +1,72 @@
-# TMAI Contract Builder
+# Word Template Filler
 
-A small desktop app (Windows and macOS) that builds finished contracts from Word templates.
-The wording that stays the same lives in the template; the parts that change each time are
-written as `{{Client Name}}`, `{{Fee | money-words}}` and so on, and optional or alternative
-clauses sit between `{{#if ...}}` and `{{/if}}`. The app reads the template, builds a form
-for exactly those fields, and writes a new `.docx` with everything filled in, keeping the
-template's formatting, numbering, tables, headers and footers.
+A small desktop application for filling placeholders in Word documents. Choose a
+`.docx` or `.dotx` template, and the application discovers its unique fields
+and builds a form. Fill in the form and save a completed `.docx` copy. The
+original template is never changed.
 
-With the built-in **Publishing agreement** field set, the form is laid out the way a publishing
-contract is: parties (two by default, Party 1 remembered from last time), works (one by default,
-"Add another work"), rights licensed as tick boxes, territory with a Worldwide option, term,
-copies, fees. Any field can be marked not relevant, and the app warns when something a
-publishing agreement is expected to have is missing. People can build and name their own field
-sets from the same clusters plus fields of their own.
+The main application is deliberately focused on that single-document workflow.
+It can fill repeated fields throughout the document while preserving Word
+formatting, numbering, tables, headers, footers, footnotes, and endnotes.
 
-It also:
+Publisher profiles can be saved locally in SQLite and loaded into matching
+template fields, so organization and contact details can be reused across
+contracts. The database is stored in the user's application-data directory,
+separately from the application files.
 
-- shows how dates and amounts will read as you type them ("12500" becomes
-  "Twelve Thousand Five Hundred Dollars ($12,500.00)")
-- can highlight everything it filled in, for review
-- saves and reloads answers, for renewals and amendments
-- makes many contracts at once from an Excel or CSV sheet
-- turns an existing contract into a template by swapping chosen wording for fields
+## Run from source
 
-| File | What it is |
+Python 3.9 or later is required.
+
+```bash
+python -m pip install lxml
+python simple_app.py
+```
+
+`app.py` is also a launcher for the focused application. The earlier
+contract-oriented interface is retained in `advanced_app.py` for reference,
+but it is not included in the packaged application.
+
+## Build and releases
+
+On Windows, double-click `build-windows.bat` to build locally. The script
+selects a real installed Python interpreter and skips Microsoft Store
+execution aliases, which PyInstaller cannot reliably use.
+
+GitHub Actions runs the test suite and builds the desktop application whenever
+changes are pushed to `main`. It produces Windows x64, macOS Intel, and macOS
+Apple Silicon builds as workflow artifacts.
+
+To publish a versioned release, update `APP_VERSION` in `version.py`, commit
+the change, and push a matching tag such as `v0.1.0`. The tag must match the
+version in `version.py`. GitHub Actions then builds the applications and
+attaches them to a GitHub Release.
+
+The application checks for updates at startup and through **Help → Check for
+updates**. When a newer release is found, it opens the GitHub release page so
+the user can download the appropriate build. Updates are not installed
+silently.
+
+### Private-repository update checks
+
+This repository is private. A packaged application cannot contain a GitHub
+credential safely. To check private releases, set the
+`CONTRACTBUILDER_GITHUB_TOKEN` environment variable to a GitHub fine-grained
+personal access token with read-only **Contents** access to this repository.
+Do not put the token in source code or distribute it with the application. If
+the repository is made public, the update checker works without a token.
+
+## Project files
+
+| File | Purpose |
 | --- | --- |
-| `app.py` | the window |
-| `core.py` | the engine: reading templates, filling them in, spreadsheets |
-| `fieldsets.py` | field sets: the built-in Publishing agreement, and saving people's own |
-| `USER-GUIDE.txt` | for the people using it, and for whoever writes templates |
-| `BUILD-NOTES.txt` | turning it into a single `.exe` / `.app` |
-| `build-windows.bat`, `build-mac.command` | double-click builds |
-| `examples/` | a sample publishing MOU template, a sample services agreement, and a sample spreadsheet |
-| `tests/` | `python -m pytest tests` |
-
-Run from source: `pip install lxml openpyxl`, then `python app.py`.
+| `simple_app.py` | Focused desktop interface packaged for users |
+| `core.py` | DOCX template scanning, validation, and rendering engine |
+| `publisher_profiles.py` | Local SQLite publisher-profile storage and template field mapping |
+| `update_checker.py` | GitHub Releases version checker |
+| `version.py` | App version and repository settings |
+| `USER-GUIDE.txt` | Instructions shown from the Help menu and bundled with the app |
+| `app.py` | Default launcher for the focused application |
+| `advanced_app.py` | Earlier contract-oriented interface, retained separately and not packaged |
+| `.github/workflows/build.yml` | Tests, Windows/macOS builds, and tagged releases |
+| `tests/` | Automated tests; run with `python -m pytest tests` |
