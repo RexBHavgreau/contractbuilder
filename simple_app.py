@@ -6,7 +6,6 @@ packaged application starts here and exposes only the single-document workflow.
 from __future__ import annotations
 
 import pathlib
-import queue
 import sys
 import threading
 import tkinter as tk
@@ -141,7 +140,6 @@ class WordTemplateFiller:
         self.template = None
         self.inputs = []
         self.update_checking = False
-        self.update_queue = queue.Queue()
 
         self._build_menu()
         self._build_window()
@@ -424,8 +422,8 @@ class WordTemplateFiller:
     def _finish_update_check(self, result, error, manual: bool):
         self.update_checking = False
         if error:
-            self.status.config(text="Update check could not be completed.", foreground="#8a5a00")
             if manual:
+                self.status.config(text="Update check could not be completed.", foreground="#8a5a00")
                 messagebox.showwarning("Update check failed", error, parent=self.root)
             return
 
