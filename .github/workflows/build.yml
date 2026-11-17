@@ -40,16 +40,48 @@ jobs:
       - name: Run tests
         run: python -m pytest -q tests
 
-  build:
+  build-windows:
+    name: Build Windows x64
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Build Windows application
+        shell: pwsh
+        run: |
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\build-windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $built = Get-ChildItem "dist" -Filter "Word Template Filler *.exe" | Select-Object -First 1
+          if (-not $built) { throw "Windows executable was not produced." }
+          $releaseAsset = "dist/Word-Template-Filler-windows-x64.exe"
+          Move-Item -LiteralPath $built.FullName -Destination $releaseAsset
+          if ((Get-Item -LiteralPath $releaseAsset).Length -le 0) {
+            throw "Windows executable is empty."
+          }
+          Get-FileHash -Algorithm SHA256 -LiteralPath $releaseAsset
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-windows-x64
+          path: dist/Word-Template-Filler-windows-x64.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  build-macos:
     name: Build ${{ matrix.label }}
     needs: test
     strategy:
       fail-fast: false
       matrix:
         include:
-          - label: Windows x64
-            os: windows-latest
-            target: windows-x64
           - label: macOS Intel
             os: macos-26-intel
             target: macos-intel
@@ -66,51 +98,50 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install macOS build dependencies
-        if: runner.os == 'macOS'
+      - name: Install build dependencies
         run: python -m pip install --upgrade pip pyinstaller lxml
 
-      - name: Build Windows application with the local build script
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\build-windows.ps1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $built = Get-ChildItem "dist" -Filter "Word Template Filler *.exe" | Select-Object -First 1
-          if (-not $built) { throw "Windows executable was not produced." }
-          Move-Item -LiteralPath $built.FullName -Destination "dist/Word-Template-Filler-windows-x64.exe"
-
       - name: Build macOS application
-        if: runner.os == 'macOS'
         run: |
           python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt:." simple_app.py
           ditto -c -k --sequesterRsrc --keepParent "dist/Word Template Filler.app" "dist/Word-Template-Filler-${{ matrix.target }}.zip"
 
-      - name: Upload build
+      - name: Upload macOS application
         uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.target }}
-          path: |
-            dist/Word-Template-Filler-${{ matrix.target }}*
+          path: dist/Word-Template-Filler-${{ matrix.target }}.zip
           if-no-files-found: error
           retention-days: 14
 
   release:
     name: Publish GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    # Windows is the required release asset. macOS builds are attached when
+    # available, but a failed or cancelled macOS runner must not suppress the
+    # Windows executable or prevent the release from being published.
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/v') && needs.test.result == 'success' && needs.build-windows.result == 'success' }}
+    needs:
+      - test
+      - build-windows
+      - build-macos
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download platform builds
+      - name: Download available platform builds
         uses: actions/download-artifact@v7
         with:
           pattern: build-*
           path: release-assets
           merge-multiple: true
 
-      - name: Publish release and attach applications
+      - name: Verify required Windows release asset
+        run: |
+          test -s release-assets/Word-Template-Filler-windows-x64.exe
+          echo "Required Windows executable is present."
+          echo "macOS build matrix result: ${{ needs.build-macos.result }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish GitHub release and attach applications
         uses: softprops/action-gh-release@v2
         with:
           name: Word Template Filler ${{ github.ref_name }}
