@@ -166,6 +166,7 @@ class PublisherProfileDialog:
         self.on_close = on_close
         self.current_id = None
         self.loaded_snapshot = None
+        self.ignore_selection_event = False
 
         self.window = tk.Toplevel(parent)
         self.window.title("Publisher Profiles")
@@ -285,6 +286,9 @@ class PublisherProfileDialog:
         return current != self.loaded_snapshot
 
     def select_profile(self, _event=None):
+        if self.ignore_selection_event:
+            self.ignore_selection_event = False
+            return
         selection = self.tree.selection()
         if not selection:
             return
@@ -294,6 +298,7 @@ class PublisherProfileDialog:
             parent=self.window,
         ):
             if self.current_id is not None and self.tree.exists(str(self.current_id)):
+                self.ignore_selection_event = True
                 self.tree.selection_set(str(self.current_id))
                 self.tree.focus(str(self.current_id))
             else:
