@@ -37,7 +37,10 @@ def version_key(value: str) -> tuple[int, ...]:
     match = re.search(r"\d+(?:\.\d+)*", str(value))
     if not match:
         raise ValueError(f"Unrecognized version: {value!r}")
-    return tuple(int(part) for part in match.group(0).split("."))
+    parts = [int(part) for part in match.group(0).split(".")]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)
 
 
 def check_for_update(
