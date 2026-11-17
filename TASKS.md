@@ -121,7 +121,7 @@ job is deliberately optional with the reason written down.
 
 ## T-005 Check the PowerShell build script in CI before building
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-17)
 - **Size:** S
 - **Agent:** any
 
