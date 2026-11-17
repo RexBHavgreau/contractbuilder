@@ -1,0 +1,115 @@
+name: Test and build Word Template Filler
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test application and template engine
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pip lxml openpyxl pytest python-docx
+
+      - name: Verify release tag matches application version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          python -c "from version import APP_VERSION; import sys; assert APP_VERSION == sys.argv[1], f'Git tag {sys.argv[1]} does not match APP_VERSION {APP_VERSION}'" "$TAG_VERSION"
+
+      - name: Run tests
+        run: python -m pytest -q tests
+
+  build:
+    name: Build ${{ matrix.label }}
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64
+            os: windows-latest
+            target: windows-x64
+          - label: macOS Intel
+            os: macos-26-intel
+            target: macos-intel
+          - label: macOS Apple Silicon
+            os: macos-26
+            target: macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip pyinstaller lxml
+
+      - name: Build Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt;." simple_app.py
+          Move-Item "dist/Word Template Filler.exe" "dist/Word-Template-Filler-windows-x64.exe"
+
+      - name: Build macOS application
+        if: runner.os == 'macOS'
+        run: |
+          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt:." simple_app.py
+          ditto -c -k --sequesterRsrc --keepParent "dist/Word Template Filler.app" "dist/Word-Template-Filler-${{ matrix.target }}.zip"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.target }}
+          path: |
+            dist/Word-Template-Filler-${{ matrix.target }}*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download platform builds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish release and attach applications
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Word Template Filler ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release-assets/*
+          fail_on_unmatched_files: true
