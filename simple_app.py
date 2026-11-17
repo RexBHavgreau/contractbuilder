@@ -293,7 +293,9 @@ class PublisherProfileDialog:
         for variable in self.variables.values():
             variable.set("")
         self.notes.delete("1.0", "end")
-        self.tree.selection_remove(self.tree.selection())
+        selection = self.tree.selection()
+        if selection:
+            self.tree.selection_remove(*selection)
         self.status.config(text="New publisher profile.")
 
     def save_profile(self):
@@ -323,9 +325,11 @@ class PublisherProfileDialog:
         self.status.config(text="Profile deleted.")
 
     def close(self):
-        if self.on_close is not None:
-            self.on_close()
-        self.window.destroy()
+        try:
+            if self.on_close is not None:
+                self.on_close()
+        finally:
+            self.window.destroy()
 
 
 class WordTemplateFiller:
