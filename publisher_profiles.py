@@ -141,7 +141,19 @@ def values_for_template(
         property_name = _FIELD_ALIASES.get(_normalize_field_name(field_name))
         if not property_name:
             continue
-        value = format_address(profile) if property_name == "formatted_address" else profile.get(property_name)
+        if property_name == "formatted_address":
+            # The main form uses a single-line Entry for ordinary text fields.
+            # Tkinter Entry silently removes newline characters, which caused
+            # address components to run together (for example, "HouseStr.").
+            # Convert the formatted postal-address lines to comma-separated
+            # components before placing the value in that form control.
+            value = ", ".join(
+                part.strip()
+                for part in format_address(profile).splitlines()
+                if part.strip()
+            )
+        else:
+            value = profile.get(property_name)
         if value is not None and str(value).strip():
             result[field_name] = str(value).strip()
     return result
