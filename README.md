@@ -56,6 +56,6 @@ the repository is made public, the update checker works without a token.
 | `update_checker.py` | GitHub Releases version checker |
 | `version.py` | App version and repository settings |
 | `USER-GUIDE.txt` | Instructions shown from the Help menu and bundled with the app |
-| `app.py` | Earlier contract-builder interface, retained but not packaged |
+| `app.py` | Default launcher for the focused application |\n| `advanced_app.py` | Earlier contract-oriented interface, retained separately and not packaged |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, and tagged releases |
 | `tests/` | Automated tests; run with `python -m pytest tests` |
