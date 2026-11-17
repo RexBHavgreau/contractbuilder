@@ -19,7 +19,20 @@ The application can be run from source:
 LOCAL WINDOWS BUILD
 ===================
 
-Double-click build-windows.bat. It builds a single executable in dist.
+Extract the entire repository ZIP to a normal folder. Double-click
+build-windows.bat. It calls build-windows.ps1, which searches for a usable
+installed Python interpreter and checks that its underlying executable is
+real and non-empty before running PyInstaller.
+
+The Microsoft Store execution aliases are deliberately skipped. PyInstaller
+cannot always build from the empty launcher executable exposed by the Store
+version. If the script cannot find another interpreter, install Python from
+https://www.python.org/downloads/windows/ and run the build again. Enable the
+Python launcher during installation if offered.
+
+The script uses the selected interpreter to install PyInstaller and lxml,
+then builds a single executable in dist. The full log is written to
+build-log.txt.
 
 LOCAL macOS BUILD
 =================
