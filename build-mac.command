@@ -33,8 +33,8 @@ echo "  Building the Word Template Filler"
 echo "  Folder: $(pwd)"
 echo
 
-if [ ! -f simple_app.py ] || [ ! -f core.py ] || [ ! -f version.py ] || [ ! -f update_checker.py ] || [ ! -f USER-GUIDE.txt ]; then
-    echo "  simple_app.py, core.py, version.py, update_checker.py, and USER-GUIDE.txt must sit beside this file."
+if [ ! -f simple_app.py ] || [ ! -f core.py ] || [ ! -f version.py ] || [ ! -f update_checker.py ] || [ ! -f self_update.py ] || [ ! -f publisher_profiles.py ] || [ ! -f USER-GUIDE.txt ]; then
+    echo "  simple_app.py, core.py, version.py, update_checker.py, self_update.py, publisher_profiles.py, and USER-GUIDE.txt must sit beside this file."
     echo "  Found here:"; ls -1 *.py 2>/dev/null
     echo; read -r -p "  Press Return to close. "; exit 1
 fi

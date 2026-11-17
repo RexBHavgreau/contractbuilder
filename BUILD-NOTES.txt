@@ -21,8 +21,23 @@ LOCAL WINDOWS BUILD
 
 Extract the entire repository ZIP to a normal folder. Double-click
 build-windows.bat. It calls build-windows.ps1, which searches for a usable
-installed Python interpreter and checks that its underlying executable is
-real and non-empty before running PyInstaller.
+installed Python and tests each one it finds before running PyInstaller. A
+usable Python has a real python.exe (not an empty Store alias), is 3.9 or
+later, and has tkinter (for the app window) and pip (to install PyInstaller).
+LibreOffice's bundled python.exe, often first on PATH, has neither and is
+turned down. build-log.txt lists every Python tried and why it was turned
+down.
+
+To name the Python to use, set BUILD_PYTHON before running the build from
+the same Command Prompt window:
+
+    set BUILD_PYTHON=C:\Users\you\AppData\Local\Python\pythoncore-3.14-64\python.exe
+    build-windows.bat
+
+The test is run from a temporary .py file, never as python -c "...": Windows
+PowerShell 5.1, which build-windows.bat uses, strips double quotes from
+arguments it passes to programs, which broke the earlier inline test and
+made every Python fail it (fixed in 0.3.0).
 
 The Microsoft Store execution aliases are deliberately skipped. PyInstaller
 cannot always build from the empty launcher executable exposed by the Store
@@ -50,23 +65,28 @@ builds Windows x64, macOS Intel, and macOS Apple Silicon versions whenever
 changes are pushed to main. The generated builds are available as workflow
 artifacts for 14 days.
 
-To publish a permanent release:
+To publish a permanent release, raise APP_VERSION in version.py and merge
+the change into main. That is all. When main holds a version that has no
+v-tag yet, GitHub Actions tests the code, builds each platform, tags the
+commit (v0.3.0, say) and publishes a GitHub Release with the applications
+attached. The Windows file is always named Word-Template-Filler-windows-x64.exe;
+the app's updater looks for exactly that name.
 
-1. Set APP_VERSION in version.py to the new version.
-2. Commit and push the change to main.
-3. Create and push a matching tag, for example v0.1.0.
-
-The tag must exactly match APP_VERSION. GitHub Actions tests the code, builds
-each platform, and attaches the finished applications to a GitHub Release.
+Pushing a matching tag by hand also still publishes. A tag that disagrees
+with APP_VERSION fails the build, which is what happened to v0.2.0: it was
+tagged on a commit still saying 0.1.0, so its release has no files.
 
 The packaged application checks for a newer published release at startup and
-from Help > Check for updates. It opens the release page for download; it does
-not replace its own executable.
+from Help > Check for updates. On Windows it downloads the new .exe beside
+itself, checks its size and SHA-256 against GitHub's, and a small batch
+script swaps it in after the app closes and reopens it (self_update.py). On
+macOS it opens the release page.
 
 PRIVATE REPOSITORY
 ==================
 
 The update checker cannot contain a GitHub token safely. For a private
-repository, set CONTRACTBUILDER_GITHUB_TOKEN in the user's environment to a
-fine-grained token with read-only Contents access to this repository. Do not
-commit or distribute that token. Public repositories need no token.
+repository, each user pastes a fine-grained token with read-only Contents
+access to this repository into Help > Update settings (or sets
+CONTRACTBUILDER_GITHUB_TOKEN). Do not commit or distribute that token.
+Public repositories need no token.
