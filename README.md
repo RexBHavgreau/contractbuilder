@@ -37,22 +37,27 @@ GitHub Actions runs the test suite and builds the desktop application whenever
 changes are pushed to `main`. It produces Windows x64, macOS Intel, and macOS
 Apple Silicon builds as workflow artifacts.
 
-To publish a versioned release, update `APP_VERSION` in `version.py`, commit
-the change, and push a matching tag such as `v0.1.0`. The tag must match the
-version in `version.py`. GitHub Actions then builds the applications and
-attaches them to a GitHub Release.
+To publish a release, raise `APP_VERSION` in `version.py` and merge the change
+into `main`. When `main` has a version with no matching `v` tag yet, GitHub
+Actions tests, builds, tags the commit (for example `v0.3.0`) and publishes a
+GitHub Release with the applications attached. Pushing a matching tag by hand
+still works; a tag that disagrees with `version.py` fails the build.
 
 The application checks for updates at startup and through **Help → Check for
-updates**. When a newer release is found, it opens the GitHub release page so
-the user can download the appropriate build. Updates are not installed
-silently.
+updates**. On Windows it offers to download the new `.exe`, checks it against
+GitHub's published size and SHA-256 digest, and swaps it in with a small
+helper script once the app has closed, then reopens (`self_update.py`).
+Nothing is installed without the user choosing to. On macOS, and for a release
+with no Windows file, it opens the release page instead.
 
 ### Private-repository update checks
 
 This repository is private. A packaged application cannot contain a GitHub
 credential safely. To check private releases, set the
-`CONTRACTBUILDER_GITHUB_TOKEN` environment variable to a GitHub fine-grained
-personal access token with read-only **Contents** access to this repository.
+`CONTRACTBUILDER_GITHUB_TOKEN` environment variable, or paste it into **Help →
+Update settings** (saved per user, beside the publisher profiles), using a GitHub
+fine-grained personal access token with read-only **Contents** access to this
+repository.
 Do not put the token in source code or distribute it with the application. If
 the repository is made public, the update checker works without a token.
 
@@ -64,6 +69,9 @@ the repository is made public, the update checker works without a token.
 | `core.py` | DOCX template scanning, validation, and rendering engine |
 | `publisher_profiles.py` | Local SQLite publisher-profile storage and template field mapping |
 | `update_checker.py` | GitHub Releases version checker |
+| `self_update.py` | Downloads, verifies and swaps in a new Windows build |
+| `CLAUDE.md` | Project history, conventions and decision log, for people and AI agents |
+| `TASKS.md` | Open tasks, sized so they can be picked up by any agent |
 | `version.py` | App version and repository settings |
 | `USER-GUIDE.txt` | Instructions shown from the Help menu and bundled with the app |
 | `app.py` | Default launcher for the focused application |

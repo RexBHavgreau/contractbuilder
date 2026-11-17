@@ -1,21 +1,37 @@
 """Check GitHub Releases for a newer application version.
 
 No credentials are embedded in the application. Public repositories work
-without configuration. For a private repository, users may supply a
-read-only token through CONTRACTBUILDER_GITHUB_TOKEN or GH_TOKEN.
+without configuration. For a private repository, a read-only token can be
+saved in the app (Help > Update settings), or supplied through the
+CONTRACTBUILDER_GITHUB_TOKEN or GH_TOKEN environment variable.
 """
 from __future__ import annotations
 
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
 class UpdateCheckError(Exception):
     """A readable failure while checking the release endpoint."""
+
+    def __init__(self, message: str, needs_token: bool = False):
+        super().__init__(message)
+        self.needs_token = needs_token     # the repository is private and no token worked
+
+
+@dataclass(frozen=True)
+class ReleaseAsset:
+    """One file attached to a release."""
+
+    name: str
+    api_url: str                     # works for private repositories, with a token
+    download_url: str                # works for public repositories, without one
+    size: int
+    digest: str = ""                 # "sha256:...", when GitHub supplies it
 
 
 @dataclass(frozen=True)
@@ -26,10 +42,17 @@ class ReleaseInfo:
     release_name: str
     notes: str
     published_at: str
+    assets: tuple = field(default=())
 
     @property
     def available(self) -> bool:
         return version_key(self.latest_version) > version_key(self.current_version)
+
+    def asset(self, name: str):
+        for item in self.assets:
+            if item.name == name:
+                return item
+        return None
 
 
 def version_key(value: str) -> tuple[int, ...]:
@@ -43,17 +66,23 @@ def version_key(value: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
+def environment_token() -> str:
+    return (
+        os.environ.get("CONTRACTBUILDER_GITHUB_TOKEN")
+        or os.environ.get("GH_TOKEN")
+        or os.environ.get("GITHUB_TOKEN")
+        or ""
+    )
+
+
 def check_for_update(
     current_version: str,
     repository: str,
     timeout: float = 5.0,
+    token: str | None = None,
 ) -> ReleaseInfo:
     """Retrieve the latest published GitHub release and compare its tag."""
-    token = (
-        os.environ.get("CONTRACTBUILDER_GITHUB_TOKEN")
-        or os.environ.get("GH_TOKEN")
-        or os.environ.get("GITHUB_TOKEN")
-    )
+    token = token or environment_token()
     url = f"https://api.github.com/repos/{repository}/releases/latest"
     headers = {
         "Accept": "application/vnd.github+json",
@@ -69,16 +98,25 @@ def check_for_update(
             payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         if exc.code == 404:
+            if token:
+                raise UpdateCheckError(
+                    "GitHub returned 404 with the saved token. Either no release has "
+                    "been published yet, or the token cannot read this repository: it "
+                    "needs read-only Contents access to it.",
+                    needs_token=True,
+                ) from exc
             raise UpdateCheckError(
-                "GitHub returned 404. No published release may exist yet, "
-                "or this repository is private. For a private repository, "
-                "set CONTRACTBUILDER_GITHUB_TOKEN to a GitHub token with "
-                "read-only Contents access to this repository."
+                "GitHub returned 404. This repository is private, so the app needs a "
+                "read-only GitHub token to see its releases. Add one in Help > Update "
+                "settings, or set CONTRACTBUILDER_GITHUB_TOKEN. (No release published "
+                "yet gives the same answer.)",
+                needs_token=True,
             ) from exc
         if exc.code in (401, 403):
             raise UpdateCheckError(
-                "GitHub denied the update check. Check the token permissions "
-                "and any GitHub API rate limit."
+                "GitHub denied the update check. Check the token in Help > Update "
+                "settings (it may have expired) and any GitHub API rate limit.",
+                needs_token=exc.code == 401,
             ) from exc
         raise UpdateCheckError(f"GitHub returned HTTP {exc.code}.") from exc
     except (URLError, TimeoutError, OSError) as exc:
@@ -97,6 +135,17 @@ def check_for_update(
     except ValueError as exc:
         raise UpdateCheckError(str(exc)) from exc
 
+    assets = tuple(
+        ReleaseAsset(
+            name=str(item.get("name", "")),
+            api_url=str(item.get("url", "")),
+            download_url=str(item.get("browser_download_url", "")),
+            size=int(item.get("size") or 0),
+            digest=str(item.get("digest") or ""),
+        )
+        for item in payload.get("assets") or []
+        if isinstance(item, dict)
+    )
     return ReleaseInfo(
         current_version=current_version,
         latest_version=tag.lstrip("vV"),
@@ -104,4 +153,5 @@ def check_for_update(
         release_name=str(payload.get("name") or tag),
         notes=str(payload.get("body") or ""),
         published_at=str(payload.get("published_at") or ""),
+        assets=assets,
     )
