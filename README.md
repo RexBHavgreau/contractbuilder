@@ -18,9 +18,9 @@ python -m pip install lxml
 python simple_app.py
 ```
 
-The main window exposes only the template-filling workflow. The earlier
-contract-oriented interface in `app.py` remains in the repository for reference
-but is not included in the packaged application.
+`app.py` is also a launcher for the focused application. The earlier
+contract-oriented interface is retained in `advanced_app.py` for reference,
+but it is not included in the packaged application.
 
 ## Build and releases
 
@@ -56,6 +56,7 @@ the repository is made public, the update checker works without a token.
 | `update_checker.py` | GitHub Releases version checker |
 | `version.py` | App version and repository settings |
 | `USER-GUIDE.txt` | Instructions shown from the Help menu and bundled with the app |
-| `app.py` | Default launcher for the focused application |\n| `advanced_app.py` | Earlier contract-oriented interface, retained separately and not packaged |
+| `app.py` | Default launcher for the focused application |
+| `advanced_app.py` | Earlier contract-oriented interface, retained separately and not packaged |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, and tagged releases |
 | `tests/` | Automated tests; run with `python -m pytest tests` |
