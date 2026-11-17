@@ -59,7 +59,10 @@ function Find-UsablePython {
     foreach ($candidate in $candidates) {
         if (-not $candidate -or $seen.ContainsKey($candidate)) { continue }
         $seen[$candidate] = $true
+        if ($candidate -match '\\WindowsApps\\') { continue }
         if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+        $candidateFile = Get-Item -LiteralPath $candidate -ErrorAction SilentlyContinue
+        if (-not $candidateFile -or $candidateFile.Length -eq 0) { continue }
         try {
             & $candidate -c $probe *>$null
             if ($LASTEXITCODE -eq 0) { return (Resolve-Path -LiteralPath $candidate).Path }
