@@ -66,15 +66,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install build dependencies
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
         run: python -m pip install --upgrade pip pyinstaller lxml
 
-      - name: Build Windows application
+      - name: Build Windows application with the local build script
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt;." simple_app.py
-          Move-Item "dist/Word Template Filler.exe" "dist/Word-Template-Filler-windows-x64.exe"
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\\build-windows.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $built = Get-ChildItem "dist" -Filter "Word Template Filler *.exe" | Select-Object -First 1
+          if (-not $built) { throw "Windows executable was not produced." }
+          Move-Item -LiteralPath $built.FullName -Destination "dist/Word-Template-Filler-windows-x64.exe"
 
       - name: Build macOS application
         if: runner.os == 'macOS'
