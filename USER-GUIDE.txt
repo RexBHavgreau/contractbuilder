@@ -129,19 +129,44 @@ UPDATES
 Word Template Filler checks for a newer published GitHub release when it
 starts. You can also choose Help > Check for updates.
 
-If an update is available, choose to open the release page and download the
-version for your operating system. Close the application before replacing
-the installed copy.
+On Windows, when an update is available, choose Yes to download and install
+it. A progress bar shows the download. The application then closes, replaces
+itself with the new version, and opens again. Save your work first. The
+download is checked against the size and fingerprint (SHA-256) GitHub
+publishes for it, and is discarded if they do not match.
 
-This repository is private. To let the application check its releases, set
-the CONTRACTBUILDER_GITHUB_TOKEN environment variable to a GitHub fine-grained
-personal access token that has read-only Contents permission for this
-repository. Do not put a token in a template, script, or shared file. If the
-repository is made public, no token is needed.
+If the application's folder cannot be written to (for example, it is under
+C:\Program Files), the new version is saved to your Downloads folder instead,
+and the application says where. Close the application and use that file.
+
+If the release has no Windows download attached, or you are on macOS, the
+application offers to open the release page instead.
+
+The first time, versions older than 0.3.0 cannot install updates themselves:
+download 0.3.0 once by hand, and later versions install automatically.
+
+PRIVATE REPOSITORY
+
+This repository is private, so GitHub only shows its releases to someone
+signed in. Until a token is set up, the status line says "Automatic updates
+are not set up yet". To set one up:
+
+1. On GitHub, open Settings > Developer settings > Personal access tokens >
+   Fine-grained tokens, and generate a new token.
+2. Under Repository access, choose Only select repositories and pick this
+   repository.
+3. Under Permissions, give Contents read-only access, and nothing else.
+4. In this application, choose Help > Update settings, paste the token, and
+   choose Save and check now.
+
+The token is saved for your user only, beside your publisher profiles. Never
+put a token in a template, script, or shared file. The environment variable
+CONTRACTBUILDER_GITHUB_TOKEN still works too. If the repository is made
+public, no token is needed.
 
 PRIVACY
 
 Templates, publisher profiles, and completed documents are processed locally
 on your computer. Publisher details are stored in a SQLite database in your
 user data directory. The application contacts GitHub only to check the latest
-published release. It does not upload your Word documents or publisher data.
+published release and, if you choose to install it, to download it. It does not upload your Word documents or publisher data.

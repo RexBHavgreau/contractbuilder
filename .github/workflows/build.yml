@@ -15,6 +15,30 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Read application version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      tag_exists: ${{ steps.read.outputs.tag_exists }}
+    steps:
+      - name: Check out source with tags
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read APP_VERSION and look for its tag
+        id: read
+        run: |
+          VERSION=$(python3 -c "from version import APP_VERSION; print(APP_VERSION)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "tag_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "APP_VERSION $VERSION" >> "$GITHUB_STEP_SUMMARY"
+
   test:
     name: Test application and template engine
     runs-on: ubuntu-latest
@@ -116,11 +140,23 @@ jobs:
 
   release:
     name: Publish GitHub release
+    # A release is published either when a v* tag is pushed, or when main
+    # receives a version.py whose APP_VERSION has no tag yet: raising the
+    # version number is all a release needs, so a tag can never disagree
+    # with the version inside the app.
+    #
     # Windows is the required release asset. macOS builds are attached when
     # available, but a failed or cancelled macOS runner must not suppress the
     # Windows executable or prevent the release from being published.
-    if: ${{ always() && startsWith(github.ref, 'refs/tags/v') && needs.test.result == 'success' && needs.build-windows.result == 'success' }}
+    if: >-
+      ${{ always()
+          && needs.test.result == 'success'
+          && needs.build-windows.result == 'success'
+          && (startsWith(github.ref, 'refs/tags/v')
+              || (github.event_name == 'push' && github.ref == 'refs/heads/main'
+                  && needs.version.outputs.tag_exists == 'false')) }}
     needs:
+      - version
       - test
       - build-windows
       - build-macos
@@ -144,7 +180,9 @@ jobs:
       - name: Publish GitHub release and attach applications
         uses: softprops/action-gh-release@v2
         with:
-          name: Word Template Filler ${{ github.ref_name }}
+          tag_name: v${{ needs.version.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Word Template Filler v${{ needs.version.outputs.version }}
           generate_release_notes: true
           files: release-assets/*
           fail_on_unmatched_files: true
