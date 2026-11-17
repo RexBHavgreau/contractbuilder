@@ -3,9 +3,9 @@ setlocal enabledelayedexpansion
 
 rem ---------------------------------------------------------------
 rem  build-windows.bat
-rem  Builds the TMAI Contract Builder into a single .exe.
+rem  Builds the Word Template Filler into a single .exe.
 rem
-rem  Put this beside app.py and core.py and double-click it. It works
+rem  Put this beside simple_app.py and core.py and double-click it. It works
 rem  from any folder or drive, including a USB stick, and leaves the
 rem  finished app in a "dist" folder right here.
 rem ---------------------------------------------------------------
@@ -15,11 +15,11 @@ rem drive letter, which a plain cd will not.
 cd /d "%~dp0"
 
 echo.
-echo   Building the TMAI Contract Builder
+echo   Building the Word Template Filler
 echo   Folder: %~dp0
 echo.
 
-if not exist "app.py"  goto nosource
+if not exist "simple_app.py"  goto nosource
 if not exist "core.py" goto nosource
 
 rem --- Python present? ---
@@ -28,10 +28,10 @@ if errorlevel 1 goto nopython
 
 rem --- Read the build number out of core.py so the name matches ---
 set "BUILD="
-for /f "tokens=3 delims= " %%i in ('findstr /b /c:"BUILD = " core.py') do set "RAW=%%i"
+for /f "tokens=3 delims= " %%i in ('findstr /b /c:"APP_VERSION = " version.py') do set "RAW=%%i"
 if defined RAW set "BUILD=!RAW:"=!"
 if not defined BUILD set "BUILD=unknown"
-set "APPNAME=TMAI Contract Builder !BUILD!"
+set "APPNAME=Word Template Filler !BUILD!"
 
 echo   Build number found: !BUILD!
 echo   Will produce: !APPNAME!.exe
@@ -44,7 +44,7 @@ echo Folder: %~dp0>> "!LOG!"
 
 echo   Checking packages. This may take a minute the first time.
 echo   Everything is written to build-log.txt as it goes.
-python -m pip install --upgrade pyinstaller lxml openpyxl >> "!LOG!" 2>&1
+python -m pip install --upgrade pyinstaller lxml >> "!LOG!" 2>&1
 if errorlevel 1 goto nopackages
 
 rem --- Build, keeping every working file inside this folder ---
@@ -55,7 +55,7 @@ rem Relative paths on purpose. %~dp0 ends with a backslash, and a
 rem backslash just before a closing quote escapes the quote, which
 rem breaks the whole command line. We are already standing in this
 rem folder, so plain names are safer and clearer.
-python -m PyInstaller --onefile --windowed --clean --noconfirm --name "!APPNAME!" --distpath "dist" --workpath "build" --specpath "." --hidden-import openpyxl "app.py" >> "!LOG!" 2>&1
+python -m PyInstaller --onefile --windowed --clean --noconfirm --name "!APPNAME!" --distpath "dist" --workpath "build" --specpath "." --add-data "USER-GUIDE.txt;." "simple_app.py" >> "!LOG!" 2>&1
 if errorlevel 1 goto buildfailed
 
 if not exist "dist\!APPNAME!.exe" goto buildfailed
@@ -82,7 +82,7 @@ pause
 exit /b 0
 
 :nosource
-echo   app.py and core.py must sit beside this file.
+echo   simple_app.py and core.py must sit beside this file.
 echo   Found in %~dp0:
 dir /b *.py 2>nul
 echo.
