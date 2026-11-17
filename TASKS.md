@@ -138,7 +138,7 @@ step at the start of the Windows CI job:
 
 ## T-006 Clean up a leftover download if an update never started
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-17)
 - **Size:** S
 - **Agent:** any
 
