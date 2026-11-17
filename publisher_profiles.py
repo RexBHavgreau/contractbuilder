@@ -37,6 +37,7 @@ _FIELD_ALIASES = {
     "international publisher": "publisher_name",
     "publisher": "publisher_name",
     "international publisher contact": "contact_name",
+    "international publisher contact name": "contact_name",
     "international publisher contact person": "contact_name",
     "publisher contact": "contact_name",
     "publisher contact person": "contact_name",
@@ -102,7 +103,8 @@ def default_database_path() -> Path:
 
 
 def _normalize_field_name(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", str(value).casefold()).strip()
+    value = re.sub(r"['’]s\\b", "", str(value).casefold())
+    return re.sub(r"[^a-z0-9]+", " ", value).strip()
 
 
 def format_address(profile: Mapping[str, object]) -> str:
@@ -173,7 +175,8 @@ class PublisherProfileStore:
                 """
                 CREATE TABLE IF NOT EXISTS publishers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    publisher_name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                    publisher_name TEXT NOT NULL,
+                    publisher_name_key TEXT NOT NULL UNIQUE,
                     contact_name TEXT NOT NULL DEFAULT '',
                     contact_title TEXT NOT NULL DEFAULT '',
                     contact_email TEXT NOT NULL DEFAULT '',
@@ -193,7 +196,7 @@ class PublisherProfileStore:
             )
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_publishers_name "
-                "ON publishers(publisher_name COLLATE NOCASE)"
+                "ON publishers(publisher_name_key)"
             )
 
     def list_profiles(self) -> list[dict[str, object]]:
@@ -220,21 +223,25 @@ class PublisherProfileStore:
 
         values = {field: str(profile.get(field) or "").strip() for field in PROFILE_FIELDS}
         values["publisher_name"] = name
+        # Python's casefold handles international scripts more consistently than
+        # SQLite's built-in NOCASE collation, which is limited to ASCII letters.
+        name_key = " ".join(name.casefold().split())
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         try:
             with self._connection() as connection:
                 if profile_id is None:
-                    columns = ", ".join((*PROFILE_FIELDS, "created_at", "updated_at"))
-                    placeholders = ", ".join("?" for _ in range(len(PROFILE_FIELDS) + 2))
+                    columns = ", ".join((*PROFILE_FIELDS, "publisher_name_key", "created_at", "updated_at"))
+                    placeholders = ", ".join("?" for _ in range(len(PROFILE_FIELDS) + 3))
                     cursor = connection.execute(
                         f"INSERT INTO publishers ({columns}) VALUES ({placeholders})",
-                        (*[values[field] for field in PROFILE_FIELDS], now, now),
+                        (*[values[field] for field in PROFILE_FIELDS], name_key, now, now),
                     )
                     return int(cursor.lastrowid)
                 assignments = ", ".join(f"{field} = ?" for field in PROFILE_FIELDS)
                 cursor = connection.execute(
-                    f"UPDATE publishers SET {assignments}, updated_at = ? WHERE id = ?",
-                    (*[values[field] for field in PROFILE_FIELDS], now, int(profile_id)),
+                    f"UPDATE publishers SET {assignments}, publisher_name_key = ?, "
+                    "updated_at = ? WHERE id = ?",
+                    (*[values[field] for field in PROFILE_FIELDS], name_key, now, int(profile_id)),
                 )
                 if cursor.rowcount == 0:
                     raise ValueError("That publisher profile no longer exists.")
