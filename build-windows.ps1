@@ -127,7 +127,9 @@ You can check registered interpreters with:  py -0p
     Write-Log ""
     Write-Log "SUCCESS: $Executable"
     Write-Log "You can copy this executable anywhere on this Windows computer."
-    Start-Process explorer.exe -ArgumentList (Join-Path $Root "dist")
+    if (-not $env:GITHUB_ACTIONS) {
+        Start-Process explorer.exe -ArgumentList (Join-Path $Root "dist")
+    }
     exit 0
 }
 catch {
