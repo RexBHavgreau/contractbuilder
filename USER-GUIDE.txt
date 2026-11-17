@@ -38,7 +38,7 @@ Click Create document and choose where to save the completed file.
 
 The application checks formatted entries before creating the document. If a
 field is empty, it tells you and asks whether to continue. Empty fields are
-represented by a blank line so they can be completed later in Word.
+represented by an underline (__________) so they can be completed later in Word.
 
 The completed document is saved separately. The template remains unchanged.
 
