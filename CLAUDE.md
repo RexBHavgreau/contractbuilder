@@ -51,7 +51,10 @@ trace.
   tags `vX.Y.Z` and publishes the release with
   `Word-Template-Filler-windows-x64.exe` attached. The updater looks for
   exactly that file name; do not rename it.
-- `build-windows.bat` must keep CRLF line endings.
+- `build-windows.bat` must keep CRLF line endings. The Windows CI job
+  checks the file's bytes for CRLF (and rejects mixed endings), and parses
+  `build-windows.ps1` with Windows PowerShell 5.1 before building. This
+  catches syntax and line-ending slips before PyInstaller runs.
 - Never put a token, password or key in the code, a template, the build or
   the repository. The update token is entered per user in the app.
 - Work on a branch and open a pull request into `main`. Keep commits small
@@ -142,3 +145,5 @@ Newest last.
   quoting and UTF-16 log); Windows self-update with verification; update
   token setting; release on version bump; CLAUDE.md and TASKS.md added.
   80 tests pass. Not yet confirmed on a real Windows PC — TASKS.md T-002.
+
+- **2026-11-17** T-005 (ChatGPT, [PR #7](https://github.com/RexBHavgreau/contractbuilder/pull/7)): CI now parses the Windows build script with PowerShell 5.1 and rejects invalid batch-file line endings. A deliberately broken PowerShell copy failed the new step before Python setup; restoring it produced a green Windows build.
