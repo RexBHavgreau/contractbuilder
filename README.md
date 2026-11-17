@@ -24,6 +24,10 @@ but it is not included in the packaged application.
 
 ## Build and releases
 
+On Windows, double-click `build-windows.bat` to build locally. The script
+selects a real installed Python interpreter and skips Microsoft Store
+execution aliases, which PyInstaller cannot reliably use.
+
 GitHub Actions runs the test suite and builds the desktop application whenever
 changes are pushed to `main`. It produces Windows x64, macOS Intel, and macOS
 Apple Silicon builds as workflow artifacts.
