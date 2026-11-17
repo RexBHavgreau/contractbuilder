@@ -1,109 +1,59 @@
-BUILDING THE APP
-================
-
-The app is two Python files: app.py (the window) and core.py (the
-contract engine). It needs Python 3.9 or later and two packages:
-
-    pip install lxml openpyxl
-
-To run it without building anything:
-
-    python app.py
-
-UNZIP FIRST. Opening app.py from inside a zip file does not work:
-Windows unpacks one file to a temporary place, so core.py is not
-really there and the window closes immediately. Extract the whole
-folder first. The app notices this and says so.
-
-
-THE EASY WAY TO BUILD
-=====================
-
-Two scripts sit beside app.py and core.py:
-
-    build-windows.bat      double-click on Windows
-    build-mac.command      double-click on a Mac
-
-Either one finds its own folder, so it works from a USB stick or
-wherever the files happen to be. It installs anything missing, reads
-the build number out of core.py, and names the app to match, as in
-
-    TMAI Contract Builder 1.exe
-
-The finished app appears in a "dist" folder beside the scripts, and
-that folder opens by itself when the build finishes. The working
-files are cleaned up; only the app is left.
-
-Build ON THE MACHINE THE APP IS FOR. PyInstaller cannot build a Mac
-app on Windows or the reverse.
-
-On a Mac the first run of build-mac.command may be refused. Right-
-click it, choose Open, and confirm. The same applies to the app it
-builds.
-
-
-BY HAND
-=======
-
-    pip install pyinstaller lxml openpyxl
-    python -m PyInstaller --onefile --windowed --name "TMAI Contract Builder" --hidden-import openpyxl app.py
-
-The app appears in dist. The build folder and .spec file are scratch.
-
-
-IF THE BUILD FAILS
-==================
-
-Both build scripts write everything to build-log.txt beside
-themselves, as it happens. On failure they print the last 25 lines
-to the window and then open the whole log, so there is always
-something to read and copy.
-
-
-WHAT TO EXPECT THE FIRST TIME
+BUILDING WORD TEMPLATE FILLER
 =============================
 
-The app is not signed, so each system will object once.
+The normal application is simple_app.py. app.py is a small compatibility
+launcher for the same focused interface. The earlier contract-oriented GUI
+has been retained separately in advanced_app.py and is not packaged.
 
-Windows: SmartScreen shows "Windows protected your PC". Click
-"More info", then "Run anyway".
+REQUIREMENTS
+============
 
-macOS: Gatekeeper refuses to open it. Right-click (or Control-click)
-the app and choose Open, then confirm. After that it opens normally.
+Python 3.9 or later, plus:
 
+    python -m pip install pyinstaller lxml
 
-NOTES FOR THE MAC BUILD
+The application can be run from source:
+
+    python simple_app.py
+
+LOCAL WINDOWS BUILD
+===================
+
+Double-click build-windows.bat. It builds a single executable in dist.
+
+LOCAL macOS BUILD
+=================
+
+Double-click build-mac.command. It builds a .app bundle in dist.
+
+Build on the platform for which the application is intended. The local
+scripts install PyInstaller and the DOCX XML dependency if needed.
+
+AUTOMATIC GITHUB BUILDS
 =======================
 
-Use a Python from python.org rather than whatever Apple ships.
-The system Python's tkinter is often old or missing, and the window
-will not open. Check before building:
+The GitHub Actions workflow at .github/workflows/build.yml runs tests and
+builds Windows x64, macOS Intel, and macOS Apple Silicon versions whenever
+changes are pushed to main. The generated builds are available as workflow
+artifacts for 14 days.
 
-    python3 -c "import tkinter; tkinter.Tk()"
+To publish a permanent release:
 
-A small empty window should appear.
+1. Set APP_VERSION in version.py to the new version.
+2. Commit and push the change to main.
+3. Create and push a matching tag, for example v0.1.0.
 
-If your team has both Apple Silicon and Intel Macs, an app built on
-one will not run on the other. Build on the oldest machine, or add:
+The tag must exactly match APP_VERSION. GitHub Actions tests the code, builds
+each platform, and attaches the finished applications to a GitHub Release.
 
-    --target-arch universal2
+The packaged application checks for a newer published release at startup and
+from Help > Check for updates. It opens the release page for download; it does
+not replace its own executable.
 
+PRIVATE REPOSITORY
+==================
 
-TESTS
-=====
-
-For whoever changes the code:
-
-    pip install pytest python-docx
-    python -m pytest tests
-
-tests/sample.py rebuilds examples/Sample Services Agreement.docx,
-which the tests use.
-
-
-RELEASING A NEW BUILD
-=====================
-
-Change BUILD in core.py, and the "Build" line at the top of core.py,
-app.py and USER-GUIDE.txt. The build scripts pick the number up
-from core.py by themselves.
+The update checker cannot contain a GitHub token safely. For a private
+repository, set CONTRACTBUILDER_GITHUB_TOKEN in the user's environment to a
+fine-grained token with read-only Contents access to this repository. Do not
+commit or distribute that token. Public repositories need no token.
