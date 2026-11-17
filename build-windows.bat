@@ -21,12 +21,15 @@ echo.
 
 if not exist "simple_app.py"  goto nosource
 if not exist "core.py" goto nosource
+if not exist "version.py" goto nosource
+if not exist "update_checker.py" goto nosource
+if not exist "USER-GUIDE.txt" goto nosource
 
 rem --- Python present? ---
 where python >nul 2>&1
 if errorlevel 1 goto nopython
 
-rem --- Read the build number out of core.py so the name matches ---
+rem --- Read the app version so the name matches ---
 set "BUILD="
 for /f "tokens=3 delims= " %%i in ('findstr /b /c:"APP_VERSION = " version.py') do set "RAW=%%i"
 if defined RAW set "BUILD=!RAW:"=!"
@@ -82,7 +85,7 @@ pause
 exit /b 0
 
 :nosource
-echo   simple_app.py and core.py must sit beside this file.
+echo   simple_app.py, core.py, version.py, update_checker.py, and USER-GUIDE.txt must sit beside this file.
 echo   Found in %~dp0:
 dir /b *.py 2>nul
 echo.
