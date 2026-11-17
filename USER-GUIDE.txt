@@ -32,6 +32,47 @@ Some templates may use specialized fields, such as dates, amounts, lists, or
 choices. The application applies the formatting specified by the template.
 For ordinary text fields, your entry is inserted as you type it.
 
+PUBLISHER PROFILES
+
+The application can save reusable international-publisher information locally.
+
+1. Choose Publishers > Manage publisher profiles.
+2. Select New profile and enter the publisher name and any available contact,
+   website, and mailing-address information.
+3. Click Save profile. You can return later to edit or delete the record.
+4. Choose a Word template, select the publisher in the Saved publisher list,
+   and click Load into fields.
+
+The application fills only template fields it recognizes. The initial field
+mapping includes common labels such as:
+
+    {{International Publisher Name}}
+    {{Publisher Name}}
+    {{International Publisher Contact}}
+    {{Contact Person}}
+    {{International Publisher Contact Title}}
+    {{International Publisher Email}}
+    {{International Publisher Phone}}
+    {{International Publisher Website}}
+    {{International Publisher Address}}
+    {{International Publisher Country}}
+
+Address components are assembled into a multiline postal address when the
+template uses a general publisher-address field. A template field that does
+not match a known publisher field is left alone for you to complete.
+
+If loading a profile would replace information already entered, the application
+asks before making the change. Loading a profile does not modify the saved
+profile. Changes made in the contract form apply only to that contract.
+
+Publisher profiles are stored in a local SQLite database in your user data
+directory. On Windows, this is normally under
+%LOCALAPPDATA%\\TMAI Contract Builder. On macOS, it is under
+~/Library/Application Support/TMAI Contract Builder. On Linux, it is under
+$XDG_DATA_HOME/TMAI Contract Builder or ~/.local/share/TMAI Contract Builder.
+Back up publisher_profiles.sqlite3 if you need to move your saved profiles to
+another computer or preserve them during a system migration.
+
 3. CREATE THE DOCUMENT
 
 Click Create document and choose where to save the completed file.
@@ -100,6 +141,7 @@ repository is made public, no token is needed.
 
 PRIVACY
 
-Templates, answers, and completed documents are processed locally on your
-computer. The application contacts GitHub only to check the latest published
-release. It does not upload your Word documents.
+Templates, publisher profiles, and completed documents are processed locally
+on your computer. Publisher details are stored in a SQLite database in your
+user data directory. The application contacts GitHub only to check the latest
+published release. It does not upload your Word documents or publisher data.
