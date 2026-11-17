@@ -145,3 +145,5 @@ Newest last.
   quoting and UTF-16 log); Windows self-update with verification; update
   token setting; release on version bump; CLAUDE.md and TASKS.md added.
   80 tests pass. Not yet confirmed on a real Windows PC — TASKS.md T-002.
+
+- **2026-11-17** T-005 (ChatGPT, [PR #7](https://github.com/RexBHavgreau/contractbuilder/pull/7)): CI now parses the Windows build script with PowerShell 5.1 and rejects invalid batch-file line endings. A deliberately broken PowerShell copy failed the new step before Python setup; restoring it produced a green Windows build.
