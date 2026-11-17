@@ -9,6 +9,11 @@ The main application is deliberately focused on that single-document workflow.
 It can fill repeated fields throughout the document while preserving Word
 formatting, numbering, tables, headers, footers, footnotes, and endnotes.
 
+Publisher profiles can be saved locally in SQLite and loaded into matching
+template fields, so organization and contact details can be reused across
+contracts. The database is stored in the user's application-data directory,
+separately from the application files.
+
 ## Run from source
 
 Python 3.9 or later is required.
@@ -57,6 +62,7 @@ the repository is made public, the update checker works without a token.
 | --- | --- |
 | `simple_app.py` | Focused desktop interface packaged for users |
 | `core.py` | DOCX template scanning, validation, and rendering engine |
+| `publisher_profiles.py` | Local SQLite publisher-profile storage and template field mapping |
 | `update_checker.py` | GitHub Releases version checker |
 | `version.py` | App version and repository settings |
 | `USER-GUIDE.txt` | Instructions shown from the Help menu and bundled with the app |
