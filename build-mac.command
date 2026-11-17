@@ -1,9 +1,9 @@
 #!/bin/bash
 # ---------------------------------------------------------------
 #  build-mac.command
-#  Builds the TMAI Contract Builder into a single .app.
+#  Builds the Word Template Filler into a single .app.
 #
-#  Put this beside app.py and core.py and double-click it. It works
+#  Put this beside simple_app.py and core.py and double-click it. It works
 #  from any folder or drive and leaves the finished app in a "dist"
 #  folder right here.
 #
@@ -29,12 +29,12 @@ show_log() {
 }
 
 echo
-echo "  Building the TMAI Contract Builder"
+echo "  Building the Word Template Filler"
 echo "  Folder: $(pwd)"
 echo
 
-if [ ! -f app.py ] || [ ! -f core.py ] || [ ! -f fieldsets.py ]; then
-    echo "  app.py, core.py and fieldsets.py must sit beside this file."
+if [ ! -f simple_app.py ] || [ ! -f core.py ] || [ ! -f version.py ] || [ ! -f update_checker.py ] || [ ! -f USER-GUIDE.txt ]; then
+    echo "  simple_app.py, core.py, version.py, update_checker.py, and USER-GUIDE.txt must sit beside this file."
     echo "  Found here:"; ls -1 *.py 2>/dev/null
     echo; read -r -p "  Press Return to close. "; exit 1
 fi
@@ -49,9 +49,9 @@ if [ -z "$PY" ]; then
     echo; read -r -p "  Press Return to close. "; exit 1
 fi
 
-BUILD=$(grep '^BUILD = ' core.py | head -1 | cut -d'"' -f2)
+BUILD=$(grep '^APP_VERSION = ' version.py | head -1 | cut -d'"' -f2)
 [ -z "$BUILD" ] && BUILD="unknown"
-APPNAME="TMAI Contract Builder $BUILD"
+APPNAME="Word Template Filler $BUILD"
 
 echo "  Build number found: $BUILD"
 echo "  Will produce: $APPNAME.app"
@@ -67,7 +67,7 @@ fi
 
 echo "  Checking packages. This may take a minute the first time."
 echo "  Everything is written to build-log.txt as it goes."
-if ! "$PY" -m pip install --upgrade pyinstaller lxml openpyxl >> "$LOG" 2>&1; then
+if ! "$PY" -m pip install --upgrade pyinstaller lxml >> "$LOG" 2>&1; then
     echo "  Could not install the packages needed to build."
     show_log; exit 1
 fi
@@ -77,7 +77,7 @@ echo "  Building. This takes a minute or two."
 echo
 if ! "$PY" -m PyInstaller --onefile --windowed --clean --noconfirm \
     --name "$APPNAME" --distpath "./dist" --workpath "./build" \
-    --specpath "." --hidden-import openpyxl ./app.py >> "$LOG" 2>&1; then
+    --specpath "." --add-data "USER-GUIDE.txt:." ./simple_app.py >> "$LOG" 2>&1; then
     echo
     echo "  The build did not finish."
     show_log; exit 1
