@@ -198,7 +198,7 @@ function Find-UsablePython {
 
 try {
     $required = @("simple_app.py", "core.py", "version.py", "update_checker.py", "self_update.py",
-                  "publisher_profiles.py", "USER-GUIDE.txt")
+                  "publisher_profiles.py", "USER-GUIDE.txt", "THIRD-PARTY-LICENSES.txt")
     foreach ($file in $required) {
         if (-not (Test-Path (Join-Path $Root $file))) {
             throw "Required file is missing: $file. Extract the entire repository ZIP before building."
@@ -244,6 +244,7 @@ listed by:  py -0p
         "--workpath", (Join-Path $Root "build"),
         "--specpath", $Root,
         "--add-data", "USER-GUIDE.txt;.",
+        "--add-data", "THIRD-PARTY-LICENSES.txt;.",
         (Join-Path $Root "simple_app.py")
     )
     & $PythonExe @BuildArgs 2>&1 | ForEach-Object { Write-Log "$_" }

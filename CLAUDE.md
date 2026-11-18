@@ -42,6 +42,8 @@ trace.
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
+| `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
@@ -133,6 +135,18 @@ trace.
 
 
 Newest last. Each entry: date, decision, why, consequences.
+
+- **2026-11-18 — Markdown file import/export preserves source text.** Read UTF-8
+  with optional BOM support and write UTF-8 without a BOM. The importer reports
+  raw HTML, images and footnotes as unsupported warnings, but retains the
+  original Markdown rather than silently deleting content. This file utility
+  is separate from the later DOCX importer.
+
+- **2026-11-18 — Bundle third-party licence notices as a readable Help item.**
+  The exact MIT notices for markdown-it-py 3.0.0 and mdurl 0.1.2 travel in
+  `THIRD-PARTY-LICENSES.txt`, included in Windows and macOS packages. Help
+  opens the notice file directly; tests ensure the pinned parser dependencies
+  remain represented.
 
 - **2026-10-05 — Desktop app in Python + Tkinter, built with PyInstaller.**
   Same shape as the department's existing CBM Article Converter, so it is
@@ -260,6 +274,13 @@ Newest last. Each entry: date, decision, why, consequences.
 ## Progress log
 
 Newest last.
+
+- **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
+
+- **2026-11-18** T-020-G and T-028 (ChatGPT, PR pending): added UTF-8 Markdown
+  file import/export with BOM support and non-destructive warnings for raw
+  HTML, images and footnotes; added bundled MIT notices for markdown-it-py
+  and mdurl, displayed through Help and included in Windows/macOS builds.
 
 - **2026-11-18** T-012, T-017 and T-019-B (ChatGPT, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)): rate-limited update responses now have a clear message; automatic checks run no more than once a day, while manual checks remain available; versioned plain-English notes are published and shown in the update prompt; and the table-enabled, raw-HTML-disabled Markdown parser is installed and tested. GitHub Actions run 87 passed all 103 tests and built Windows x64, macOS Intel and macOS Apple Silicon.
 

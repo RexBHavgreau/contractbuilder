@@ -192,7 +192,7 @@ jobs:
 
       - name: Build macOS application
         run: |
-          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt:." simple_app.py
+          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt:." --add-data "THIRD-PARTY-LICENSES.txt:." simple_app.py
           ditto -c -k --sequesterRsrc --keepParent "dist/Word Template Filler.app" "dist/Word-Template-Filler-${{ matrix.target }}.zip"
 
       - name: Upload macOS application

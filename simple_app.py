@@ -405,6 +405,7 @@ class WordTemplateFiller:
         help_menu = tk.Menu(menu, tearoff=False)
         help_menu.add_command(label="User instructions", command=self.show_user_guide)
         help_menu.add_command(label="How to write a template", command=self.show_template_guide)
+        help_menu.add_command(label="Third-party licences", command=self.show_third_party_licenses)
         help_menu.add_command(label="Check for updates", command=lambda: self.check_for_updates(manual=True))
         help_menu.add_command(label="Update settings…", command=self.update_settings)
         help_menu.add_separator()
@@ -757,6 +758,26 @@ class WordTemplateFiller:
         window.geometry("720x620")
         box = scrolledtext.ScrolledText(
             window, wrap="word", font="TkDefaultFont", padx=14, pady=12
+        )
+        box.pack(fill="both", expand=True)
+        box.insert("1.0", contents)
+        box.configure(state="disabled")
+        ttk.Button(window, text="Close", command=window.destroy).pack(pady=8)
+
+    def show_third_party_licenses(self):
+        """Show the bundled notices for third-party packages."""
+        path = resource_path("THIRD-PARTY-LICENSES.txt")
+        try:
+            contents = path.read_text(encoding="utf-8")
+        except OSError:
+            contents = "The third-party licence notice file could not be found."
+
+        window = tk.Toplevel(self.root)
+        window.title("Third-party licences")
+        window.transient(self.root)
+        window.geometry("720x620")
+        box = scrolledtext.ScrolledText(
+            window, wrap="word", font="TkFixedFont", padx=14, pady=12
         )
         box.pack(fill="both", expand=True)
         box.insert("1.0", contents)
