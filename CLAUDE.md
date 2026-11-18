@@ -41,7 +41,7 @@ trace.
 | `simple_app.py` | The packaged app: choose a template, fill in its fields, create the document. Publisher profiles, update checks and installs. |
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
-| `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `docx_to_markdown.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
