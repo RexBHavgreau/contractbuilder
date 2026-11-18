@@ -41,4 +41,5 @@ def read_markdown_file(path: str | Path) -> MarkdownImport:
 
 def write_markdown_file(path: str | Path, text: str) -> None:
     """Write Markdown as UTF-8 without a BOM, preserving the source exactly."""
-    Path(path).write_text(text, encoding="utf-8", newline="")
+    with Path(path).open("w", encoding="utf-8", newline="") as stream:
+        stream.write(text)
