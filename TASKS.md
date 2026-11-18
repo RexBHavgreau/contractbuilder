@@ -39,7 +39,7 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-019**.
+Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-020**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -50,7 +50,8 @@ Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-01
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
-| [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | What to do with `advanced_app.py` | open | human | Beaux |
+| [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
+| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition | open | careful | T-008 |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
 
 Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
@@ -308,20 +309,92 @@ the token step has been removed.
 
 ## T-008 Decide what to do with advanced_app.py
 
-- **Status:** open
-- **Size:** S to decide
+- **Status:** done (2026-11-18, Beaux's decision recorded in CLAUDE.md)
+- **Size:** S
 - **Agent:** human
-- **Needs:** Beaux
+- **Needs:** —
 
-`advanced_app.py` is the earlier window. It is not packaged, but it holds
-features the packaged app lacks: making many contracts from a spreadsheet,
-saving and reloading answers, and "Turn a contract into a template", which
-fits the decision that users build their own fields. Since T-007, the
-packaged app explains how to write fields by hand; the template maker would
-do it for them from an existing contract.
+Beaux chose to keep the packaged application focused while adding a second,
+component-based way to create contracts. The component builder is a new
+workflow, not a replacement for the existing Word-template workflow.
 
-- [ ] Beaux chooses for each: bring into `simple_app.py`, keep as is, or delete
-- [ ] Split each "bring in" into its own task, sized M or smaller
+Decisions:
+
+- [x] **Do not merge `advanced_app.py` wholesale.** `simple_app.py` remains
+      the packaged application and its current template workflow remains
+      intact.
+- [x] **Do not carry spreadsheet batch creation forward.** A spreadsheet is
+      not the intended interface for assembling new contracts. Leave the old
+      implementation un-packaged; it can be removed when the legacy window is
+      retired.
+- [x] **Keep saved-answer and contract-to-template code in the legacy file
+      for now.** Neither is part of the first component-builder milestone.
+      Revisit each separately if there is a concrete need to bring it into
+      the packaged application.
+- [x] **Build a component-based workflow as a separate option.** Users will
+      create and manage components inside the application. Their content
+      will be Markdown, stored as text in the local SQLite database with
+      metadata and version history. Markdown files may be imported/exported,
+      but individual components will not be stored as Word documents.
+- [x] **Use a Word document shell for document-level formatting.** The shell
+      supplies page layout, styles, headers and footers. The application
+      assembles selected Markdown components in order, converts them to Word
+      content, then uses the existing field engine to collect and populate
+      `{{fields}}`.
+- [x] **Make component updates deliberate.** Saved assemblies retain the
+      versions they were built with. Users can review and explicitly update
+      selected components to newer versions; updates never silently change
+      an existing assembly.
+- [x] **Keep the two creation workflows independent.** Template-based
+      creation continues to use the existing `.docx` template and custom
+      fields exactly as it does now. The component builder is an additional
+      route to a new contract.
+
+**Done when:** these choices are recorded in CLAUDE.md and the next
+implementation task is defined. T-019 covers the first technical proof:
+converting ordered Markdown content into a formatted Word document shell.
+
+## T-019 Prototype Markdown-to-Word composition
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-008
+
+The component builder will author Markdown inside the application and store
+the Markdown source as text in SQLite. Before building the database schema or
+the interface, prove that a sequence of Markdown components can become a
+usable Word document while retaining the document-level formatting supplied
+by a Word shell.
+
+Scope:
+
+- [ ] Add an isolated composition module; do not change the existing
+      template workflow or the behaviour of `core.py`.
+- [ ] Accept a Word shell and an ordered sequence of Markdown component
+      contents. Generate a new `.docx`; never modify the shell.
+- [ ] Define and document a deliberately small Markdown subset suitable for
+      ordinary contract clauses. At minimum, test paragraphs, headings,
+      bold, italic, and ordered and unordered lists. Do not attempt to
+      reproduce complex page layout in Markdown; the shell owns that.
+- [ ] Map Markdown structure onto styles and formatting in the shell, rather
+      than hard-coding the overall document typography in the converter.
+- [ ] Verify that the shell's page setup, styles, headers and footers survive.
+- [ ] Verify that components appear in the selected order and that existing
+      `{{Field}}` placeholders survive conversion and are discoverable and
+      fillable by the current `core.Template` / `core.render` pipeline.
+- [ ] Add synthetic tests for the output DOCX and the end-to-end field-fill
+      path. Do not use wording or details from real contracts.
+
+Out of scope: SQLite schema, component editor UI, component library,
+component version management, saved assemblies, and changes to the existing
+template-based workflow. Those follow after the composition approach is
+proven.
+
+**Done when:** tests generate a valid DOCX from multiple ordered Markdown
+components and a shell, verify the shell's formatting metadata survives,
+and successfully fill a placeholder in the generated document using the
+existing core engine.
 
 ## T-017 Show plain-English release notes in the update dialog
 
