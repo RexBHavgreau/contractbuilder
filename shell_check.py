@@ -190,12 +190,6 @@ def check_shell(path: Union[str, Path]) -> ShellCheckResult:
     children = list(body)
     final_sect = children[-1] if children and children[-1].tag == _tag("sectPr") else None
     if final_sect is None:
-        children = list(body)
-        if children and children[-1].tag == _tag("p"):
-            ppr = children[-1].find("w:pPr", NS)
-            if ppr is not None:
-                final_sect = ppr.find("w:sectPr", NS)
-    if final_sect is None:
         findings.append(ShellFinding(
             "shell.no_final_section", "error",
             "This shell has no final section properties. Open it in Word, set its page layout, and save it again.",
