@@ -282,6 +282,18 @@ Newest last. Each entry: date, decision, why, consequences.
   Keep this import out of `simple_app.py` until a component-builder task
   needs it.
 
+- **2026-11-18 — Protect component fields before Markdown parsing.** Each
+  component is protected and parsed independently: replace complete
+  `{{...}}` spans with collision-free alphanumeric placeholders, parse the
+  Markdown, then restore the exact field text in the token tree (including
+  inline children). This prevents table pipes and Markdown syntax from
+  consuming field content and prevents fragments from adjacent components
+  from combining into a field. Use `markdown_fields.protect_fields` and
+  `restore_fields`; do not concatenate raw component source before parsing.
+  The existing core engine already discovers and fills fields in paragraphs,
+  list items and table cells, so no `core.py` change is needed. See T-019
+  notes in `TASKS.md`.
+
 ## Progress log
 
 Newest last.
@@ -368,3 +380,5 @@ Newest last.
 - **2026-11-18** T-011 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added first-run SmartScreen and Gatekeeper instructions near the start of the user guide, linked to them from the README, and documented the unconfirmed expectation for Windows in-app updates. T-002 is responsible for confirming that behavior on a real PC.
 
 - **2026-11-18** T-010 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): removed mandatory private-repository update instructions, made the saved token explicitly optional for users who often hit GitHub's API limit, corrected the no-token 404 message and its `needs_token` flag, removed the obsolete startup status message, and updated tests and project documentation.
+
+- **2026-11-18** T-019-A (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added per-component Markdown field protection using collision-free alphanumeric placeholders, with token-tree restoration. Tests demonstrate the table-pipe failure without protection, preserve conditional markers in paragraphs, lists and table cells, guard component boundaries and placeholder collisions, and prove that the existing core engine fills fields in paragraphs, list items and table cells without a core.py change. GitHub Actions test job passed all 142 tests.
