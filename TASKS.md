@@ -39,7 +39,7 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-020**.
+Reviewed 2026-11-18, revised for the component-builder proposal. Next free number: **T-021**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -50,15 +50,17 @@ Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-02
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
-| [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
+| [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human + ChatGPT | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition | open | careful | T-008 |
+| [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown | open | careful | T-019 |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
 
 Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
 touches the same lines as another except T-010 and T-012, which both edit
 `update_checker.py`: do them one after the other), then T-015, then the rest
-of T-002. T-008 waits for Beaux. T-017 any time. T-018 needs nothing from an
-agent until GitHub Support replies.
+of T-002. T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
+agreed component-builder direction. Begin that work with T-019, then T-020.
+T-017 any time. T-018 needs nothing from an agent until GitHub Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -309,9 +311,9 @@ the token step has been removed.
 
 ## T-008 Decide what to do with advanced_app.py
 
-- **Status:** done (2026-11-18, PR #12)
+- **Status:** done (2026-11-18, collaboratively by Beaux and ChatGPT; see [PROPOSAL-001.md](PROPOSAL-001.md))
 - **Size:** S
-- **Agent:** human
+- **Agent:** human + ChatGPT
 - **Needs:** —
 
 Beaux chose to keep the packaged application focused while adding a second,
@@ -361,40 +363,82 @@ converting ordered Markdown content into a formatted Word document shell.
 - **Agent:** careful
 - **Needs:** T-008
 
-The component builder will author Markdown inside the application and store
-the Markdown source as text in SQLite. Before building the database schema or
-the interface, prove that a sequence of Markdown components can become a
-usable Word document while retaining the document-level formatting supplied
-by a Word shell.
+See [PROPOSAL-001.md](PROPOSAL-001.md), sections 4, 7, 8, 10 and 11.
+This is the first technical proof for the component builder. Use the
+Python-native approach; do not add Pandoc or python-docx.
 
 Scope:
 
-- [ ] Add an isolated composition module; do not change the existing
-      template workflow or the behaviour of `core.py`.
+- [ ] Add an isolated Markdown-to-Word composition module using
+      markdown-it-py (with its table rule explicitly enabled) and the
+      existing lxml/zipfile infrastructure.
 - [ ] Accept a Word shell and an ordered sequence of Markdown component
-      contents. Generate a new `.docx`; never modify the shell.
-- [ ] Define and document a deliberately small Markdown subset suitable for
-      ordinary contract clauses. At minimum, test paragraphs, headings,
-      bold, italic, and ordered and unordered lists. Do not attempt to
-      reproduce complex page layout in Markdown; the shell owns that.
-- [ ] Map Markdown structure onto styles and formatting in the shell, rather
-      than hard-coding the overall document typography in the converter.
-- [ ] Verify that the shell's page setup, styles, headers and footers survive.
-- [ ] Verify that components appear in the selected order and that existing
-      `{{Field}}` placeholders survive conversion and are discoverable and
-      fillable by the current `core.Template` / `core.render` pipeline.
-- [ ] Add synthetic tests for the output DOCX and the end-to-end field-fill
-      path. Do not use wording or details from real contracts.
+      contents. Generate a new .docx; never modify the shell.
+- [ ] Support and test paragraphs, headings 1–3, bold, italic, hyperlinks,
+      ordered and unordered lists, and GFM-style tables.
+- [ ] Generate native Word tables, paragraphs, runs, and numbering. Do not
+      flatten tables into text or render document content as images.
+- [ ] Map Markdown headings and paragraphs to styles supplied by the shell;
+      use its document-level styles, page setup, headers, footers, and
+      section properties rather than hard-coding the document's typography.
+- [ ] Preserve the order of paragraphs, tables, and components.
+- [ ] Preserve {{Field}} and {{#if}} syntax so fields in paragraphs and table
+      cells remain discoverable and fillable by the existing core.Template
+      and core.render pipeline.
+- [ ] Add synthetic tests for the DOCX package, table structure, shell
+      properties, component order, and end-to-end field filling.
+- [ ] Measure the actual PyInstaller release-size change. Keep the Windows
+      release executable at or below 30 MB; do not infer the change from
+      dependency wheel sizes.
 
-Out of scope: SQLite schema, component editor UI, component library,
-component version management, saved assemblies, and changes to the existing
-template-based workflow. Those follow after the composition approach is
-proven.
+Out of scope: DOCX import, SQLite schema, component editor UI, component
+library, component version management, saved assemblies, and changes to the
+existing template-based workflow.
 
 **Done when:** tests generate a valid DOCX from multiple ordered Markdown
-components and a shell, verify the shell's formatting metadata survives,
-and successfully fill a placeholder in the generated document using the
-existing core engine.
+components and a Word shell, including native tables, verify the shell's
+formatting metadata survives, and successfully fill placeholders in both
+paragraphs and table cells using the existing core engine. The packaged
+application remains within the 30 MB target.
+
+## T-020 Import Word content as Markdown
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-019
+
+See [PROPOSAL-001.md](PROPOSAL-001.md), section 6. This task builds the
+conversion layer that lets users create reusable components from existing
+Word documents without knowing Markdown.
+
+Scope:
+
+- [ ] Add an isolated DOCX-to-Markdown importer using zipfile and lxml; do
+      not add python-docx or Pandoc.
+- [ ] Read paragraphs and tables in their original document order.
+- [ ] Convert ordinary paragraphs, heading styles, bold, italic, hyperlinks,
+      numbered/bulleted lists, and rectangular tables into the supported
+      Markdown subset.
+- [ ] Preserve literal {{Field}} and {{#if}} syntax.
+- [ ] Return import warnings for unsupported or lossy structures, including
+      merged cells, nested tables, images, floating objects, equations,
+      footnotes/endnotes, comments, tracked changes, and unusual Word fields.
+      Do not silently discard content.
+- [ ] Treat import as content conversion, not transfer of page layout,
+      headers, footers, or document-wide typography; the selected Word shell
+      owns those in the generated contract.
+- [ ] Add invented DOCX fixtures with mixed paragraphs and tables, and test
+      ordering, formatting conversion, list numbering, field preservation,
+      and warnings.
+- [ ] Leave the source DOCX unchanged.
+
+Out of scope: import dialog and component-editor UI; those belong to the
+later editor task.
+
+**Done when:** a DOCX containing supported mixed content converts to
+reviewable Markdown in the correct order, field syntax remains intact, and
+unsupported content is explicitly reported rather than silently lost.
 
 ## T-017 Show plain-English release notes in the update dialog
 
