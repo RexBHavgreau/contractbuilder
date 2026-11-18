@@ -297,7 +297,7 @@ Newest last.
 
 - **2026-11-18** T-012, T-017 and T-019-B (ChatGPT, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)): rate-limited update responses now have a clear message; automatic checks run no more than once a day, while manual checks remain available; versioned plain-English notes are published and shown in the update prompt; and the table-enabled, raw-HTML-disabled Markdown parser is installed and tested. GitHub Actions run 87 passed all 103 tests and built Windows x64, macOS Intel and macOS Apple Silicon.
 
-- **2026-11-18** T-026 (ChatGPT, PR pending): defined the DOCX shell contract,
+- **2026-11-18** T-026 (ChatGPT, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)): defined the DOCX shell contract,
   added a read-only checker with explicit style fallbacks and numbering/
   section checks, and added an invented shell fixture with tests. See
   `SHELL-CONTRACT.md`. Downstream renderer and assembly tasks must call the
