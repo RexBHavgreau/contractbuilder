@@ -41,7 +41,8 @@ trace.
 | `simple_app.py` | The packaged app: choose a template, fill in its fields, create the document. Publisher profiles, update checks and installs. |
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
-| `docx_to_markdown.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
@@ -273,6 +274,8 @@ Newest last. Each entry: date, decision, why, consequences.
 ## Progress log
 
 Newest last.
+
+- **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
 
 - **2026-11-18** T-020-G and T-028 (ChatGPT, PR pending): added UTF-8 Markdown
   file import/export with BOM support and non-destructive warnings for raw
