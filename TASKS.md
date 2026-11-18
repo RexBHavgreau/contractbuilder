@@ -53,7 +53,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
 | [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | done | any | — |
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
-| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | claimed (ChatGPT, 2026-11-18) | any | — |
+| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
@@ -64,7 +64,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
-| ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | claimed (ChatGPT, 2026-11-18) | any | — |
+| ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | open | careful | A, B, T-026 |
 | ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | open | careful | C, T-026 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | open | careful | C, T-026 |
@@ -91,7 +91,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | T-021-E, T-020-G |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open | human | T-019-F |
 | [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | T-019-F, T-020-B |
-| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | claimed (ChatGPT, 2026-11-18) | any | — |
+| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 
 Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
 touches the same lines as another except T-010 and T-012, which both edit
@@ -254,7 +254,7 @@ Windows from the guide alone.
 
 ## T-012 Cope with GitHub's limit on unsigned update checks
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15))
 - **Size:** M
 - **Agent:** any
 - **Needs:** do it after T-010 if both are in progress (same file)
@@ -267,18 +267,18 @@ Today `update_checker.py` turns any 403 into "GitHub denied the update
 check. Check the token in Help > Update settings (it may have expired)…",
 which is wrong when there is no token.
 
-- [ ] In `check_for_update`, tell a rate-limit 403 or 429 (header
+- [x] In `check_for_update`, tell a rate-limit 403 or 429 (header
       `X-RateLimit-Remaining` is `0`, or a `Retry-After` header is present)
       from other refusals. Message: "GitHub is limiting update checks from
       your network for now. The app will try again later." It is not
       `needs_token`
-- [ ] At startup, check at most once a day per user: store the time of the
+- [x] At startup, check at most once a day per user: store the time of the
       last successful check beside `update-settings.json` (see
       `self_update.settings_path()`) and skip the automatic check if it is
       under 24 hours old. Help > Check for updates always checks
-- [ ] Automatic checks that hit the limit stay silent: no dialog, no status
+- [x] Automatic checks that hit the limit stay silent: no dialog, no status
       line
-- [ ] Tests with a fake `urlopen` for: rate-limit 403, ordinary 403, and
+- [x] Tests with a fake `urlopen` for: rate-limit 403, ordinary 403, and
       the once-a-day skip (with a fixed clock, not real time)
 
 **Done when:** the tests pass, and a rate-limited automatic check shows
@@ -465,19 +465,19 @@ answer; T-019-C to T-019-G build on that method.
 
 #### T-019-B Add the dependency and the configured parser
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15))
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
 
-- [ ] Add `markdown-it-py` (pin an exact version, plus `mdurl`) to the
+- [x] Add `markdown-it-py` (pin an exact version, plus `mdurl`) to the
       project's requirements and to the PyInstaller build and CI install
       steps (`build.yml`, `build-windows.ps1`, `build-mac.command`)
-- [ ] New module (for example `md_parse.py`) returning a parser with the
+- [x] New module (for example `md_parse.py`) returning a parser with the
       table rule explicitly enabled
-- [ ] Test that tables really are on (a pipe table yields table tokens) and
+- [x] Test that tables really are on (a pipe table yields table tokens) and
       that raw HTML is not rendered (disable it: contract text is not HTML)
-- [ ] Keep `import` of the new module out of `simple_app.py` until a task
+- [x] Keep `import` of the new module out of `simple_app.py` until a task
       needs it
 
 **Done when:** tests pass, and the Windows and macOS CI builds still build.
@@ -1252,7 +1252,7 @@ opens it.
 
 ## T-017 Show plain-English release notes in the update dialog
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15))
 - **Size:** M
 - **Agent:** any
 
@@ -1260,19 +1260,19 @@ When an update is offered, the dialog shows only version numbers. The
 release notes GitHub writes by itself list pull-request titles such as
 "Claude/contract template builder j7njxm", which mean nothing to staff.
 
-- [ ] Add a `CHANGES.txt` at the top of the repository: newest version first,
+- [x] Add a `CHANGES.txt` at the top of the repository: newest version first,
       a few plain sentences per version on what changed for the person using
       the app. Start it with 0.3.0 and 0.3.1
-- [ ] In `.github/workflows/build.yml`, publish that version's section as the
+- [x] In `.github/workflows/build.yml`, publish that version's section as the
       release body (`body_path` on `softprops/action-gh-release`) instead of
       `generate_release_notes`
-- [ ] In `simple_app.py`, show the release body (already in
+- [x] In `simple_app.py`, show the release body (already in
       `ReleaseInfo.notes`) under the version numbers in the update dialog,
       cut to about 15 lines
-- [ ] Add to CLAUDE.md's release instructions: raising `APP_VERSION` also
+- [x] Add to CLAUDE.md's release instructions: raising `APP_VERSION` also
       means adding its section to `CHANGES.txt`; make CI fail if the section
       is missing
-- [ ] Tests for reading one version's section out of `CHANGES.txt`
+- [x] Tests for reading one version's section out of `CHANGES.txt`
 
 **Done when:** the next release's page and its update dialog both say, in
 plain English, what changed.
