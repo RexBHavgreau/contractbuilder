@@ -241,3 +241,36 @@ def test_only_a_built_windows_app_installs_in_place(monkeypatch):
     assert self_update.can_install_in_place()
     monkeypatch.setattr(self_update.sys, "platform", "darwin")
     assert not self_update.can_install_in_place()
+
+
+@pytest.mark.parametrize("age, removed", [(24 * 60 * 60 + 1, True), (24 * 60 * 60, False), (60, False)])
+def test_cleanup_stale_update_download_only_removes_files_older_than_one_day(tmp_path, age, removed):
+    import os
+    import time
+
+    target = tmp_path / "Word Template Filler.exe"
+    leftover = tmp_path / "Word Template Filler.exe.new"
+    leftover.write_bytes(b"partial or abandoned update")
+    now = time.time()
+    os.utime(leftover, (now - age, now - age))
+
+    assert self_update.cleanup_stale_update_download(target, now=now) is removed
+    assert leftover.exists() is not removed
+
+
+def test_cleanup_stale_update_download_ignores_missing_file(tmp_path):
+    target = tmp_path / "Word Template Filler.exe"
+    assert not self_update.cleanup_stale_update_download(target, now=10**10)
+
+
+def test_cleanup_stale_update_download_does_not_follow_symlinks(tmp_path):
+    target = tmp_path / "Word Template Filler.exe"
+    outside = tmp_path / "keep.me"
+    outside.write_text("keep")
+    leftover = tmp_path / "Word Template Filler.exe.new"
+    try:
+        leftover.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks are unavailable")
+    assert not self_update.cleanup_stale_update_download(target, now=10**10)
+    assert outside.read_text() == "keep"
