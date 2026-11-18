@@ -224,6 +224,8 @@ Newest last. Each entry: date, decision, why, consequences.
   `examples/` was deleted. Tests build their own sample in a temporary
   folder (`tests/sample.py`; tidy-up is T-014).
 
+- **2026-11-18 — Sample generator output paths are explicit and safe.** Running `python tests/sample.py` writes `Sample Services Agreement.docx` in the current working directory; an optional positional path selects another destination. This avoids recreating the deleted `examples/` directory and makes the script safe to run from any folder.
+
 ## Progress log
 
 Newest last.
@@ -285,3 +287,5 @@ Newest last.
   passes (run 67); no forks. Still open: the old commits remain fetchable
   through pull requests #1 to #9 until GitHub Support purges them.
 
+
+- **2026-11-18** T-014 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): corrected the sample generator's description and output path, added an optional command-line destination, ignored generated sample files and the old `examples/` directory, and added CLI regression tests for both output modes. The full Python test job passed in CI.

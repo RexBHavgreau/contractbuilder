@@ -54,7 +54,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | — |
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
-| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
+| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
@@ -287,7 +287,7 @@ nothing while a rate-limited manual check shows the message above.
 
 ## T-014 Stop tests/sample.py pointing at the deleted examples folder
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 
@@ -297,12 +297,12 @@ need it (they build their sample template in a temporary folder), but
 Agreement.docx` "handed to the department as a worked example", and running
 it directly would recreate the deleted file.
 
-- [ ] Update the docstring: it builds the sample template the tests use
-- [ ] Make `python tests/sample.py` write to a path given on the command
+- [x] Update the docstring: it builds the sample template the tests use
+- [x] Make `python tests/sample.py` write to a path given on the command
       line, or to the current folder, never to `examples/`
-- [ ] Add `examples/` to `.gitignore`, so a sample is not committed back by
+- [x] Add `examples/` to `.gitignore`, so a sample is not committed back by
       accident
-- [ ] Check nothing else refers to `examples/` (`git grep -n examples`)
+- [x] Checked all tracked text files: no live code or user documentation depends on the deleted directory. The remaining matches are historical task/project notes and `core.py`'s unrelated `EXAMPLES` field-preview mapping.
 
 **Done when:** `python tests/sample.py` no longer recreates `examples/`, and
 all tests pass.
