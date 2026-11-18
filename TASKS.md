@@ -436,7 +436,7 @@ engine; and the Windows executable is still within 30 MB.
 
 #### T-019-A Spike: protect fields from Markdown, and hand off to core
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
