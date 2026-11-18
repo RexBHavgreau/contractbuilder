@@ -324,14 +324,27 @@ def test_successful_update_check_time_limits_only_automatic_checks(tmp_path, mon
     )
 
     monkeypatch.setattr(self_update, "settings_path", lambda: settings)
-    monkeypatch.setattr(simple_app.threading, "Thread", lambda **kwargs: pytest.fail(
-        "an automatic check should be skipped while the saved check is recent"
-    ))
+    started = []
+
+    class FakeThread:
+        def __init__(self, target, daemon):
+            self.target = target
+            self.daemon = daemon
+
+        def start(self):
+            started.append(self)
+
+    monkeypatch.setattr(simple_app.threading, "Thread", FakeThread)
     app = simple_app.WordTemplateFiller.__new__(simple_app.WordTemplateFiller)
     app.update_checking = False
     app.status = type("Status", (), {"config": lambda self, **kwargs: None})()
     app.check_for_updates(manual=False)
     assert not app.update_checking
+    assert not started
+
+    app.check_for_updates(manual=True)
+    assert app.update_checking
+    assert len(started) == 1
 
 
 def test_update_settings_keep_the_saved_token_when_recording_a_check(tmp_path):
