@@ -42,6 +42,7 @@ trace.
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `shell_check.py` | Read-only validation of Word document shells, including style, numbering and final section requirements. |
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
@@ -133,6 +134,16 @@ trace.
 
 - **2026-11-18 — Enforce the Windows executable size budget against the built file.** CI runs `scripts/check_executable_size.py` on the packaged release executable and fails above 31,457,280 bytes (30 MiB). The script accepts a smaller `--max-bytes` value so tests can prove the failure path without constructing a large executable.
 
+
+**2026-11-18 — Word shell contract and validation.** Shells are DOCX packages
+whose body wording is ignored; they supply document styles, numbering,
+table formatting, headers, footers and final section properties. The checker
+requires the canonical style IDs documented in `SHELL-CONTRACT.md`, a
+three-level decimal outline, bullet numbering and final `w:sectPr`. Missing
+styles and numbering are warnings with explicit fallbacks; an unreadable
+package, missing body or missing final section properties stops generation.
+The checker is read-only. Downstream composition and assembly tasks must run
+it before using a shell, surface warnings and apply the returned style map.
 
 Newest last. Each entry: date, decision, why, consequences.
 
@@ -285,6 +296,12 @@ Newest last.
   and mdurl, displayed through Help and included in Windows/macOS builds.
 
 - **2026-11-18** T-012, T-017 and T-019-B (ChatGPT, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)): rate-limited update responses now have a clear message; automatic checks run no more than once a day, while manual checks remain available; versioned plain-English notes are published and shown in the update prompt; and the table-enabled, raw-HTML-disabled Markdown parser is installed and tested. GitHub Actions run 87 passed all 103 tests and built Windows x64, macOS Intel and macOS Apple Silicon.
+
+- **2026-11-18** T-026 (ChatGPT, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)): defined the DOCX shell contract,
+  added a read-only checker with explicit style fallbacks and numbering/
+  section checks, and added an invented shell fixture with tests. See
+  `SHELL-CONTRACT.md`. Downstream renderer and assembly tasks must call the
+  checker before generation.
 
 - **2026-10-05** Build 1: TMAI Contract Builder — template engine, form,
   previews, highlights, saved answers, spreadsheet batches, template maker.
