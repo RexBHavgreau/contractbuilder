@@ -39,32 +39,84 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-18. Next free number: **T-018**.
+Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-019**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | — |
-| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | — |
-| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
-| [T-013](#t-013-replace-real-contract-details-in-the-tests-with-invented-ones) | Invented names instead of real ones in tests | open | any | — |
-| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
+| [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | **Push the cleaned history; finish the clean-up on GitHub** | open | human | Beaux |
+| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | T-018 |
+| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | T-018 |
+| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | T-018 |
+| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | T-018 |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
-| [T-016](#t-016-decide-about-real-contract-details-in-the-public-git-history) | Real contract details in the public git history | open | human | Beaux |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | What to do with `advanced_app.py` | open | human | Beaux |
-| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
+| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | T-018 |
 
-Suggested order: T-010, T-011, T-012, T-013, T-014 (any order; all small,
-and none touches the same lines as another except T-010 and T-012, which
-both edit `update_checker.py`: do them one after the other), then T-015,
-then the rest of T-002. T-016 and T-008 wait for Beaux. T-017 any time.
+Suggested order: **T-018 first, and nothing else until it is done**: it
+force-pushes every branch, so work started on the old history would have to
+be redone. Then T-010, T-011, T-012, T-014 (any order; all small, and none
+touches the same lines as another except T-010 and T-012, which both edit
+`update_checker.py`: do them one after the other), then T-015, then the rest
+of T-002. T-008 waits for Beaux. T-017 any time after T-018.
 
 Done and kept for the record: T-001, T-003, T-004, T-005, T-006, T-007,
-T-009 (below the open tasks).
+T-009, T-013, T-016 (below the open tasks).
 
 ---
 
 ## Open tasks
+
+## T-018 Push the cleaned history and finish the clean-up
+
+- **Status:** open (prepared by Claude, 2026-11-18)
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux. Do this before any other task.
+
+Beaux decided on 2026-11-18 that details from real contracts must be removed
+permanently, even by rewriting history (T-016). Claude rewrote every branch
+and tag and checked the result, but this session may push only its own
+branch, so the final push is Beaux's. The rewritten repository, a script that
+pushes it, and the list of what was removed (`BLOCKED_TERMS.txt`, private:
+never commit it) were handed over in the chat, as a folder called
+`contractbuilder-cleanup`.
+
+Steps, in this order:
+
+- [ ] **GitHub email privacy first.** On github.com: your picture > Settings >
+      Emails. Tick "Keep my email addresses private" and "Block command line
+      pushes that expose my email". Otherwise the next commit made on the
+      website records your personal address again.
+- [ ] **Allow the force-push.** Settings > Rules (or Branches): if a rule
+      protects `main` against force pushes, turn that off for now, and back on
+      afterwards.
+- [ ] **Push.** Install Git for Windows if needed (https://git-scm.com), then
+      double-click `push-cleaned-history.bat` in the handover folder. It shows
+      what it will replace and asks before pushing. It refuses, changing
+      nothing, if anything was pushed to GitHub after 2026-11-18 03:47 UTC.
+- [ ] **Turn on the guard.** Settings > Secrets and variables > Actions > New
+      repository secret. Name: `BLOCKED_TERMS`. Value: the contents of
+      `BLOCKED_TERMS.txt`. From then on CI fails if any of those terms is
+      committed again (`tests/test_no_private_details.py`). Keep the file
+      somewhere private, such as your password manager.
+- [ ] **Ask GitHub Support to purge what a push cannot reach.** The nine
+      pull requests (#1 to #9) keep their own copies of the old commits, and
+      old commit pages stay viewable by their address until GitHub clears its
+      caches. At https://support.github.com, choose "Remove sensitive data"
+      (or "Contact us" about it), and paste the request text from
+      `github-support-request.txt` in the handover folder.
+- [ ] **Forks.** On the repository page, Insights > Forks. There should be
+      none (it was public for under a day). If there are, tell GitHub Support.
+- [ ] **Old copies.** Any other clone of the repository (another computer,
+      ChatGPT or Codex workspaces, an extracted ZIP) still holds the old
+      history. Delete them and download or clone afresh.
+- [ ] Tell Claude, or any agent, that it is done; it then reconnects its own
+      working copy to the new history.
+
+**Done when:** `main` on GitHub starts with the commit the script names, the
+next CI run on `main` is green with `test_no_details_from_real_contracts`
+passing (not skipped), and GitHub Support has confirmed the purge.
 
 ## T-010 Finish going public: stop telling users the repository is private
 
@@ -165,29 +217,6 @@ which is wrong when there is no token.
 **Done when:** the tests pass, and a rate-limited automatic check shows
 nothing while a rate-limited manual check shows the message above.
 
-## T-013 Replace real contract details in the tests with invented ones
-
-- **Status:** open
-- **Size:** S
-- **Agent:** any
-
-`tests/test_core.py` (search for "Trích") uses "Nhà Xuất Bản Ánh Sáng", a name
-from a real memorandum of agreement, and "Nguyễn Văn Bình". The repository
-is public now, and test data should be made up.
-
-- [ ] Replace them with invented Vietnamese names that still exercise
-      diacritics and upper-casing, such as "Nhà Xuất Bản Ánh Sáng" and
-      "Nguyễn Văn Bình"; keep the assertions equivalent
-- [ ] Search the current files for other names, addresses or titles taken
-      from real contracts (`git grep -n -i` for "[removed]", "[removed]",
-      "[removed]", "[removed]", "[removed]", "[removed]", "Binh Nguyen") and replace any found
-- [ ] Add to CLAUDE.md's "Working on it": test data is invented; never copy
-      names, addresses or terms from a real contract (the pitfalls section says
-      so since 2026-11-18; "Working on it" is where agents look before writing tests)
-
-**Done when:** none of those searches finds anything in the current files,
-and all tests pass. (History is T-016's question.)
-
 ## T-014 Stop tests/sample.py pointing at the deleted examples folder
 
 - **Status:** open
@@ -255,41 +284,6 @@ the token step has been removed.
 - [ ] Record the result in CLAUDE.md's Progress log; open a task for anything
       that failed, with `build-log.txt` or a screenshot
 
-## T-016 Decide about real contract details in the public git history
-
-- **Status:** open
-- **Size:** S to decide; M to carry out if rewriting
-- **Agent:** human
-- **Needs:** Beaux
-
-The current files are being cleaned by T-013, but making the repository
-public also published its history. Two old commits, both reachable from
-`main`, contain details taken from real memoranda of agreement:
-
-- `4becc60` (Build 4, the field sets that were never used): Sam Taylor and
-  "Director of Publishing" as TMAI's default signatory, TMAI's office
-  address on Example Street, "Nhà Xuất Bản Ánh Sáng" as a publisher and "Binh Nguyen"
-  as its signatory, in `fieldsets.py` and `tests/test_core.py`. This commit
-  became part of `main`'s history when Claude merged the branch to preserve
-  that work (PR #6).
-- `b96792b` (Build 2): "Nhà Xuất Bản Ánh Sáng" in `tests/test_core.py`.
-
-The memoranda themselves were never committed. TMAI's address and its VP are
-probably public anyway; the counterparty name and signatory are the ones to
-weigh. Options:
-
-1. Accept it. Nothing to do beyond T-013.
-2. Make the repository private again until the history is cleaned (the
-   updater then needs a token again; see T-010's notes in git history).
-3. Rewrite history to remove those values (for example with
-   `git filter-repo --replace-text`), then force-push `main`. Old clones,
-   forks and pull-request pages keep the old commits; GitHub Support can
-   purge cached views. Everyone must re-clone afterwards.
-
-- [ ] Beaux chooses; record it in CLAUDE.md's decision log
-- [ ] If option 3: split it into its own `careful` task. Never force-push
-      `main` without Beaux saying so in that task
-
 ## T-008 Decide what to do with advanced_app.py
 
 - **Status:** open
@@ -337,6 +331,52 @@ plain English, what changed.
 ---
 
 ## Done tasks (kept until a month after they were done)
+
+## T-013 Replace real contract details in the tests with invented ones
+
+- **Status:** done (2026-11-18, Claude, as part of the T-016 history rewrite)
+- **Size:** S
+- **Agent:** any
+
+- [x] The real publisher name, signatory, addresses, titles, book details,
+      dates and amounts in `tests/test_core.py` were replaced with invented
+      ones, in every commit, by the rewrite. The assertions still prove the
+      same things (diacritics and capitals, curly and straight apostrophes,
+      rounding), and all tests pass
+- [x] No other real details are left in the current files, checked against
+      the private list
+- [x] CLAUDE.md says test data must be invented, and a test now enforces it
+      (`tests/test_no_private_details.py`, active once T-018 sets the secret)
+
+## T-016 Remove details of real contracts from the public history
+
+- **Status:** done (2026-11-18, Claude; the push itself is T-018)
+- **Size:** M
+- **Agent:** careful
+- **Needs:** Beaux (decided 2026-11-18: "removed permanently, even if that
+  means rewriting history")
+
+Making the repository public published its history too. Two old commits,
+Build 2 (now `3fec39f`) and Build 4 (now `80cbe34`), and the first version
+of this task list held names, an address, a title, a book's details and
+amounts from real memoranda of agreement. 90 commits also recorded Beaux's
+personal email address as their author.
+
+- [x] Searched every file and commit message on all ten branches and three
+      tags, including inside Word and Excel files, for 51 details recorded
+      from the memoranda. 22 were present
+- [x] Rewrote the history with `git filter-repo`: each detail replaced with an
+      invented one; the email replaced with Beaux's GitHub "noreply" address,
+      so GitHub still credits the commits to him
+- [x] Checked the result: none of the 51 details in any file or message on
+      any branch or tag; the email gone from all 97 commits; old and new `main`
+      differ only in the replaced words; all tests pass on `main` and on this
+      branch
+- [x] Rehearsed the push against a stand-in copy of the repository
+- [ ] Push it, and the rest of the clean-up only Beaux can do: T-018
+
+Commit ids changed with the rewrite. The commit-id map is in the handover
+folder (`commit-map.txt`), for anyone who needs to follow an old id.
 
 ## T-001 Decide how colleagues receive updates
 

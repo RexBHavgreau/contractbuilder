@@ -62,6 +62,11 @@ jobs:
           python -c "from version import APP_VERSION; import sys; assert APP_VERSION == sys.argv[1], f'Git tag {sys.argv[1]} does not match APP_VERSION {APP_VERSION}'" "$TAG_VERSION"
 
       - name: Run tests
+        env:
+          # Terms from real contracts that must never be committed (the
+          # repository is public). Kept as a secret so the list stays private;
+          # tests/test_no_private_details.py reads it and skips without it.
+          BLOCKED_TERMS: ${{ secrets.BLOCKED_TERMS }}
         run: python -m pytest -q tests
 
   build-windows:
