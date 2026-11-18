@@ -89,30 +89,108 @@ Select Highlight inserted text for review to mark the wording inserted by the
 application in yellow. This can help you review the completed document. It
 does not change the template.
 
-WRITING A SIMPLE TEMPLATE
+WRITING A TEMPLATE
 
-Open a new or existing Word document and type the wording that should remain
-the same. Wherever something needs to change, insert a field name between
-double curly braces:
+A template is an ordinary Word document (.docx or .dotx). Type the wording
+that never changes. Put the name of each changing part inside double braces:
 
-    Prepared for {{Recipient Name}}.
+    This Agreement is made between TMAI and {{Client Name}}.
 
-    Dear {{Recipient Name}},
+Use the same field name wherever the same information appears. The
+application asks for it once. Capitalization and extra spaces in a field
+name do not matter. In Word, format the placeholder as you want the inserted
+wording to look; the inserted text takes the formatting of the placeholder.
 
-    Your appointment is scheduled for {{Appointment Date}}.
+FORMATS
 
-    Please contact {{Contact Person}} with any questions.
+To format an entry, put a vertical bar (|) after its name, followed by the
+format. You can use different formats for the same field in different places.
 
-Use the same field name wherever the same information should appear. The
-application ignores differences in capitalization and extra spaces when it
-matches field names, so {{recipient name}} and {{Recipient Name}} are treated
-as the same field.
+Dates (type a date such as 10/5/2026 or October 5, 2026):
 
-Format the placeholder in Word as you want the inserted wording to appear.
-The inserted text takes its formatting from the field name inside the braces.
-For example, make the field name bold if the completed name should be bold.
+    {{Start Date | date}}          October 5, 2026
+    {{Start Date | date-formal}}   5th day of October, 2026
+    {{Start Date | date-short}}    10/05/2026
 
-Save the Word document and select it in Word Template Filler.
+Amounts (type a number such as 12500 or 12,500.50):
+
+    {{Fee | money}}                $12,500.50
+    {{Fee | money-words}}          Twelve Thousand Five Hundred
+                                   Dollars and Fifty Cents ($12,500.50)
+    {{Fee | money-whole}}          $12,501 (rounded to whole dollars)
+
+Numbers:
+
+    {{Notice Days | number}}       30 becomes 30
+    {{Notice Days | number-words}} 30 becomes thirty (30)
+
+Other formats:
+
+    {{Client Name | upper}}        ACME CORPORATION
+    {{Scope | long}}               Allows several lines of text
+    {{Titles | list}}              Type one title per line; two become
+                                   "Title A and Title B"; three become
+                                   "Title A, Title B, and Title C"
+    {{Titles | plural: work, works}}
+                                   Says "work" for one title and "works"
+                                   for more than one
+    {{State | choice: Texas, Oklahoma, Louisiana}}
+                                   Shows a drop-down list of those choices
+
+For a list, type one item on each line in the form. A plural field counts
+the lines in a list, or a number if you enter one. The two words after
+plural: are the singular and plural forms, in that order. Use a slash
+instead of a comma if either wording itself contains a comma:
+
+    {{Titles | plural: it, as written / them, as written}}
+
+OPTIONAL AND ALTERNATIVE WORDING
+
+To include a whole paragraph or group of paragraphs only when a box is
+checked, put {{#if Field Name}} and {{/if}} on separate lines around it:
+
+    {{#if Include Non-Compete}}
+    The parties agree not to compete during the term of this Agreement.
+    {{/if}}
+
+A field used only this way appears as a check box. The wording inside the
+braces is included when the box is checked and omitted when it is not.
+
+To show one wording or another based on a choice, put {{else}} between
+the alternatives:
+
+    {{#if Governing State = Texas}}
+    Texas law governs this Agreement.
+    {{else}}
+    The law of the selected state governs this Agreement.
+    {{/if}}
+
+The comparison creates a drop-down list containing the values used in the
+conditions. You can also test whether a value is different:
+
+    {{#if Governing State != Texas}}
+    This Agreement is not governed by Texas law.
+    {{/if}}
+
+A field by itself is true when it has a value. Add "not" to test when it is
+blank or unchecked:
+
+    {{#if Guarantor Name}}
+    {{Guarantor Name}} guarantees the obligations.
+    {{/if}}
+
+    {{#if not Guarantor Name}}
+    No guarantor is named.
+    {{/if}}
+
+You can also put a short optional phrase inside a sentence:
+
+    Payment is due in 30 days{{#if Late Fee}}, with a late fee of
+    {{Late Fee | money}}{{/if}}.
+
+Word's automatic clause numbering adjusts when an optional paragraph is
+removed. Keep the opening and closing markers on their own lines for
+whole-paragraph clauses; the short phrase form can stay within a paragraph.
 
 TEMPLATE CHECKS
 
