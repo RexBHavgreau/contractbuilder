@@ -88,7 +88,7 @@ setting anything up, or the chosen alternative is documented.
 
 ## T-003 Retire the empty v0.2.0 release
 
-- **Status:** open
+- **Status:** done
 - **Size:** S
 - **Agent:** human
 - **Needs:** T-002's v0.3.0 release published
@@ -99,6 +99,8 @@ to build it and its release has no files.
 - [ ] Delete the v0.2.0 release on GitHub, or edit its notes to say it has
       no downloads and to use v0.3.0
 - [ ] Leave the tag, so history still makes sense
+
+Done by Beaux.
 
 ## T-004 Find out why the macOS Apple Silicon build keeps getting cancelled
 
