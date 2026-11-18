@@ -152,7 +152,7 @@ failed swap through `<app>.exe.update-failed.txt`.
 
 ## T-007 Document how to build fields in a template, for template authors
 
-- **Status:** open
+- **Status:** done (2026-11-17, [PR #9](https://github.com/RexBHavgreau/contractbuilder/pull/9))
 - **Size:** M
 - **Agent:** any
 - **Needs:** nothing (follows the 2026-11-17 decision in CLAUDE.md)
