@@ -532,6 +532,7 @@ def test_template_authoring_examples_fill_a_real_word_template(tmp_path):
         "{{Description | long}}",
         "{{Titles | list}} ({{Titles | plural: work, works}})",
         "{{State | choice: Texas, Oklahoma}}",
+        "Selected state: {{State | choice: Texas, Oklahoma}}.",
         "{{#if Include Clause}}Included clause.{{/if}}",
         "{{#if State = Texas}}Texas clause.{{else}}Other-state clause.{{/if}}",
         "{{#if State != Texas}}Not Texas.{{/if}}",
@@ -556,7 +557,7 @@ def test_template_authoring_examples_fill_a_real_word_template(tmp_path):
         "October 5, 2026", "5th day of October, 2026", "10/05/2026",
         "$12,500.50", "Twelve Thousand Five Hundred Dollars and Fifty Cents ($12,500.50)",
         "$12,501", "30", "thirty (30)", "ACME CORPORATION",
-        "First line", "Second line", "Book A and Book B", "(works)",
+        "First line", "Second line", "Book A and Book B", "(works)", "Selected state: Texas.",
         "Texas clause.", "No guarantor.", "$75.00",
     ):
         assert expected in rendered
