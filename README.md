@@ -50,6 +50,10 @@ helper script once the app has closed, then reopens (`self_update.py`).
 Nothing is installed without the user choosing to. On macOS, and for a release
 with no Windows file, it opens the release page instead.
 
+Before opening a downloaded copy for the first time, read the **FIRST RUN**
+section in `USER-GUIDE.txt` for the Windows SmartScreen and macOS Gatekeeper
+prompts.
+
 ### Private-repository update checks
 
 This repository is private. A packaged application cannot contain a GitHub

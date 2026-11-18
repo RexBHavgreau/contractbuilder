@@ -52,7 +52,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | --- | --- | --- | --- | --- |
 | [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
 | [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | — |
-| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | — |
+| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
@@ -232,7 +232,7 @@ may still say "private"; they describe the past.)
 
 ## T-011 Tell users what Windows and macOS will say about an unsigned app
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 
@@ -241,14 +241,13 @@ runs a downloaded copy, Windows SmartScreen shows "Windows protected your
 PC", and macOS refuses to open it. Nothing in USER-GUIDE.txt or README.md
 says so, and staff will reasonably think something is wrong.
 
-- [ ] USER-GUIDE.txt, near the start: a short "FIRST RUN" section.
+- [x] USER-GUIDE.txt, near the start: a short "FIRST RUN" section.
       Windows: click More info, then Run anyway. macOS: right-click (or
       Control-click) the app, choose Open, then confirm. Once per computer.
-- [ ] README.md: one line under "Build and releases" pointing at it
-- [ ] Say that updates installed by the app itself should not show the
-      warning again, because a file the app downloads is not marked as coming
-      from the internet. *Unconfirmed:* add it as "should not", and leave T-002
-      to confirm it; T-002's result decides whether the sentence stays
+- [x] README.md: one line under "Build and releases" pointing at it
+- [x] Added the Windows update caveat as "should not" and explicitly marked it
+      unconfirmed; T-002 will verify it on a real PC and decide whether the
+      sentence stays.
 
 **Done when:** a colleague who has never seen the app can get it open on
 Windows from the guide alone.

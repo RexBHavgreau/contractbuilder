@@ -121,6 +121,9 @@ trace.
 
 ## Decision log
 
+- **2026-11-18 — Explain first-run warnings for unsigned downloads.** The user guide tells staff how to approve the first launch in Windows SmartScreen and macOS Gatekeeper, and the README points to it before opening a download. The in-app Windows updater should not add the browser's internet-download mark, but that warning behavior remains unconfirmed until T-002 tests it on a real PC.
+
+
 - **2026-11-18 — Enforce the Windows executable size budget against the built file.** CI runs `scripts/check_executable_size.py` on the packaged release executable and fails above 31,457,280 bytes (30 MiB). The script accepts a smaller `--max-bytes` value so tests can prove the failure path without constructing a large executable.
 
 
@@ -295,3 +298,5 @@ Newest last.
 - **2026-11-18** T-014 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): corrected the sample generator's description and output path, added an optional command-line destination, ignored generated sample files and the old `examples/` directory, and added CLI regression tests for both output modes. The full Python test job passed in CI.
 
 - **2026-11-18** T-027 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added a tested executable-size checker and a Windows CI step that measures the packaged `.exe`, logs its size and remaining headroom, and fails above 30 MiB. Tests verify the normal limit, an intentionally tiny failing limit, and the exact boundary.
+
+- **2026-11-18** T-011 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added first-run SmartScreen and Gatekeeper instructions near the start of the user guide, linked to them from the README, and documented the unconfirmed expectation for Windows in-app updates. T-002 is responsible for confirming that behavior on a real PC.

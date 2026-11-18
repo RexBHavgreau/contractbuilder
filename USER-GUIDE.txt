@@ -1,6 +1,33 @@
 WORD TEMPLATE FILLER
 USER INSTRUCTIONS
 
+FIRST RUN
+
+This application is not code-signed. The first time you open a downloaded
+copy, Windows or macOS may show a security warning. This is expected. Only
+continue if you downloaded Word Template Filler from this project's official
+GitHub release.
+
+Windows
+
+1. When Windows SmartScreen says "Windows protected your PC", select More
+   info.
+2. Check that the app is Word Template Filler, then select Run anyway.
+
+macOS
+
+1. In Finder, locate Word Template Filler.app. Control-click (or right-click)
+   it and choose Open.
+2. When macOS asks you to confirm, choose Open.
+
+You should need to approve the app only the first time on each computer.
+
+On Windows, an update installed by the application itself should not trigger
+the SmartScreen warning again. The app downloads the update directly, rather
+than through a browser, so the file should not receive the internet-download
+mark that triggers the warning. This behavior has not yet been confirmed on a
+real Windows PC; see T-002 in TASKS.md.
+
 WHAT THIS DOES
 
 Word Template Filler reads a Word document containing placeholders, asks you
