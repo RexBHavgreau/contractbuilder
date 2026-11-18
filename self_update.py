@@ -231,18 +231,50 @@ def settings_path() -> Path:
     return base / "TMAI Contract Builder" / "update-settings.json"
 
 
-def load_token(path: Path | None = None) -> str:
+AUTOMATIC_CHECK_INTERVAL_SECONDS = 24 * 60 * 60
+
+
+def _load_update_settings(path: Path | None = None) -> dict:
     try:
-        return str(json.loads((path or settings_path()).read_text(encoding="utf-8")).get("github_token", ""))
-    except (OSError, ValueError, AttributeError):
-        return ""
+        data = json.loads((path or settings_path()).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
-def save_token(token: str, path: Path | None = None) -> None:
+def _save_update_settings(data: dict, path: Path | None = None) -> None:
     path = path or settings_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"github_token": token.strip()}), encoding="utf-8")
+    path.write_text(json.dumps(data), encoding="utf-8")
     try:
         os.chmod(path, 0o600)
     except OSError:
         pass
+
+
+def load_token(path: Path | None = None) -> str:
+    return str(_load_update_settings(path).get("github_token", ""))
+
+
+def save_token(token: str, path: Path | None = None) -> None:
+    data = _load_update_settings(path)
+    data["github_token"] = token.strip()
+    _save_update_settings(data, path)
+
+
+def automatic_update_check_due(path: Path | None = None, now: float | None = None) -> bool:
+    """Return whether an automatic check is due, using the last successful check."""
+    last_check = _load_update_settings(path).get("last_successful_check")
+    try:
+        last_check = float(last_check)
+        current_time = time.time() if now is None else float(now)
+    except (TypeError, ValueError):
+        return True
+    return current_time - last_check >= AUTOMATIC_CHECK_INTERVAL_SECONDS
+
+
+def record_successful_update_check(path: Path | None = None, now: float | None = None) -> None:
+    """Remember a successful manual or automatic check without discarding the token."""
+    data = _load_update_settings(path)
+    data["last_successful_check"] = time.time() if now is None else float(now)
+    _save_update_settings(data, path)
