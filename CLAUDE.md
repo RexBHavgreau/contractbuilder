@@ -8,12 +8,26 @@ rediscover. Open work lives in [TASKS.md](TASKS.md).
 ## What it is
 
 A desktop app (Windows first, macOS too) for a TMAI department that makes
-contracts and similar documents from Word templates. A template is an
-ordinary `.docx`/`.dotx`; the parts that change are written as
-`{{Field Name}}`, optionally with a format (`{{Fee | money-words}}`,
-`{{Start Date | date-formal}}`) or around optional wording
-(`{{#if Field}} … {{/if}}`). The app finds the fields, shows a form, and
-writes a new filled-in `.docx`. **The template is never changed.**
+contracts and similar documents in two ways:
+
+1. **Word-template workflow:** An ordinary `.docx`/`.dotx` contains
+   `{{Field Name}}` placeholders, optionally with a format
+   (`{{Fee | money-words}}`, `{{Start Date | date-formal}}`) or optional
+   wording (`{{#if Field}} … {{/if}}`). The app finds the fields, shows a
+   form, and writes a filled-in copy. The source template is never changed.
+2. **Component-builder workflow (planned):** Users create reusable contract
+   components inside the app with a simple formatting editor, or import
+   existing DOCX content. The app stores component wording as Markdown text
+   in the local SQLite database, with metadata and version history. The
+   supported content includes ordinary paragraphs, headings, emphasis,
+   lists, and tables. Users assemble selected components in order; a Word
+   document shell supplies page layout, styles, headers and footers. The
+   assembled document then uses the existing field syntax and rendering
+   engine. Users do not need to know Markdown.
+
+The component builder is an additional workflow, not a replacement for
+Word-template creation. Both workflows use the same local publisher profiles
+and field-rendering capabilities.
 
 The owner is Beaux Hargrove (GitHub: RexBHavgreau). The users are office
 staff, not developers: every message, guide and dialog is written in plain
@@ -157,6 +171,32 @@ Newest last. Each entry: date, decision, why, consequences.
   "too expensive to be worth it." Consequences: Windows SmartScreen and
   macOS Gatekeeper warn the first time each person runs a downloaded copy;
   the user guide must say what to click (T-011).
+- **2026-11-18 — COLLABORATIVE DECISION (Beaux and ChatGPT, T-008):
+  add a component-based contract-building workflow without replacing Word
+  templates.** The complete agreed proposal is in
+  [PROPOSAL-001.md](PROPOSAL-001.md). Keep `simple_app.py` as the packaged
+  app; do not merge `advanced_app.py` wholesale. Do not carry its spreadsheet
+  batch workflow forward. Leave its saved-answer and contract-to-template
+  features un-packaged for now and revisit them separately if needed. Users
+  should author components inside the application without needing to know
+  Markdown, and should also be able to import existing DOCX content. Markdown
+  is the canonical component representation, stored as text in the same
+  local SQLite database as publisher profiles, with metadata and version
+  history. Support ordinary contract content including paragraphs, headings,
+  bold, italic, lists, and tables. Use markdown-it-py with table support
+  enabled and the existing lxml/zipfile infrastructure to render native
+  WordprocessingML; do not add Pandoc or python-docx to the initial design.
+  A Word document shell supplies document-level formatting (page setup,
+  styles, headers, footers); it is not the source of assembled contract body
+  wording. DOCX import converts supported content to Markdown in document
+  order and reports unsupported structures rather than silently discarding
+  them. An assembly pins the component versions it uses. Users may review
+  and deliberately update selected components to newer versions; updates
+  are never silent. Keep the existing template workflow and `core.py` field
+  syntax intact. Target a Windows release executable no larger than 30 MB;
+  measure actual packaged output rather than relying on source or wheel
+  sizes. T-019 proves Markdown-to-Word conversion and field filling; T-020
+  handles DOCX-to-Markdown import before the editor and library are built.
 - **2026-11-18 — DECISION (Beaux): details of real contracts are removed
   permanently, "even if that means rewriting history"** (TASKS.md T-016).
   Every branch and tag was rewritten with `git filter-repo`: each real detail
@@ -207,6 +247,15 @@ Newest last.
   counterparty name is still in the tests and, with a few other real details,
   in the now-public history. Added T-010 to T-017 for these.
 
+- **2026-11-18** T-008 decision (Beaux and ChatGPT, collaborative):
+  retain the existing Word-template workflow and add a separate Markdown-based
+  component builder. Users will author content in-app or import DOCX content;
+  tables are part of the supported Markdown subset. A Word shell supplies
+  document-level formatting, and component versions are pinned in saved
+  assemblies with deliberate updates. The Windows release target is 30 MB.
+  Full architecture and implementation plan: [PROPOSAL-001.md](PROPOSAL-001.md).
+  T-019 covers Markdown-to-Word composition; T-020 covers DOCX import.
+  Spreadsheet batch creation from `advanced_app.py` is not being carried forward.
 - **2026-11-18** History rewrite (Claude, T-013 and T-016): searched all ten
   branches, three tags, every commit message and the inside of every Word and
   Excel file for 51 details recorded from the memoranda; 22 were present.
