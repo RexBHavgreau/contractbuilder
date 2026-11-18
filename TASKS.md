@@ -39,7 +39,7 @@ Fields:
 
 ## T-001 Decide how colleagues receive updates
 
-- **Status:** open
+- **Status:** done
 - **Size:** S to decide; M to carry out
 - **Agent:** human (decision), then any
 - **Needs:** Beaux
@@ -63,6 +63,8 @@ settings. That suits one maintainer, not a department. Options:
 
 **Done when:** a colleague's copy finds and installs a new release without
 setting anything up, or the chosen alternative is documented.
+
+(Beaux 2026-12-17 at 21:40 CST) Made the repo public. 
 
 ## T-002 Confirm the 0.3.0 fixes on a real Windows PC
 
