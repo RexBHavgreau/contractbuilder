@@ -275,6 +275,8 @@ Newest last. Each entry: date, decision, why, consequences.
 
 Newest last.
 
+- **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. Build assets and real-Windows self-update validation remain outstanding.
+
 - **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
 
 - **2026-11-18** T-020-G and T-028 (ChatGPT, PR pending): added UTF-8 Markdown
