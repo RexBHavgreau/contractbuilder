@@ -8,12 +8,23 @@ rediscover. Open work lives in [TASKS.md](TASKS.md).
 ## What it is
 
 A desktop app (Windows first, macOS too) for a TMAI department that makes
-contracts and similar documents from Word templates. A template is an
-ordinary `.docx`/`.dotx`; the parts that change are written as
-`{{Field Name}}`, optionally with a format (`{{Fee | money-words}}`,
-`{{Start Date | date-formal}}`) or around optional wording
-(`{{#if Field}} … {{/if}}`). The app finds the fields, shows a form, and
-writes a new filled-in `.docx`. **The template is never changed.**
+contracts and similar documents in two ways:
+
+1. **Word-template workflow:** An ordinary `.docx`/`.dotx` contains
+   `{{Field Name}}` placeholders, optionally with a format
+   (`{{Fee | money-words}}`, `{{Start Date | date-formal}}`) or optional
+   wording (`{{#if Field}} … {{/if}}`). The app finds the fields, shows a
+   form, and writes a filled-in copy. The source template is never changed.
+2. **Component-builder workflow (planned):** Users create reusable contract
+   components inside the app. Component wording is authored in Markdown and
+   stored as text in the local SQLite database, with metadata and version
+   history. Users assemble selected components in order; a Word document
+   shell supplies page layout, styles, headers and footers. The assembled
+   document then uses the existing field syntax and rendering engine.
+
+The component builder is an additional workflow, not a replacement for
+Word-template creation. Both workflows use the same local publisher profiles
+and field-rendering capabilities.
 
 The owner is Beaux Hargrove (GitHub: RexBHavgreau). The users are office
 staff, not developers: every message, guide and dialog is written in plain
@@ -157,6 +168,24 @@ Newest last. Each entry: date, decision, why, consequences.
   "too expensive to be worth it." Consequences: Windows SmartScreen and
   macOS Gatekeeper warn the first time each person runs a downloaded copy;
   the user guide must say what to click (T-011).
+- **2026-11-18 — DECISION (Beaux, T-008): add a component-based
+  contract-building workflow without replacing Word templates.** Keep
+  `simple_app.py` as the packaged app; do not merge `advanced_app.py`
+  wholesale. Do not carry its spreadsheet batch workflow forward. Leave its
+  saved-answer and contract-to-template features un-packaged for now and
+  revisit them separately if needed. For the new builder, users author
+  components inside the application; canonical component content is Markdown
+  text stored in SQLite alongside metadata and version history (not one
+  `.docx` file per component). The component library should share the
+  local SQLite database with publisher profiles; preserve existing profile
+  data when the current database is migrated/renamed. A Word document shell
+  supplies document-level formatting (page setup, styles, headers, footers);
+  Markdown supplies ordinary clause structure and inline emphasis. An
+  assembly pins the component versions it uses. Users may deliberately review
+  and update selected components to newer versions; updates are never
+  silent. The existing template workflow and `core.py` field syntax remain
+  intact. T-019 first proves Markdown-to-Word composition and field filling
+  before schema or UI work begins.
 - **2026-11-18 — DECISION (Beaux): details of real contracts are removed
   permanently, "even if that means rewriting history"** (TASKS.md T-016).
   Every branch and tag was rewritten with `git filter-repo`: each real detail
@@ -207,6 +236,12 @@ Newest last.
   counterparty name is still in the tests and, with a few other real details,
   in the now-public history. Added T-010 to T-017 for these.
 
+- **2026-11-18** T-008 decision (Beaux): retain the existing Word-template
+  workflow and add a separate component builder. Component content will be
+  authored in-app as Markdown, stored with metadata and revisions in SQLite,
+  and composed into a Word document shell. Saved assemblies keep pinned
+  component versions and can be deliberately updated. Spreadsheet batch
+  creation from `advanced_app.py` is not being carried forward.
 - **2026-11-18** History rewrite (Claude, T-013 and T-016): searched all ten
   branches, three tags, every commit message and the inside of every Word and
   Excel file for 51 details recorded from the memoranda; 22 were present.
