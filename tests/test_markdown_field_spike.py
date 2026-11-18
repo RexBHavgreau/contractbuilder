@@ -86,6 +86,19 @@ def test_if_markers_on_separate_paragraphs_inside_a_list_item_survive():
         "{{#if Include Clause}}", "Wording", "{{/if}}"
     ]
 
+def test_if_markers_in_separate_table_cells_survive_as_literal_text():
+    source = (
+        "| Start | End |\\n"
+        "| --- | --- |\\n"
+        "| {{#if Include Clause}} | {{/if}} |\\n"
+    )
+    tokens = _restore_parse(source)
+    inline = [token for token in tokens if token.type == "inline"]
+    assert [_inline_text(token) for token in inline[-2:]] == [
+        "{{#if Include Clause}}", "{{/if}}"
+    ]
+
+
 def test_field_and_inline_if_pair_inside_a_table_cell_survive():
     source = (
         "| Clause | Condition |\\n"
