@@ -127,6 +127,9 @@ def _check_numbering(root) -> Tuple[bool, bool]:
             )
             if fmt is not None and fmt.get(_tag("val")) == "bullet":
                 has_bullet = True
+        multi_level = abstract.find("w:multiLevelType", NS)
+        if multi_level is None or multi_level.get(_tag("val")) not in ("multilevel", "hybridMultilevel"):
+            continue
         expected = {
             0: ("decimal", "%1."),
             1: ("decimal", "%1.%2"),

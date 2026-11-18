@@ -215,3 +215,34 @@ def test_invalid_file_returns_plain_english_error(tmp_path):
     assert not result.can_generate
     assert result.errors[0].code == "shell.unreadable"
     assert "cannot be used as a Word shell" in result.errors[0].message
+
+
+
+def test_style_with_wrong_type_is_reported(tmp_path):
+    path = make_shell(tmp_path / "shell.docx")
+    def change_type(root):
+        for style in root.findall("w:style", NS):
+            if style.get("{%s}styleId" % W) == "Heading2":
+                style.set("{%s}type" % W, "character")
+    _rewrite_member(path, "word/styles.xml", change_type)
+    result = shell_check.check_shell(path)
+    finding = next(item for item in result.warnings if item.code == "shell.style.Heading2")
+    assert "not a paragraph style" in finding.message
+    assert result.style_fallbacks["Heading2"] == "Heading1"
+
+
+def test_single_level_definition_is_not_a_decimal_outline(tmp_path):
+    path = make_shell(tmp_path / "shell.docx")
+    def make_single_level(root):
+        for abstract in root.findall("w:abstractNum", NS):
+            levels = abstract.findall("w:lvl", NS)
+            if len(levels) >= 3 and all(
+                level.find("w:numFmt", NS) is not None
+                and level.find("w:numFmt", NS).get("{%s}val" % W) == "decimal"
+                for level in levels[:3]
+            ):
+                multi = abstract.find("w:multiLevelType", NS)
+                multi.set("{%s}val" % W, "singleLevel")
+    _rewrite_member(path, "word/numbering.xml", make_single_level)
+    result = shell_check.check_shell(path)
+    assert any(item.code == "shell.numbering.decimal_outline" for item in result.warnings)
