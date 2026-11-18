@@ -904,7 +904,9 @@ class WordTemplateFiller:
     def _report_failed_update(self):
         if not self_update.can_install_in_place():
             return
-        note = self_update.leftover_note(self_update.running_executable())
+        target = self_update.running_executable()
+        self_update.cleanup_stale_update_download(target)
+        note = self_update.leftover_note(target)
         if note:
             messagebox.showwarning("The last update did not finish", note, parent=self.root)
 
