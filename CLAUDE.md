@@ -57,6 +57,12 @@ trace.
   catches syntax and line-ending slips before PyInstaller runs.
 - Never put a token, password or key in the code, a template, the build or
   the repository. The update token is entered per user in the app.
+- **Test data is invented.** Never copy a name, address, number, title or
+  term from a real contract into the repository, not even into a test or a
+  task description: it is public. CI enforces this with
+  `tests/test_no_private_details.py`, which checks every file against a
+  private list held in the GitHub secret `BLOCKED_TERMS`. If it fails, it
+  names the file and line; replace the detail, do not just reword around it.
 - Work on a branch and open a pull request into `main`. Keep commits small
   and say why, not only what.
 
@@ -73,8 +79,20 @@ trace.
   same path, under the same PowerShell 5.1.
 - LibreOffice puts its own `python.exe` (no tkinter, no pip) on PATH; the
   Microsoft Store puts empty alias `.exe`s there. Test before trusting.
-- **The repository is private**: GitHub answers 404 to unsigned requests for
-  its releases, so the updater needs a token (or the repo made public).
+- **The repository is public** (since 2026-11-17). Everything in it, and
+  everything in its history, is visible to anyone. Test data must be
+  invented; never commit names, addresses or terms from a real contract.
+  (While it was private, GitHub answered 404 to unsigned release checks, and
+  the updater needed a token. Text saying so is being removed: TASKS.md T-010.)
+- **Removing something from a public repository means rewriting history**,
+  and even that does not reach GitHub's own copies: pull requests keep the
+  old commits, and old commit pages stay viewable until GitHub Support purges
+  them. Real contract details had to be removed this way on 2026-11-18. The
+  cheap fix is never committing them (see "Working on it").
+- Commits made on the GitHub website record the account's email address
+  unless "Keep my email addresses private" is on (Settings > Emails).
+- **Unsigned checks to GitHub are limited to 60 an hour per internet
+  address**, shared by everyone in one office. See TASKS.md T-012.
 - A release tagged on a commit whose `version.py` disagrees fails CI and has
   no files (v0.2.0). Hence release-on-version-bump.
 - Word splits text into many runs (one MOU had 917 runs in 52 paragraphs;
@@ -104,7 +122,8 @@ Newest last. Each entry: date, decision, why, consequences.
 - **2026-10-05 (Build 4, not merged) — Built-in "field sets" for publishing
   agreements** (parties, works, rights, territory…). Superseded by the
   2026-11-17 decision below; the work remains in git history at commit
-  `4becc60` if any of it is wanted later.
+  `80cbe34` (`4becc60` before the 2026-11-18 history rewrite) if any of it is
+  wanted later.
 - **2026-11-17 — Renamed Word Template Filler, with a focused single-document
   window (`simple_app.py`).** (Made with ChatGPT.) The earlier window lives in
   `advanced_app.py`, not packaged.
@@ -125,10 +144,32 @@ Newest last. Each entry: date, decision, why, consequences.
   agrees: download beside the `.exe`, verify size and GitHub's SHA-256
   digest, swap after exit, reopen. Falls back to Downloads if the folder is
   read-only. Private repository → per-user read-only token in Help > Update
-  settings. *Open question for Beaux: make the repository (or a releases-only
-  copy) public so colleagues need no token — TASKS.md T-001.*
+  settings. (The open question this raised was settled the same day: the
+  repository was made public, below.)
 - **2026-11-17 — Releases publish themselves when `main` gets a new
   `APP_VERSION`.** Removes the hand-made tag that went wrong for v0.2.0.
+- **2026-11-17 — DECISION (Beaux): the repository is public** (TASKS.md
+  T-001, option 1 of three). Colleagues' copies find and install updates
+  with no setup. Consequences: the update token becomes optional (wording:
+  T-010); unsigned checks meet GitHub's hourly limit (T-012); everything in
+  the repository and its history is public (T-013, T-016).
+- **2026-11-17 — DECISION (Beaux): the app is not code-signed** (T-009):
+  "too expensive to be worth it." Consequences: Windows SmartScreen and
+  macOS Gatekeeper warn the first time each person runs a downloaded copy;
+  the user guide must say what to click (T-011).
+- **2026-11-18 — DECISION (Beaux): details of real contracts are removed
+  permanently, "even if that means rewriting history"** (TASKS.md T-016).
+  Every branch and tag was rewritten with `git filter-repo`: each real detail
+  replaced with an invented one, and Beaux's personal email in 90 commits
+  replaced with his GitHub noreply address. Consequences: all commit ids
+  changed (old ids map to new in `commit-map.txt`, handed to Beaux); every
+  clone made before the rewrite is stale and must be replaced; the
+  force-push, GitHub Support's purge of pull-request copies and the
+  `BLOCKED_TERMS` secret are Beaux's (T-018), because this session may push
+  only its own branch. A test keeps such details out from now on.
+- **2026-11-17 — DECISION (Beaux): no sample templates in the repository.**
+  `examples/` was deleted. Tests build their own sample in a temporary
+  folder (`tests/sample.py`; tidy-up is T-014).
 
 ## Progress log
 
@@ -151,3 +192,26 @@ Newest last.
 - **2026-11-17** T-006 (ChatGPT, [PR #8](https://github.com/RexBHavgreau/contractbuilder/pull/8)): the built Windows app now removes an abandoned `.exe.new` update download only when it is older than 24 hours. Recent files, symlinks, missing files and inaccessible files are left alone. CI tests passed.
 
 - **2026-11-17** T-007 (ChatGPT, [PR #9](https://github.com/RexBHavgreau/contractbuilder/pull/9)): expanded the template-author guide with examples for every format and condition, added a dedicated Help menu window, and added a DOCX rendering test for the documented syntax.
+
+- **2026-11-17** Beaux: v0.2.0's empty release deleted, its tag kept (T-003);
+  repository made public (T-001); code signing declined (T-009); `examples/`
+  deleted.
+
+- **2026-11-18** Task review (Claude): v0.3.0 confirmed published by CI on its
+  own, with the Windows `.exe` and both macOS builds, each with a SHA-256
+  digest; CI green on every push to `main` since PR #6 (runs 44 to 60), which
+  closed T-004 without a change; T-005 to T-007 checked against the code and
+  86 passing tests. Found that the app and guides still call the repository
+  private, that nothing tells users about the unsigned-app warnings, that
+  GitHub's hourly limit now applies to update checks, and that a real
+  counterparty name is still in the tests and, with a few other real details,
+  in the now-public history. Added T-010 to T-017 for these.
+
+- **2026-11-18** History rewrite (Claude, T-013 and T-016): searched all ten
+  branches, three tags, every commit message and the inside of every Word and
+  Excel file for 51 details recorded from the memoranda; 22 were present.
+  Replaced them, and the personal email in 90 commits, across all history;
+  verified none remain, `main` changed only in the replaced words, and all
+  tests pass. Added `tests/test_no_private_details.py` and the CI secret it
+  reads. Pushing it was refused to this session (it may push only its own
+  branch), so it is prepared for Beaux as TASKS.md T-018.
