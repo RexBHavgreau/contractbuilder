@@ -35,8 +35,13 @@ def test_field_names_with_underscores_and_asterisks_survive_as_literal_text():
     for field in ("{{First_Name}}", "{{First*Name}}", "{{First**Name**}}"):
         unprotected = parser.parse(field)
         raw_inline = next(token for token in unprotected if token.type == "inline")
-        assert _inline_text(raw_inline) == field
-        assert not any(child.type in ("em_open", "strong_open") for child in raw_inline.children)
+        if field == "{{First**Name**}}":
+            # CommonMark treats the paired asterisks as emphasis and strips
+            # them from the text, corrupting the field name.
+            assert _inline_text(raw_inline) == "{{FirstName}}"
+            assert any(child.type == "strong_open" for child in raw_inline.children)
+        else:
+            assert _inline_text(raw_inline) == field
 
         tokens = _restore_parse(field)
         inline = next(token for token in tokens if token.type == "inline")
