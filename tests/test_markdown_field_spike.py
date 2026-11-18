@@ -69,16 +69,15 @@ def test_pipe_in_field_does_not_split_a_markdown_table_cell():
 
 
 def test_if_markers_on_their_own_lines_survive_as_literal_text():
-    source = "{{#if Include Clause}}\\n\\nWording\\n\\n{{/if}}"
+    source = "{{#if Include Clause}}\n\nWording\n\n{{/if}}"
     tokens = _restore_parse(source)
     inline = [token for token in tokens if token.type == "inline"]
     assert [token.content for token in inline] == [
         "{{#if Include Clause}}", "Wording", "{{/if}}"
     ]
 
-
 def test_if_markers_on_separate_paragraphs_inside_a_list_item_survive():
-    source = "- {{#if Include Clause}}\\n\\n  Wording\\n\\n  {{/if}}"
+    source = "- {{#if Include Clause}}\n\n  Wording\n\n  {{/if}}"
     tokens = _restore_parse(source)
     assert any(token.type == "bullet_list_open" for token in tokens)
     inline = [token for token in tokens if token.type == "inline"]
@@ -88,9 +87,9 @@ def test_if_markers_on_separate_paragraphs_inside_a_list_item_survive():
 
 def test_if_markers_in_separate_table_cells_survive_as_literal_text():
     source = (
-        "| Start | End |\\n"
-        "| --- | --- |\\n"
-        "| {{#if Include Clause}} | {{/if}} |\\n"
+        "| Start | End |\n"
+        "| --- | --- |\n"
+        "| {{#if Include Clause}} | {{/if}} |\n"
     )
     tokens = _restore_parse(source)
     inline = [token for token in tokens if token.type == "inline"]
@@ -98,12 +97,11 @@ def test_if_markers_in_separate_table_cells_survive_as_literal_text():
         "{{#if Include Clause}}", "{{/if}}"
     ]
 
-
 def test_field_and_inline_if_pair_inside_a_table_cell_survive():
     source = (
-        "| Clause | Condition |\\n"
-        "| --- | --- |\\n"
-        "| {{Clause_Name}} | {{#if Include Clause}}wording{{/if}} |\\n"
+        "| Clause | Condition |\n"
+        "| --- | --- |\n"
+        "| {{Clause_Name}} | {{#if Include Clause}}wording{{/if}} |\n"
     )
     tokens = _restore_parse(source)
     inline = [token for token in tokens if token.type == "inline"]
