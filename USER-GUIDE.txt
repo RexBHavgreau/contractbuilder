@@ -241,9 +241,9 @@ headers and footers you need. Keep the built-in styles named Normal, Heading
 Grid. You can change how those styles look; do not delete or rename them.
 
 The shell also needs a three-level decimal outline for clauses (1., 1.1,
-1.1.1) and a bullet numbering definition. The application checks these
-requirements when you select a shell. If a style or numbering definition is
-missing, it explains the fallback before continuing. A shell that cannot be
+1.1.1) and a bullet numbering definition. When the component-builder workflow is available, ContractBuilder will check
+these requirements when you select a shell. If a style or numbering
+definition is missing, it will explain the fallback before continuing. A shell that cannot be
 read or has no final section properties cannot be used. For the full list of
 requirements, see SHELL-CONTRACT.md in the project repository.
 
