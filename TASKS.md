@@ -309,7 +309,7 @@ the token step has been removed.
 
 ## T-008 Decide what to do with advanced_app.py
 
-- **Status:** done (2026-11-18, Beaux's decision recorded in CLAUDE.md)
+- **Status:** done (2026-11-18, PR #12)
 - **Size:** S
 - **Agent:** human
 - **Needs:** —
