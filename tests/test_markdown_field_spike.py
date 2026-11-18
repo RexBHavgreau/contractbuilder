@@ -39,6 +39,19 @@ def test_field_names_with_underscores_and_asterisks_survive_as_literal_text():
         assert not any(child.type in ("em_open", "strong_open") for child in inline.children)
 
 
+def test_unprotected_pipe_is_treated_as_a_table_column_break():
+    source = (
+        "| Fee | Notes |\\n"
+        "| --- | --- |\\n"
+        "| {{Fee | money-words}} | payable later |\\n"
+    )
+    tokens = create_parser().parse(source)
+    data_cells = [token for token in tokens if token.type == "td_open"]
+    inline = [token for token in tokens if token.type == "inline"][-2:]
+    assert len(data_cells) == 2
+    assert [_inline_text(token) for token in inline] == ["{{Fee", "money-words}}"]
+
+
 def test_pipe_in_field_does_not_split_a_markdown_table_cell():
     source = (
         "| Fee | Notes |\n"
@@ -90,6 +103,7 @@ def test_component_boundaries_are_protected_by_parsing_each_component_separately
     # fragments can accidentally become one valid field.
     left = "{{Fee |"
     right = "money-words}}"
+    assert core.TOKEN.search(left + right)  # unsafe if components are joined first
     left_protected, left_map = protect_fields(left)
     right_protected, right_map = protect_fields(right)
     assert not left_map
@@ -148,7 +162,7 @@ def test_core_reads_and_fills_fields_in_paragraph_list_and_table(tmp_path):
         root = etree.fromstring(package.read("word/document.xml"))
 
     ns = {"w": core.W_NS}
-    paragraphs = root.findall(".//w:body/w:p", ns)
+    paragraphs = root.findall(".//w:p", ns)
     text_by_paragraph = [
         "".join(node.text or "" for node in paragraph.findall(".//w:t", ns))
         for paragraph in paragraphs
