@@ -207,6 +207,19 @@ Newest last. Each entry: date, decision, why, consequences.
   force-push, GitHub Support's purge of pull-request copies and the
   `BLOCKED_TERMS` secret are Beaux's (T-018), because this session may push
   only its own branch. A test keeps such details out from now on.
+- **2026-11-18 — DECISION (Beaux, T-025): clause numbering uses standard
+  nested ordered Markdown lists, rendered as a decimal outline; no new
+  Markdown syntax.** Position in the nesting decides the number (1., 1.1,
+  1.1.1), not the digits typed. The editor offers numbered list, indent and
+  outdent so users never type indentation; the Word output uses one
+  multi-level numbering definition from the shell; imports of Word
+  multi-level lists become nested lists, and letter or Roman styles become
+  decimal with a warning. Consequences: typed cross-references ("see Section
+  2.1") do not follow moved clauses; underline, page breaks, signature
+  blocks and defined terms are out of scope (Beaux: "shouldn't matter";
+  T-032). Signature blocks belong in the Word shell or a template. Italic
+  is `_text_`; Markdown has no underline, and imported underline is dropped
+  with a warning.
 - **2026-11-17 — DECISION (Beaux): no sample templates in the repository.**
   `examples/` was deleted. Tests build their own sample in a temporary
   folder (`tests/sample.py`; tidy-up is T-014).
