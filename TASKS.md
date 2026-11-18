@@ -612,11 +612,12 @@ incomplete brace fragments at adjacent component boundaries can otherwise
 become one valid field. Parse components independently and append their
 rendered Word blocks.
 
-**Parser observations:** CommonMark currently leaves underscores and
-asterisks inside braces as literal text (`{{First_Name}}`,
-`{{First*Name}}`), but the protection step makes this independent of
-Markdown punctuation rules. Without protection, the table rule treats the
-pipe in `{{Fee | money-words}}` as a cell delimiter and corrupts the row.
+**Parser observations:** CommonMark currently leaves underscores and a single asterisk inside
+these sample names literal (`{{First_Name}}`, `{{First*Name}}`), but paired
+double asterisks are parsed as strong emphasis and stripped from the field
+name (`{{First**Name**}}` becomes `{{FirstName}}`). Without protection, the
+table rule also treats the pipe in `{{Fee | money-words}}` as a cell
+delimiter and corrupts the row.
 Standalone conditional markers survive parsing. Blank lines create separate
 paragraphs; soft line breaks stay inside one paragraph. List items can contain
 separate paragraphs. GFM table cells are inline-only: standalone markers in
