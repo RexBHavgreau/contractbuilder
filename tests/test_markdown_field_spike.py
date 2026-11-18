@@ -69,34 +69,34 @@ def test_pipe_in_field_does_not_split_a_markdown_table_cell():
 
 
 def test_if_markers_on_their_own_lines_survive_as_literal_text():
-    tokens = _restore_parse("{{#if Include Clause}}\nWording\n{{/if}}")
+    source = "{{#if Include Clause}}\\n\\nWording\\n\\n{{/if}}"
+    tokens = _restore_parse(source)
     inline = [token for token in tokens if token.type == "inline"]
-    assert [_inline_text(token) for token in inline] == [
+    assert [token.content for token in inline] == [
         "{{#if Include Clause}}", "Wording", "{{/if}}"
     ]
 
 
-def test_if_markers_inside_a_list_item_survive():
-    tokens = _restore_parse("- {{#if Include Clause}}\n  Wording\n  {{/if}}")
+def test_if_markers_on_separate_paragraphs_inside_a_list_item_survive():
+    source = "- {{#if Include Clause}}\\n\\n  Wording\\n\\n  {{/if}}"
+    tokens = _restore_parse(source)
     assert any(token.type == "bullet_list_open" for token in tokens)
     inline = [token for token in tokens if token.type == "inline"]
-    assert [_inline_text(token) for token in inline] == [
-        "{{#if Include Clause}}Wording{{/if}}"
+    assert [token.content for token in inline] == [
+        "{{#if Include Clause}}", "Wording", "{{/if}}"
     ]
 
-
-def test_field_and_if_markers_inside_a_table_cell_survive():
+def test_field_and_inline_if_pair_inside_a_table_cell_survive():
     source = (
-        "| Clause | Condition |\n"
-        "| --- | --- |\n"
-        "| {{Clause_Name}} | {{#if Include Clause}} |\n"
+        "| Clause | Condition |\\n"
+        "| --- | --- |\\n"
+        "| {{Clause_Name}} | {{#if Include Clause}}wording{{/if}} |\\n"
     )
     tokens = _restore_parse(source)
     inline = [token for token in tokens if token.type == "inline"]
     assert [_inline_text(token) for token in inline[-2:]] == [
-        "{{Clause_Name}}", "{{#if Include Clause}}"
+        "{{Clause_Name}}", "{{#if Include Clause}}wording{{/if}}"
     ]
-
 
 def test_component_boundaries_are_protected_by_parsing_each_component_separately():
     # If raw components are concatenated before field protection, their edge
