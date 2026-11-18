@@ -6,3 +6,7 @@ dist/
 *.spec
 build-log.txt
 ~$*
+
+# Generated samples; do not commit them.
+examples/
+Sample Services Agreement.docx

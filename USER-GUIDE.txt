@@ -1,6 +1,33 @@
 WORD TEMPLATE FILLER
 USER INSTRUCTIONS
 
+FIRST RUN
+
+This application is not code-signed. The first time you open a downloaded
+copy, Windows SmartScreen or macOS Gatekeeper may show a security warning
+or block the app. This is expected. Only continue if you obtained the app
+from this project's official GitHub release.
+
+Windows
+
+1. When Windows SmartScreen says "Windows protected your PC", select More
+   info.
+2. Check that the app is Word Template Filler, then select Run anyway.
+
+macOS
+
+1. In Finder, locate Word Template Filler.app. Control-click (or right-click)
+   it and choose Open.
+2. When macOS asks you to confirm, choose Open.
+
+You should need to approve the app only the first time on each computer.
+
+On Windows, an update installed by the application itself should not trigger
+the SmartScreen warning again. The app downloads the update directly, rather
+than through a browser, so the file should not receive the internet-download
+mark that triggers the warning. This behavior has not yet been confirmed on a
+real Windows PC; see T-002 in TASKS.md.
+
 WHAT THIS DOES
 
 Word Template Filler reads a Word document containing placeholders, asks you
@@ -223,11 +250,11 @@ application offers to open the release page instead.
 The first time, versions older than 0.3.0 cannot install updates themselves:
 download 0.3.0 once by hand, and later versions install automatically.
 
-PRIVATE REPOSITORY
+OPTIONAL TOKEN FOR UPDATE CHECKS
 
-This repository is private, so GitHub only shows its releases to someone
-signed in. Until a token is set up, the status line says "Automatic updates
-are not set up yet". To set one up:
+You do not need a token for normal update checks. If you often see "GitHub is
+limiting update checks from your network for now", you can add an optional
+token in Help > Update settings to raise GitHub's API limit for your checks.
 
 1. On GitHub, open Settings > Developer settings > Personal access tokens >
    Fine-grained tokens, and generate a new token.
@@ -237,10 +264,9 @@ are not set up yet". To set one up:
 4. In this application, choose Help > Update settings, paste the token, and
    choose Save and check now.
 
-The token is saved for your user only, beside your publisher profiles. Never
-put a token in a template, script, or shared file. The environment variable
-CONTRACTBUILDER_GITHUB_TOKEN still works too. If the repository is made
-public, no token is needed.
+The token is saved for your Windows user only, beside your publisher profiles.
+Never put a token in a template, script, or shared file. To stop using it,
+choose Remove token in Help > Update settings.
 
 PRIVACY
 

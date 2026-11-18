@@ -824,13 +824,6 @@ class WordTemplateFiller:
             if manual:
                 self.status.config(text="Update check could not be completed.", foreground="#8a5a00")
                 messagebox.showwarning("Update check failed", str(error), parent=self.root)
-            elif getattr(error, "needs_token", False):
-                # A private repository hides its releases. Say so quietly at
-                # startup, rather than failing without a word every time.
-                self.status.config(
-                    text="Automatic updates are not set up yet: see Help > Update settings.",
-                    foreground="#8a5a00",
-                )
             return
 
         if not result.available:
@@ -935,7 +928,7 @@ class WordTemplateFiller:
             messagebox.showwarning("The last update did not finish", note, parent=self.root)
 
     def update_settings(self):
-        """Where a GitHub token for a private repository is saved, per user."""
+        """Manage the optional per-user GitHub token for update checks."""
         window = tk.Toplevel(self.root)
         window.title("Update settings")
         window.transient(self.root)
@@ -943,10 +936,10 @@ class WordTemplateFiller:
         frame = ttk.Frame(window, padding=16)
         frame.pack(fill="both", expand=True)
         ttk.Label(frame, wraplength=460, justify="left", text=(
-            "This app's GitHub repository is private, so GitHub only shows its releases "
-            "to someone signed in. To let this app find and install updates, paste a "
-            "GitHub token here.\n\n"
-            "Make a fine-grained personal access token on GitHub (Settings > Developer "
+            "You do not need a GitHub token for normal update checks. If you often see "
+            "\"GitHub is limiting update checks from your network for now\", you can "
+            "add an optional token here to raise GitHub's API limit for your checks.\n\n"
+            "Create a fine-grained personal access token on GitHub (Settings > Developer "
             "settings) for this repository only, with read-only access to Contents and "
             "nothing else. It is saved for your Windows user only, in:\n"
             f"{self_update.settings_path()}"

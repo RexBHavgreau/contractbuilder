@@ -51,17 +51,17 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
 | [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
-| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | — |
-| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | — |
+| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | done | any | — |
+| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
-| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
+| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | open | careful | — |
-| [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | open | any | — |
+| [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | open | any | — |
@@ -188,7 +188,7 @@ passing (not skipped), and GitHub Support has confirmed the purge.
 
 ## T-010 Finish going public: stop telling users the repository is private
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 
@@ -214,16 +214,16 @@ still steer people to a token they do not need:
 Keep the token setting itself (it still raises GitHub's limit; see T-012),
 but present it as optional.
 
-- [ ] Reword the Update settings window: a token is not needed; it is only
+- [x] Reword the Update settings window: a token is not needed; it is only
       for someone who sees "GitHub is limiting update checks" often
-- [ ] 404 with no token: "GitHub has no published release for this app yet,
+- [x] 404 with no token: "GitHub has no published release for this app yet,
       or the repository has moved." Keep the `needs_token` flag off for it, so
       startup stays quiet
-- [ ] Remove or rewrite the four document sections above; the guide should
+- [x] Remove or rewrite the four document sections above; the guide should
       not mention tokens except as the optional setting
-- [ ] Update `tests/test_updates.py` for the new 404 wording, and keep a test
+- [x] Update `tests/test_updates.py` for the new 404 wording, and keep a test
       that a 404 with a saved token still names the token as a possible cause
-- [ ] CLAUDE.md: the pitfall was already corrected on 2026-11-18; once the
+- [x] CLAUDE.md: the pitfall was already corrected on 2026-11-18; once the
       wording is gone, delete its sentence "Text saying so is being removed"
 
 **Done when:** `git grep -n -i -E "repository is private|private repositor|is private, so" -- '*.py' '*.txt' README.md ':!tests'`
@@ -232,7 +232,7 @@ may still say "private"; they describe the past.)
 
 ## T-011 Tell users what Windows and macOS will say about an unsigned app
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 
@@ -241,14 +241,13 @@ runs a downloaded copy, Windows SmartScreen shows "Windows protected your
 PC", and macOS refuses to open it. Nothing in USER-GUIDE.txt or README.md
 says so, and staff will reasonably think something is wrong.
 
-- [ ] USER-GUIDE.txt, near the start: a short "FIRST RUN" section.
+- [x] USER-GUIDE.txt, near the start: a short "FIRST RUN" section.
       Windows: click More info, then Run anyway. macOS: right-click (or
       Control-click) the app, choose Open, then confirm. Once per computer.
-- [ ] README.md: one line under "Build and releases" pointing at it
-- [ ] Say that updates installed by the app itself should not show the
-      warning again, because a file the app downloads is not marked as coming
-      from the internet. *Unconfirmed:* add it as "should not", and leave T-002
-      to confirm it; T-002's result decides whether the sentence stays
+- [x] README.md: one line under "Build and releases" pointing at it
+- [x] Added the Windows update caveat as "should not" and explicitly marked it
+      unconfirmed; T-002 will verify it on a real PC and decide whether the
+      sentence stays.
 
 **Done when:** a colleague who has never seen the app can get it open on
 Windows from the guide alone.
@@ -287,7 +286,7 @@ nothing while a rate-limited manual check shows the message above.
 
 ## T-014 Stop tests/sample.py pointing at the deleted examples folder
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 
@@ -297,12 +296,12 @@ need it (they build their sample template in a temporary folder), but
 Agreement.docx` "handed to the department as a worked example", and running
 it directly would recreate the deleted file.
 
-- [ ] Update the docstring: it builds the sample template the tests use
-- [ ] Make `python tests/sample.py` write to a path given on the command
+- [x] Update the docstring: it builds the sample template the tests use
+- [x] Make `python tests/sample.py` write to a path given on the command
       line, or to the current folder, never to `examples/`
-- [ ] Add `examples/` to `.gitignore`, so a sample is not committed back by
+- [x] Add `examples/` to `.gitignore`, so a sample is not committed back by
       accident
-- [ ] Check nothing else refers to `examples/` (`git grep -n examples`)
+- [x] Checked all tracked text files: no live code or user documentation depends on the deleted directory. The remaining matches are historical task/project notes and `core.py`'s unrelated `EXAMPLES` field-preview mapping.
 
 **Done when:** `python tests/sample.py` no longer recreates `examples/`, and
 all tests pass.
@@ -1156,7 +1155,7 @@ checker.
 
 ### T-027 Keep the Windows executable within 30 MB in CI
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -1164,11 +1163,11 @@ checker.
 The proposal's 30 MB target is checked by hand today. v0.3.0 is 17,795,673
 bytes.
 
-- [ ] A CI step after the Windows build that fails if the executable is over
+- [x] A CI step after the Windows build that fails if the executable is over
       31,457,280 bytes and prints the size and the margin otherwise
-- [ ] The step reads the size from the built file, not from wheels
-- [ ] Put the measured size in the CI log (and, for releases, the release
-      notes if T-017 allows)
+- [x] The step reads the size from the built file, not from wheels
+- [x] Put the measured size in the CI log. Release-note inclusion is deferred
+      until T-017 provides the project-owned release-notes mechanism.
 
 **Done when:** a deliberately tiny limit fails CI and the real limit passes.
 

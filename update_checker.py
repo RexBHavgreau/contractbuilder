@@ -1,9 +1,9 @@
 """Check GitHub Releases for a newer application version.
 
-No credentials are embedded in the application. Public repositories work
-without configuration. For a private repository, a read-only token can be
-saved in the app (Help > Update settings), or supplied through the
-CONTRACTBUILDER_GITHUB_TOKEN or GH_TOKEN environment variable.
+No credentials are embedded in the application. Public releases work without
+configuration. An optional read-only token can be saved in the app (Help >
+Update settings), or supplied through the CONTRACTBUILDER_GITHUB_TOKEN or
+GH_TOKEN environment variable, to raise the API rate limit.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ class UpdateCheckError(Exception):
 
     def __init__(self, message: str, needs_token: bool = False):
         super().__init__(message)
-        self.needs_token = needs_token     # the repository is private and no token worked
+        self.needs_token = needs_token     # a token may be needed or may not have worked
 
 
 @dataclass(frozen=True)
@@ -28,7 +28,7 @@ class ReleaseAsset:
     """One file attached to a release."""
 
     name: str
-    api_url: str                     # works for private repositories, with a token
+    api_url: str                     # API URL for authenticated downloads
     download_url: str                # works for public repositories, without one
     size: int
     digest: str = ""                 # "sha256:...", when GitHub supplies it
@@ -100,17 +100,13 @@ def check_for_update(
         if exc.code == 404:
             if token:
                 raise UpdateCheckError(
-                    "GitHub returned 404 with the saved token. Either no release has "
-                    "been published yet, or the token cannot read this repository: it "
-                    "needs read-only Contents access to it.",
+                    "GitHub returned 404 while using the saved token. Either no release "
+                    "has been published yet, the repository has moved, or the token "
+                    "cannot read this repository: it needs read-only Contents access to it.",
                     needs_token=True,
                 ) from exc
             raise UpdateCheckError(
-                "GitHub returned 404. This repository is private, so the app needs a "
-                "read-only GitHub token to see its releases. Add one in Help > Update "
-                "settings, or set CONTRACTBUILDER_GITHUB_TOKEN. (No release published "
-                "yet gives the same answer.)",
-                needs_token=True,
+                "GitHub has no published release for this app yet, or the repository has moved."
             ) from exc
         if exc.code in (401, 403):
             raise UpdateCheckError(
