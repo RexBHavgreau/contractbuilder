@@ -41,9 +41,9 @@ def test_field_names_with_underscores_and_asterisks_survive_as_literal_text():
 
 def test_unprotected_pipe_is_treated_as_a_table_column_break():
     source = (
-        "| Fee | Notes |\\n"
-        "| --- | --- |\\n"
-        "| {{Fee | money-words}} | payable later |\\n"
+        "| Fee | Notes |\n"
+        "| --- | --- |\n"
+        "| {{Fee | money-words}} | payable later |\n"
     )
     tokens = create_parser().parse(source)
     data_cells = [token for token in tokens if token.type == "td_open"]
