@@ -53,7 +53,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
 | [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | done | any | — |
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
-| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
+| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | claimed (ChatGPT, 2026-11-18) | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
@@ -64,7 +64,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
-| ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | open | any | — |
+| ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | claimed (ChatGPT, 2026-11-18) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | open | careful | A, B, T-026 |
 | ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | open | careful | C, T-026 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | open | careful | C, T-026 |
@@ -91,7 +91,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | T-021-E, T-020-G |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open | human | T-019-F |
 | [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | T-019-F, T-020-B |
-| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
+| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | claimed (ChatGPT, 2026-11-18) | any | — |
 
 Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
 touches the same lines as another except T-010 and T-012, which both edit
@@ -254,7 +254,7 @@ Windows from the guide alone.
 
 ## T-012 Cope with GitHub's limit on unsigned update checks
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** M
 - **Agent:** any
 - **Needs:** do it after T-010 if both are in progress (same file)
@@ -465,7 +465,7 @@ answer; T-019-C to T-019-G build on that method.
 
 #### T-019-B Add the dependency and the configured parser
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -1252,7 +1252,7 @@ opens it.
 
 ## T-017 Show plain-English release notes in the update dialog
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** M
 - **Agent:** any
 
