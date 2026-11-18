@@ -34,7 +34,7 @@ echo "  Folder: $(pwd)"
 echo
 
 if [ ! -f simple_app.py ] || [ ! -f core.py ] || [ ! -f version.py ] || [ ! -f update_checker.py ] || [ ! -f self_update.py ] || [ ! -f publisher_profiles.py ] || [ ! -f USER-GUIDE.txt ] || [ ! -f THIRD-PARTY-LICENSES.txt ]; then
-    echo "  simple_app.py, core.py, version.py, update_checker.py, self_update.py, publisher_profiles.py, and USER-GUIDE.txt must sit beside this file."
+    echo "  simple_app.py, core.py, version.py, update_checker.py, self_update.py, publisher_profiles.py, USER-GUIDE.txt, and THIRD-PARTY-LICENSES.txt must sit beside this file."
     echo "  Found here:"; ls -1 *.py 2>/dev/null
     echo; read -r -p "  Press Return to close. "; exit 1
 fi
@@ -77,7 +77,7 @@ echo "  Building. This takes a minute or two."
 echo
 if ! "$PY" -m PyInstaller --onefile --windowed --clean --noconfirm \
     --name "$APPNAME" --distpath "./dist" --workpath "./build" \
-    --specpath "." --add-data "USER-GUIDE.txt:." \\
+    --specpath "." --add-data "USER-GUIDE.txt:." \
     --add-data "THIRD-PARTY-LICENSES.txt:." ./simple_app.py >> "$LOG" 2>&1; then
     echo
     echo "  The build did not finish."
