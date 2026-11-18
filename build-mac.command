@@ -67,7 +67,7 @@ fi
 
 echo "  Checking packages. This may take a minute the first time."
 echo "  Everything is written to build-log.txt as it goes."
-if ! "$PY" -m pip install --upgrade pyinstaller lxml >> "$LOG" 2>&1; then
+if ! "$PY" -m pip install --upgrade pyinstaller lxml markdown-it-py==3.0.0 mdurl==0.1.2 >> "$LOG" 2>&1; then
     echo "  Could not install the packages needed to build."
     show_log; exit 1
 fi
