@@ -17,6 +17,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -196,7 +197,7 @@ def cleanup_stale_update_download(target: Path, now: float | None = None,
         info = candidate.lstat()
         if not candidate.is_file() or candidate.is_symlink():
             return False
-        current_time = __import__("time").time() if now is None else now
+        current_time = time.time() if now is None else now
         if current_time - info.st_mtime <= max_age:
             return False
         candidate.unlink()
