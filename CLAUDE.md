@@ -73,8 +73,13 @@ trace.
   same path, under the same PowerShell 5.1.
 - LibreOffice puts its own `python.exe` (no tkinter, no pip) on PATH; the
   Microsoft Store puts empty alias `.exe`s there. Test before trusting.
-- **The repository is private**: GitHub answers 404 to unsigned requests for
-  its releases, so the updater needs a token (or the repo made public).
+- **The repository is public** (since 2026-11-17). Everything in it, and
+  everything in its history, is visible to anyone. Test data must be
+  invented; never commit names, addresses or terms from a real contract.
+  (While it was private, GitHub answered 404 to unsigned release checks, and
+  the updater needed a token. Text saying so is being removed: TASKS.md T-010.)
+- **Unsigned checks to GitHub are limited to 60 an hour per internet
+  address**, shared by everyone in one office. See TASKS.md T-012.
 - A release tagged on a commit whose `version.py` disagrees fails CI and has
   no files (v0.2.0). Hence release-on-version-bump.
 - Word splits text into many runs (one MOU had 917 runs in 52 paragraphs;
@@ -125,10 +130,22 @@ Newest last. Each entry: date, decision, why, consequences.
   agrees: download beside the `.exe`, verify size and GitHub's SHA-256
   digest, swap after exit, reopen. Falls back to Downloads if the folder is
   read-only. Private repository → per-user read-only token in Help > Update
-  settings. *Open question for Beaux: make the repository (or a releases-only
-  copy) public so colleagues need no token — TASKS.md T-001.*
+  settings. (The open question this raised was settled the same day: the
+  repository was made public, below.)
 - **2026-11-17 — Releases publish themselves when `main` gets a new
   `APP_VERSION`.** Removes the hand-made tag that went wrong for v0.2.0.
+- **2026-11-17 — DECISION (Beaux): the repository is public** (TASKS.md
+  T-001, option 1 of three). Colleagues' copies find and install updates
+  with no setup. Consequences: the update token becomes optional (wording:
+  T-010); unsigned checks meet GitHub's hourly limit (T-012); everything in
+  the repository and its history is public (T-013, T-016).
+- **2026-11-17 — DECISION (Beaux): the app is not code-signed** (T-009):
+  "too expensive to be worth it." Consequences: Windows SmartScreen and
+  macOS Gatekeeper warn the first time each person runs a downloaded copy;
+  the user guide must say what to click (T-011).
+- **2026-11-17 — DECISION (Beaux): no sample templates in the repository.**
+  `examples/` was deleted. Tests build their own sample in a temporary
+  folder (`tests/sample.py`; tidy-up is T-014).
 
 ## Progress log
 
@@ -151,3 +168,17 @@ Newest last.
 - **2026-11-17** T-006 (ChatGPT, [PR #8](https://github.com/RexBHavgreau/contractbuilder/pull/8)): the built Windows app now removes an abandoned `.exe.new` update download only when it is older than 24 hours. Recent files, symlinks, missing files and inaccessible files are left alone. CI tests passed.
 
 - **2026-11-17** T-007 (ChatGPT, [PR #9](https://github.com/RexBHavgreau/contractbuilder/pull/9)): expanded the template-author guide with examples for every format and condition, added a dedicated Help menu window, and added a DOCX rendering test for the documented syntax.
+
+- **2026-11-17** Beaux: v0.2.0's empty release deleted, its tag kept (T-003);
+  repository made public (T-001); code signing declined (T-009); `examples/`
+  deleted.
+
+- **2026-11-18** Task review (Claude): v0.3.0 confirmed published by CI on its
+  own, with the Windows `.exe` and both macOS builds, each with a SHA-256
+  digest; CI green on every push to `main` since PR #6 (runs 44 to 60), which
+  closed T-004 without a change; T-005 to T-007 checked against the code and
+  86 passing tests. Found that the app and guides still call the repository
+  private, that nothing tells users about the unsigned-app warnings, that
+  GitHub's hourly limit now applies to update checks, and that a real
+  counterparty name is still in the tests and, with a few other real details,
+  in the now-public history. Added T-010 to T-017 for these.
