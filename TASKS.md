@@ -50,7 +50,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
-| [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human + ChatGPT | — |
+| [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition | open | careful | T-008 |
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown | open | careful | T-019 |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
@@ -313,7 +313,7 @@ the token step has been removed.
 
 - **Status:** done (2026-11-18, collaboratively by Beaux and ChatGPT; see [PROPOSAL-001.md](PROPOSAL-001.md))
 - **Size:** S
-- **Agent:** human + ChatGPT
+- **Agent:** human
 - **Needs:** —
 
 Beaux chose to keep the packaged application focused while adding a second,
