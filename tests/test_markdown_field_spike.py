@@ -33,6 +33,11 @@ def test_field_names_with_underscores_and_asterisks_survive_as_literal_text():
     # In the current CommonMark parser these characters are already literal
     # between the braces, but protection makes that behavior explicit and safe.
     for field in ("{{First_Name}}", "{{First*Name}}", "{{First**Name**}}"):
+        unprotected = parser.parse(field)
+        raw_inline = next(token for token in unprotected if token.type == "inline")
+        assert _inline_text(raw_inline) == field
+        assert not any(child.type in ("em_open", "strong_open") for child in raw_inline.children)
+
         tokens = _restore_parse(field)
         inline = next(token for token in tokens if token.type == "inline")
         assert _inline_text(inline) == field
