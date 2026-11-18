@@ -308,7 +308,7 @@ all tests pass.
 
 ## T-015 Release 0.3.1 to prove self-update end to end
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-010, T-011 and T-012 merged (so the release carries them)
