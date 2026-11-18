@@ -71,7 +71,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | open | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | open | any | F |
 | ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | open | careful | B, T-027 |
-| [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | open | any | T-019-B |
+| [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | claimed (ChatGPT, 2026-11-18) | any | T-019-B |
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
 | ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | open | any | — |
 | ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
@@ -79,7 +79,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
 | ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | open | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
-| ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | open | any | T-019-B |
+| ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | claimed (ChatGPT, 2026-11-18) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
 | ↳ T-021-A to T-021-E | Schema version and backup; components and versions; assemblies; archive; storage module | open | careful | in order |
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
@@ -717,7 +717,7 @@ warning, and the warning text is plain English.
 
 #### T-020-G Markdown file import and export
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-B
@@ -1173,7 +1173,7 @@ bytes.
 
 ### T-028 Include third-party licence notices
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-B
