@@ -195,7 +195,7 @@ fits the decision that users build their own fields.
 
 ## T-009 Sign the Windows executable
 
-- **Status:** open
+- **Status:** done. decided.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** Beaux (it costs money)
@@ -207,3 +207,5 @@ update. A code-signing certificate removes that.
       them to Beaux
 - [ ] If approved: sign in CI with the certificate held as an Actions
       secret, never in the repository
+
+      report: not going to sign. too expensive to be worth it.
