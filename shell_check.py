@@ -181,9 +181,11 @@ def check_shell(path: Union[str, Path]) -> ShellCheckResult:
         ))
         return ShellCheckResult(shell_path, tuple(findings), fallbacks)
 
-    # Final section properties may be the last body child or belong to the
-    # paragraph properties of the final paragraph (a section break).
-    final_sect = body.find("w:sectPr", NS)
+    # The final section properties must be the final body child. A sectPr
+    # inside paragraph properties marks a section break, not the document's
+    # final section, and cannot replace this required body-level element.
+    children = list(body)
+    final_sect = children[-1] if children and children[-1].tag == _tag("sectPr") else None
     if final_sect is None:
         children = list(body)
         if children and children[-1].tag == _tag("p"):

@@ -112,7 +112,7 @@ def test_missing_final_section_stops_generation(tmp_path):
     assert any(item.code == "shell.no_final_section" for item in result.errors)
 
 
-def test_section_properties_in_final_paragraph_are_accepted(tmp_path):
+def test_section_break_properties_do_not_replace_final_section(tmp_path):
     path = make_shell(tmp_path / "shell.docx")
     def move(root):
         body = root.find("w:body", NS)
@@ -125,39 +125,19 @@ def test_section_properties_in_final_paragraph_are_accepted(tmp_path):
         paragraph.append(ppr)
     _rewrite_member(path, "word/document.xml", move)
     result = shell_check.check_shell(path)
-    assert result.can_generate
-    assert not any(item.code == "shell.no_final_section" for item in result.findings)
+    assert not result.can_generate
+    assert any(item.code == "shell.no_final_section" for item in result.errors)
 
 
-def _remove_outline(root):
-    ids = set()
-    for abstract in list(root.findall("w:abstractNum", NS)):
-        levels = abstract.findall("w:lvl", NS)
-        if len(levels) >= 3 and all(
-            level.find("w:numFmt", NS) is not None
-            and level.find("w:numFmt", NS).get("{%s}val" % W) == "decimal"
-            for level in levels[:3]
-        ):
-            ids.add(abstract.get("{%s}abstractNumId" % W))
-            root.remove(abstract)
-    for num in list(root.findall("w:num", NS)):
-        ref = num.find("w:abstractNumId", NS)
-        if ref is not None and ref.get("{%s}val" % W) in ids:
-            root.remove(num)
-
-
-def _remove_bullets(root):
-    ids = set()
-    for abstract in list(root.findall("w:abstractNum", NS)):
-        if any(level.find("w:numFmt", NS) is not None
-               and level.find("w:numFmt", NS).get("{%s}val" % W) == "bullet"
-               for level in abstract.findall("w:lvl", NS)):
-            ids.add(abstract.get("{%s}abstractNumId" % W))
-            root.remove(abstract)
-    for num in list(root.findall("w:num", NS)):
-        ref = num.find("w:abstractNumId", NS)
-        if ref is not None and ref.get("{%s}val" % W) in ids:
-            root.remove(num)
+def test_final_section_properties_must_be_last_body_child(tmp_path):
+    path = make_shell(tmp_path / "shell.docx")
+    def append_after_section(root):
+        body = root.find("w:body", NS)
+        body.append(OxmlElement("w:p"))
+    _rewrite_member(path, "word/document.xml", append_after_section)
+    result = shell_check.check_shell(path)
+    assert not result.can_generate
+    assert any(item.code == "shell.no_final_section" for item in result.errors)
 
 
 def test_missing_decimal_outline_warns(tmp_path):

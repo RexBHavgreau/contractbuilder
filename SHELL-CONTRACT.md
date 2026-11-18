@@ -46,9 +46,10 @@ into the text.
 
 ## Final section properties
 
-The document body must end with final section properties (`w:sectPr`), either
-as the last child of `w:body` or inside the paragraph properties of the final
-paragraph. Set the page size, orientation and all four margins in Word. The
+The document body must end with final section properties (`w:sectPr`) as the
+last child of `w:body`. A `w:sectPr` inside a paragraph's properties marks a
+section break; it does not replace the final body-level section properties.
+Set the page size, orientation and all four margins in Word. The
 checker permits missing page size or margins with a warning because Word has
 defaults, but a shell with no final section properties cannot be used.
 
