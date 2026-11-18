@@ -614,17 +614,17 @@ in the right order, fields intact, and every unsupported structure reported.
 
 #### T-020-A Read the package and the body in order
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
 
-- [ ] Open the `.docx` read-only; walk `w:body` children in document order,
+- [x] Open the `.docx` read-only; walk `w:body` children in document order,
       yielding paragraphs and tables as they come (never paragraphs then
       tables)
-- [ ] A result object holding Markdown text and a list of warnings (each
+- [x] A result object holding Markdown text and a list of warnings (each
       with a plain-English message and where it was found)
-- [ ] A file that is not a valid `.docx` gives a plain-English error, not a
+- [x] A file that is not a valid `.docx` gives a plain-English error, not a
       stack trace
 
 **Done when:** tests on an invented fixture show body order is kept.
@@ -717,14 +717,14 @@ warning, and the warning text is plain English.
 
 #### T-020-G Markdown file import and export
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-B
 
-- [ ] Function pair to read a `.md` file (UTF-8, tolerate a BOM) and write
+- [x] Function pair to read a `.md` file (UTF-8, tolerate a BOM) and write
       one; the exported text re-imports with identical supported content
-- [ ] Unsupported Markdown (raw HTML, images, footnotes) reported on import
+- [x] Unsupported Markdown (raw HTML, images, footnotes) reported on import
 
 **Done when:** an export then import test passes unchanged.
 
