@@ -59,7 +59,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
-| [T-032](#t-032-decide-extra-legal-formatting-for-components) | Decide extra legal formatting (underline, page break, signature blocks) | open | human | Beaux |
+| [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | open | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | open | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
@@ -102,7 +102,7 @@ things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
 T-027 (size check); T-025 (numbering) is already decided; then T-019-B to
 T-019-H, with T-020 (importer) starting once T-019-A and T-019-B are done;
 T-021 (storage) can run alongside either; T-028 after T-019-B; then T-022,
-T-023, T-024; T-029 and T-031 last; T-032 (Beaux) before the editor work needs it. T-030 is Beaux's, once T-019-F exists.
+T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
 T-017 any time. T-018 needs nothing from an agent until GitHub Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
@@ -417,7 +417,7 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Library backup and Markdown export** move earlier (T-029).
 - **The size limit** becomes a CI check (T-027).
 - **Clause numbering** is decided (T-025): nested ordered lists, rendered as
-  a decimal outline. Other legal formatting is T-032.
+  a decimal outline. Other legal formatting is out of scope (T-032).
 
 ### T-019 Prototype Markdown-to-Word composition
 
@@ -646,7 +646,7 @@ in the right order, fields intact, and every unsupported structure reported.
 - [ ] `{{Field}}` and `{{#if}}` text kept literal, even when it is split
       across runs (reuse `core`'s run-spanning logic where possible)
 - [ ] Underline, strikethrough, highlight, font and colour changes are
-      reported as dropped formatting (unless T-032 adds support)
+      reported as dropped formatting (these are out of scope, T-032)
 
 **Done when:** tests cover split runs and a field split across three runs.
 
@@ -1090,31 +1090,37 @@ Decision log. What it means:
       should read level formats from the shell's definition rather than
       hard-coding decimal, so this stays possible
 
-Underline, page breaks, tab-aligned signature blocks and defined-term
-formatting were not decided; they are T-032.
+Underline, page breaks, signature blocks and defined-term formatting:
+out of scope (T-032).
 
 **Done when:** the decision is in CLAUDE.md and the tasks above say what to
 build. (Both done.)
 
 ### T-032 Decide extra legal formatting for components
 
-- **Status:** open
+- **Status:** done (2026-11-18, Beaux: it does not matter; out of scope)
 - **Size:** S
 - **Agent:** human
-- **Needs:** Beaux
+- **Needs:** —
 
-T-025 settled numbering only. Standard Markdown has no underline, page break,
-tab-aligned lines or defined-term style. Until Beaux decides, all of these
-are **out of scope** for the first release, and the importer reports them
-as dropped formatting (T-020-B, T-020-E). Following T-025's principle, prefer
-an editor feature or the shell's styles over new Markdown syntax.
+**Decision (Beaux, 2026-11-18): underline, page breaks, signature blocks and
+defined-term styling are not supported in components.** Components carry
+paragraphs, headings 1 to 3, bold, italic, numbered outlines, bulleted lists,
+tables, and fields. Notes for whoever builds on this:
 
-- [ ] For each, decide in or out, and if in, how it is stored and shown:
-      underline; page break (possibly a shell-level setting or a
-      "starts on a new page" tick on an assembly entry instead of text);
-      signature blocks (possibly a one-row, two-column table with no borders,
-      which Markdown tables already hold); defined terms (bold is enough?)
-- [ ] Record the answer in CLAUDE.md; update T-020-B and T-022 to match
+- `_text_` and `*text*` mean *italic* in Markdown; there is no standard
+  underline. An underlined passage in an imported Word file becomes plain
+  text with a warning (T-020-B), not italic.
+- A signature block is the area at the end of a contract where each party
+  signs, with lines for signature, printed name, title and date, usually
+  side by side. Put it in the Word **shell** or in a Word template, not in a
+  component. (A simple two-column table can hold one if it is ever wanted.)
+- Page breaks come from the shell and from Word's own flow.
+
+Reopen this task only if staff find they cannot do without one of them.
+
+- [x] Decided: all out of scope
+- [x] CLAUDE.md Decision log updated
 
 ### T-026 Define the Word shell contract and ship a sample shell
 

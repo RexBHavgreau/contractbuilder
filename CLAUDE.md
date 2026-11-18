@@ -216,7 +216,10 @@ Newest last. Each entry: date, decision, why, consequences.
   multi-level lists become nested lists, and letter or Roman styles become
   decimal with a warning. Consequences: typed cross-references ("see Section
   2.1") do not follow moved clauses; underline, page breaks, signature
-  blocks and defined terms are undecided (T-032) and out of scope until then.
+  blocks and defined terms are out of scope (Beaux: "shouldn't matter";
+  T-032). Signature blocks belong in the Word shell or a template. Italic
+  is `_text_`; Markdown has no underline, and imported underline is dropped
+  with a warning.
 - **2026-11-17 — DECISION (Beaux): no sample templates in the repository.**
   `examples/` was deleted. Tests build their own sample in a temporary
   folder (`tests/sample.py`; tidy-up is T-014).
