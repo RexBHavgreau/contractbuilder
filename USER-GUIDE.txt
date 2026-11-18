@@ -5,8 +5,8 @@ FIRST RUN
 
 This application is not code-signed. The first time you open a downloaded
 copy, Windows SmartScreen or macOS Gatekeeper may show a security warning
-or block the app. This is expected. Only continue if you downloaded Word Template Filler from this project's official
-GitHub release.
+or block the app. This is expected. Only continue if you obtained the app
+from this project's official GitHub release.
 
 Windows
 
