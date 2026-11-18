@@ -521,3 +521,45 @@ def test_link_warning(tmp_path):
         b"<w:r><w:t>Email {{Email}}</w:t></w:r>",
         b'<w:r><w:t xml:space="preserve">Email </w:t></w:r><w:hyperlink w:anchor="x"><w:r><w:t>{{Email}}</w:t></w:r></w:hyperlink>'))
     assert any("inside a link" in n for n in core.Template(path).warnings)
+
+
+def test_template_authoring_examples_fill_a_real_word_template(tmp_path):
+    """Every documented format and condition is exercised through a DOCX."""
+    paragraphs = [
+        "{{When | date}} | {{When | date-formal}} | {{When | date-short}}",
+        "{{Fee | money}} | {{Fee | money-words}} | {{Fee | money-whole}}",
+        "{{Count | number}} | {{Count | number-words}} | {{Name | upper}}",
+        "{{Description | long}}",
+        "{{Titles | list}} ({{Titles | plural: work, works}})",
+        "{{State | choice: Texas, Oklahoma}}",
+        "Selected state: {{State | choice: Texas, Oklahoma}}.",
+        "{{#if Include Clause}}Included clause.{{/if}}",
+        "{{#if State = Texas}}Texas clause.{{else}}Other-state clause.{{/if}}",
+        "{{#if State != Texas}}Not Texas.{{/if}}",
+        "{{#if not Guarantor}}No guarantor.{{/if}}",
+        "{{#if Guarantor}}{{Guarantor}} guarantees performance.{{/if}}",
+        "Payment is due{{#if Late Fee}}, with a fee of {{Late Fee | money}}{{/if}}.",
+    ]
+    values = {
+        "When": "10/5/2026", "Fee": "12500.50", "Count": "30",
+        "Name": "Acme Corporation", "Description": "First line\nSecond line",
+        "Titles": "Book A\nBook B", "State": "Texas",
+        "Include Clause": True, "Guarantor": "", "Late Fee": "75",
+    }
+    source = make_doc(tmp_path, paragraphs)
+    output = tmp_path / "filled.docx"
+    template = core.Template(source)
+    assert template.problems == []
+    core.build_contract(template, values, output)
+    rendered = "\n".join(p.text for p in Document(output).paragraphs)
+
+    for expected in (
+        "October 5, 2026", "5th day of October, 2026", "10/05/2026",
+        "$12,500.50", "Twelve Thousand Five Hundred Dollars and Fifty Cents ($12,500.50)",
+        "$12,501", "30", "thirty (30)", "ACME CORPORATION",
+        "First line", "Second line", "Book A and Book B", "(works)", "Selected state: Texas.",
+        "Texas clause.", "No guarantor.", "$75.00",
+    ):
+        assert expected in rendered
+    for omitted in ("Other-state clause.", "Not Texas.", "guarantees performance."):
+        assert omitted not in rendered

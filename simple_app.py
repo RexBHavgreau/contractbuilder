@@ -404,6 +404,7 @@ class WordTemplateFiller:
 
         help_menu = tk.Menu(menu, tearoff=False)
         help_menu.add_command(label="User instructions", command=self.show_user_guide)
+        help_menu.add_command(label="How to write a template", command=self.show_template_guide)
         help_menu.add_command(label="Check for updates", command=lambda: self.check_for_updates(manual=True))
         help_menu.add_command(label="Update settings…", command=self.update_settings)
         help_menu.add_separator()
@@ -752,6 +753,29 @@ class WordTemplateFiller:
 
         window = tk.Toplevel(self.root)
         window.title("User instructions")
+        window.transient(self.root)
+        window.geometry("720x620")
+        box = scrolledtext.ScrolledText(
+            window, wrap="word", font="TkDefaultFont", padx=14, pady=12
+        )
+        box.pack(fill="both", expand=True)
+        box.insert("1.0", contents)
+        box.configure(state="disabled")
+        ttk.Button(window, text="Close", command=window.destroy).pack(pady=8)
+
+    def show_template_guide(self):
+        """Show the template-authoring section without the rest of the user guide."""
+        path = resource_path("USER-GUIDE.txt")
+        try:
+            contents = path.read_text(encoding="utf-8")
+            start = contents.index("WRITING A TEMPLATE")
+            end = contents.index("TEMPLATE CHECKS", start)
+            contents = contents[start:end].strip()
+        except (OSError, ValueError):
+            contents = core.CHEAT_SHEET
+
+        window = tk.Toplevel(self.root)
+        window.title("How to write a template")
         window.transient(self.root)
         window.geometry("720x620")
         box = scrolledtext.ScrolledText(
