@@ -126,8 +126,9 @@ def check_for_update(
         if exc.code == 401:
             raise UpdateCheckError(
                 "GitHub did not accept the update-check credentials. Remove or "
-                "replace the optional token in Help > Update settings."
-            , needs_token=True) from exc
+                "replace the optional token in Help > Update settings.",
+                needs_token=True,
+            ) from exc
         if exc.code == 403:
             raise UpdateCheckError(
                 "GitHub refused the update check. If you saved an optional token, "
