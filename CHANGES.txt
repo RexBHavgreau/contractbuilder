@@ -1,0 +1,17 @@
+# What's new
+
+## 0.3.1
+
+Automatic update checks now run no more than once every 24 hours. You can still check for updates whenever you like from the Help menu.
+
+When GitHub temporarily limits update checks, the app explains that it will try again later. Automatic checks stay quiet.
+
+When an update is available, the prompt includes a short list of what changed.
+
+## 0.3.0
+
+Choose a Word template, fill in its fields, and save a completed copy without changing the original.
+
+Save publisher details once and load them into matching fields in later contracts.
+
+Check for updates from Help. On Windows, the app can download and install a newer release for you.

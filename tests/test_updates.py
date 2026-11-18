@@ -264,3 +264,95 @@ def test_cleanup_stale_update_download_does_not_follow_symlinks(tmp_path):
         pytest.skip("Symlinks are unavailable")
     assert not self_update.cleanup_stale_update_download(target, now=10**10)
     assert outside.read_text() == "keep"
+
+
+# --------------------------------------------- update-check frequency/limits ---
+
+@pytest.mark.parametrize(
+    ("status", "headers"),
+    [
+        (403, {"X-RateLimit-Remaining": "0"}),
+        (403, {"Retry-After": "60"}),
+        (429, {}),
+    ],
+)
+def test_rate_limited_update_check_has_a_clear_retry_message(monkeypatch, status, headers):
+    from urllib.error import HTTPError
+
+    def fake_urlopen(request, timeout):
+        raise HTTPError(request.full_url, status, "Limited", headers, None)
+
+    monkeypatch.setattr(update_checker, "urlopen", fake_urlopen)
+    with pytest.raises(UpdateCheckError) as info:
+        check_for_update("0.3.0", "o/r")
+
+    assert str(info.value) == (
+        "GitHub is limiting update checks from your network for now. "
+        "The app will try again later."
+    )
+    assert not info.value.needs_token
+
+
+def test_ordinary_403_is_not_misreported_as_a_rate_limit(monkeypatch):
+    from urllib.error import HTTPError
+
+    def fake_urlopen(request, timeout):
+        raise HTTPError(request.full_url, 403, "Forbidden", {}, None)
+
+    monkeypatch.setattr(update_checker, "urlopen", fake_urlopen)
+    with pytest.raises(UpdateCheckError) as info:
+        check_for_update("0.3.0", "o/r")
+
+    assert str(info.value) == (
+        "GitHub refused the update check. If you saved an optional token, "
+        "check it in Help > Update settings."
+    )
+    assert not info.value.needs_token
+
+
+def test_successful_update_check_time_limits_only_automatic_checks(tmp_path, monkeypatch):
+    import simple_app
+
+    settings = tmp_path / "update-settings.json"
+    fixed_now = 1_800_000_000.0
+    self_update.record_successful_update_check(settings, now=fixed_now)
+    assert not self_update.automatic_update_check_due(
+        settings, now=fixed_now + self_update.AUTOMATIC_CHECK_INTERVAL_SECONDS - 1
+    )
+    assert self_update.automatic_update_check_due(
+        settings, now=fixed_now + self_update.AUTOMATIC_CHECK_INTERVAL_SECONDS
+    )
+
+    monkeypatch.setattr(self_update, "settings_path", lambda: settings)
+    started = []
+
+    class FakeThread:
+        def __init__(self, target, daemon):
+            self.target = target
+            self.daemon = daemon
+
+        def start(self):
+            started.append(self)
+
+    monkeypatch.setattr(simple_app.threading, "Thread", FakeThread)
+    app = simple_app.WordTemplateFiller.__new__(simple_app.WordTemplateFiller)
+    app.update_checking = False
+    app.status = type("Status", (), {"config": lambda self, **kwargs: None})()
+    app.check_for_updates(manual=False)
+    assert not app.update_checking
+    assert not started
+
+    app.check_for_updates(manual=True)
+    assert app.update_checking
+    assert len(started) == 1
+
+
+def test_update_settings_keep_the_saved_token_when_recording_a_check(tmp_path):
+    path = tmp_path / "update-settings.json"
+    self_update.save_token("private-token", path)
+    self_update.record_successful_update_check(path, now=1_800_000_000.0)
+
+    settings = json.loads(path.read_text(encoding="utf-8"))
+    assert settings["github_token"] == "private-token"
+    assert settings["last_successful_check"] == 1_800_000_000.0
+    assert self_update.load_token(path) == "private-token"

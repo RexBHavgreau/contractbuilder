@@ -41,6 +41,7 @@ trace.
 | `simple_app.py` | The packaged app: choose a template, fill in its fields, create the document. Publisher profiles, update checks and installs. |
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
+| `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
@@ -62,8 +63,10 @@ trace.
 - To see the window on a headless Linux box: install `python3-tk`, run under
   `xvfb-run`, drive it from a script, screenshot with ImageMagick `import`.
   Stub `messagebox`/`filedialog` so nothing blocks.
-- Releases: raise `APP_VERSION` in `version.py` and merge to `main`. CI then
-  tags `vX.Y.Z` and publishes the release with
+- Releases: raise `APP_VERSION` in `version.py`, add a matching,
+  non-empty section to `CHANGES.txt`, and merge to `main`. CI checks that
+  the current version has notes, extracts that section for the GitHub release
+  body, tags `vX.Y.Z`, and publishes the release with
   `Word-Template-Filler-windows-x64.exe` attached. The updater looks for
   exactly that file name; do not rename it.
 - `build-windows.bat` must keep CRLF line endings. The Windows CI job
@@ -235,9 +238,30 @@ Newest last. Each entry: date, decision, why, consequences.
 
 - **2026-11-18 — Sample generator output paths are explicit and safe.** Running `python tests/sample.py` writes `Sample Services Agreement.docx` in the current working directory; an optional positional path selects another destination. This avoids recreating the deleted `examples/` directory and makes the script safe to run from any folder.
 
+- **2026-11-18 — Automatic update checks are limited to once per day per user.**
+  The app records the time of the last successful check in the existing
+  per-user update settings file, without replacing the optional token.
+  Successful manual checks count too; a manual check always bypasses the
+  throttle. Failed checks do not postpone the next automatic attempt.
+
+- **2026-11-18 — Release notes are owned by the project, not generated from PR titles.**
+  `CHANGES.txt` uses one `## X.Y.Z` section per release, newest first.
+  CI verifies the running `APP_VERSION` has a non-empty section and extracts
+  only that section for the GitHub release body. The updater displays up to
+  15 lines of that body.
+
+- **2026-11-18 — Pin markdown-it-py 3.0.0 and mdurl 0.1.2.**
+  The project still supports Python 3.9; markdown-it-py 4.x requires Python
+  3.10 or later, while 3.0.0 supports Python 3.8 and later. The parser uses
+  the CommonMark preset, explicitly enables tables, and disables raw HTML.
+  Keep this import out of `simple_app.py` until a component-builder task
+  needs it.
+
 ## Progress log
 
 Newest last.
+
+- **2026-11-18** T-012, T-017 and T-019-B (ChatGPT, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)): rate-limited update responses now have a clear message; automatic checks run no more than once a day, while manual checks remain available; versioned plain-English notes are published and shown in the update prompt; and the table-enabled, raw-HTML-disabled Markdown parser is installed and tested. GitHub Actions run 87 passed all 103 tests and built Windows x64, macOS Intel and macOS Apple Silicon.
 
 - **2026-10-05** Build 1: TMAI Contract Builder — template engine, form,
   previews, highlights, saved answers, spreadsheet batches, template maker.

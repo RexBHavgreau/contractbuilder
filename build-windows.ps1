@@ -233,8 +233,8 @@ listed by:  py -0p
     & $PythonExe --version 2>&1 | ForEach-Object { Write-Log "$_" }
 
     Write-Log "Installing or updating build dependencies..."
-    & $PythonExe -m pip install --upgrade pyinstaller lxml 2>&1 | ForEach-Object { Write-Log "$_" }
-    if ($LASTEXITCODE -ne 0) { throw "Could not install PyInstaller and lxml." }
+    & $PythonExe -m pip install --upgrade pyinstaller lxml markdown-it-py==3.0.0 mdurl==0.1.2 2>&1 | ForEach-Object { Write-Log "$_" }
+    if ($LASTEXITCODE -ne 0) { throw "Could not install PyInstaller and the application dependencies." }
 
     Write-Log "Building $AppName..."
     $BuildArgs = @(

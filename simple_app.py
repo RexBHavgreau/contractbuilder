@@ -796,6 +796,10 @@ class WordTemplateFiller:
         )
 
     def check_for_updates(self, manual: bool):
+        # Manual checks always run. Automatic checks are limited to once per day.
+        if not manual and not self_update.automatic_update_check_due():
+            return
+
         if self.update_checking:
             if manual:
                 messagebox.showinfo(
@@ -812,6 +816,11 @@ class WordTemplateFiller:
         def worker():
             try:
                 result = check_for_update(APP_VERSION, GITHUB_REPOSITORY, token=self_update.load_token())
+                try:
+                    self_update.record_successful_update_check()
+                except OSError:
+                    # A settings-file problem must not turn a successful check into a failure.
+                    pass
                 self.root.after(0, self._finish_update_check, result, None, manual)
             except UpdateCheckError as exc:
                 self.root.after(0, self._finish_update_check, None, exc, manual)
@@ -845,6 +854,13 @@ class WordTemplateFiller:
             f"Installed version: {APP_VERSION}\n"
             f"Latest version: {result.latest_version}\n\n"
         )
+        notes = result.notes.strip()
+        if notes:
+            note_lines = notes.splitlines()
+            notes_preview = "\n".join(note_lines[:15])
+            if len(note_lines) > 15:
+                notes_preview += "\n…"
+            heading += "What's new:\n" + notes_preview + "\n\n"
         asset = result.asset(self_update.WINDOWS_ASSET)
         if self_update.can_install_in_place() and asset:
             if messagebox.askyesno(
