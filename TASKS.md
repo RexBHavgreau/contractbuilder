@@ -61,7 +61,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | open | careful | — |
-| [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | open | any | — |
+| [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | open | any | — |
@@ -1156,7 +1156,7 @@ checker.
 
 ### T-027 Keep the Windows executable within 30 MB in CI
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -1164,11 +1164,11 @@ checker.
 The proposal's 30 MB target is checked by hand today. v0.3.0 is 17,795,673
 bytes.
 
-- [ ] A CI step after the Windows build that fails if the executable is over
+- [x] A CI step after the Windows build that fails if the executable is over
       31,457,280 bytes and prints the size and the margin otherwise
-- [ ] The step reads the size from the built file, not from wheels
-- [ ] Put the measured size in the CI log (and, for releases, the release
-      notes if T-017 allows)
+- [x] The step reads the size from the built file, not from wheels
+- [x] Put the measured size in the CI log. Release-note inclusion is deferred
+      until T-017 provides the project-owned release-notes mechanism.
 
 **Done when:** a deliberately tiny limit fails CI and the real limit passes.
 

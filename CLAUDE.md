@@ -49,6 +49,7 @@ trace.
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
 | `build-mac.command` | Local macOS build. |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases. |
+| `scripts/check_executable_size.py` | Measures the built Windows executable and enforces the 30 MiB release limit. |
 | `tests/` | `python -m pytest tests` |
 | `USER-GUIDE.txt` | Shown from Help and bundled into the app. |
 | `BUILD-NOTES.txt` | How to build and release, for whoever maintains it. |
@@ -119,6 +120,9 @@ trace.
   and `cmd /c` needs `/s` and an outer pair of quotes for paths with spaces.
 
 ## Decision log
+
+- **2026-11-18 — Enforce the Windows executable size budget against the built file.** CI runs `scripts/check_executable_size.py` on the packaged release executable and fails above 31,457,280 bytes (30 MiB). The script accepts a smaller `--max-bytes` value so tests can prove the failure path without constructing a large executable.
+
 
 Newest last. Each entry: date, decision, why, consequences.
 
@@ -289,3 +293,5 @@ Newest last.
 
 
 - **2026-11-18** T-014 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): corrected the sample generator's description and output path, added an optional command-line destination, ignored generated sample files and the old `examples/` directory, and added CLI regression tests for both output modes. The full Python test job passed in CI.
+
+- **2026-11-18** T-027 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added a tested executable-size checker and a Windows CI step that measures the packaged `.exe`, logs its size and remaining headroom, and fails above 30 MiB. Tests verify the normal limit, an intentionally tiny failing limit, and the exact boundary.

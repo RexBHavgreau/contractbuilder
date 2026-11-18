@@ -150,6 +150,12 @@ jobs:
           }
           Get-FileHash -Algorithm SHA256 -LiteralPath $releaseAsset
 
+      - name: Check Windows executable size
+        shell: pwsh
+        run: |
+          python scripts/check_executable_size.py dist/Word-Template-Filler-windows-x64.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload Windows executable
         uses: actions/upload-artifact@v7
         with:
