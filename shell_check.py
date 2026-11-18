@@ -55,7 +55,10 @@ def _tag(local_name: str) -> str:
 
 def _parse_member(package: zipfile.ZipFile, name: str):
     try:
-        return etree.fromstring(package.read(name))
+        parser = etree.XMLParser(
+            resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False
+        )
+        return etree.fromstring(package.read(name), parser)
     except (KeyError, etree.XMLSyntaxError, ValueError) as exc:
         raise ValueError("The Word file is missing or has an unreadable %s part." % name) from exc
 
