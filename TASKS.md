@@ -614,7 +614,7 @@ in the right order, fields intact, and every unsupported structure reported.
 
 #### T-020-A Read the package and the body in order
 
-- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -717,7 +717,7 @@ warning, and the warning text is plain English.
 
 #### T-020-G Markdown file import and export
 
-- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
+- **Status:** claimed (ChatGPT, 2026-11-18)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-B
