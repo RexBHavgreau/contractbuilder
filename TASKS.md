@@ -23,6 +23,12 @@ the Progress log in CLAUDE.md, and add a Decision log entry for any choice
 you made that someone would otherwise have to rediscover. Leave done tasks
 here for a month after they are done, then delete them.
 
+**Subtasks:** a large task is an umbrella with subtasks named
+`T-022-A`, `T-022-B` and so on (letters; if one itself needs splitting, use
+`T-022-A-1`). Take, claim and finish subtasks one at a time, and tick them
+in the umbrella's board row. The umbrella is done when all its subtasks are.
+A subtask's `Needs` may name subtasks of other tasks.
+
 **To add a task:** give it the next number and every field below. Write the
 acceptance check so someone else can tell, without asking, whether it is
 done. Add it to the board.
@@ -30,7 +36,8 @@ done. Add it to the board.
 Fields:
 
 - **Status:** `open`, `claimed (who, date)`, `blocked (why)`, `done (date, PR)`
-- **Size:** S (under an hour), M (a few hours), L (a day or more; split it)
+- **Size:** S (under an hour), M (a few hours), L (a day or more; split it),
+  or `umbrella` (a task made of subtasks, below)
 - **Agent:** `any` (well-specified; a cheap agent will do), `careful` (needs
   judgement, a strong model, or Windows/macOS hardware), `human` (only a
   person can do it)
@@ -39,7 +46,7 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-18, revised for the component-builder proposal. Next free number: **T-021**.
+Reviewed 2026-11-18, revised for the component-builder proposal. Next free number: **T-032**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -51,15 +58,50 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
-| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition | open | careful | T-008 |
-| [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown | open | careful | T-019 |
+| [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Decide clause numbering and legal formatting scope | open | human | Beaux |
+| [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | open | careful | — |
+| [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | open | any | — |
+| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
+| ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
+| ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | open | any | — |
+| ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | open | careful | A, B, T-026 |
+| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists with native numbering | open | careful | C, T-025, T-026 |
+| ↳ [T-019-E](#t-019-e-render-tables) | Tables | open | careful | C, T-026 |
+| ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | open | careful | C, D, E |
+| ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | open | any | F |
+| ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | open | careful | B, T-027 |
+| [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | open | any | T-019-B |
+| [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
+| ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | open | any | — |
+| ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
+| ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B, T-025 |
+| ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
+| ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | open | careful | A |
+| ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
+| ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | open | any | T-019-B |
+| [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
+| ↳ T-021-A to T-021-E | Schema version and backup; components and versions; assemblies; archive; storage module | open | careful | in order |
+| [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
+| ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
+| [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
+| ↳ T-023-A to T-023-E | Browser; choose shell; order components; review; fill and generate | open | careful | see task |
+| [T-024](#t-024-saved-assembly-revisions-and-deliberate-updates) | Saved revisions and deliberate updates (umbrella) | open | careful | T-021-E, T-023-C |
+| ↳ T-024-A to T-024-D | Save and reopen; list newer; review and choose; reproducibility tests | open | careful | see task |
+| [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | T-021-E, T-020-G |
+| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open | human | T-019-F |
+| [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | T-019-F, T-020-B |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
 
 Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
 touches the same lines as another except T-010 and T-012, which both edit
 `update_checker.py`: do them one after the other), then T-015, then the rest
 of T-002. T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
-agreed component-builder direction. Begin that work with T-019, then T-020.
+agreed component-builder direction. Component builder order: first the three
+things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
+T-027 (size check), with Beaux deciding T-025 in parallel; then T-019-B to
+T-019-H, with T-020 (importer) starting once T-019-A and T-019-B are done;
+T-021 (storage) can run alongside either; T-028 after T-019-B; then T-022,
+T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
 T-017 any time. T-018 needs nothing from an agent until GitHub Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
@@ -356,89 +398,796 @@ Decisions:
 implementation task is defined. T-019 covers the first technical proof:
 converting ordered Markdown content into a formatted Word document shell.
 
-## T-019 Prototype Markdown-to-Word composition
+## Component builder (T-019 to T-031)
+
+Direction: [PROPOSAL-001.md](PROPOSAL-001.md), which is unchanged. These
+tasks implement it, with the gaps found in review closed by the extra tasks
+(T-025 to T-031) and by choices recorded inside the tasks below. Every task
+in this section uses **invented test content only**, adds tests, keeps the
+existing template workflow's tests green, and leaves `core.py`'s template
+behaviour unchanged unless a subtask says otherwise and proves no regression.
+
+Where a task here differs from or narrows the proposal, it says so:
+
+- **Database:** add tables to the existing `publisher_profiles.sqlite3`; do
+  not rename it (T-021). The proposal allowed either; renaming gains users
+  nothing and risks their profiles.
+- **Hyperlinks** are a separate, optional task (T-031), not part of T-019.
+- **Library backup and Markdown export** move earlier (T-029).
+- **The size limit** becomes a CI check (T-027).
+- **Clause numbering and legal formatting** are decided first (T-025).
+
+### T-019 Prototype Markdown-to-Word composition
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-019-A to T-019-H
+- **Agent:** careful
+- **Needs:** T-008 (done)
+
+See PROPOSAL-001.md sections 4, 7, 8, 10 and 11. Python-native only: no
+Pandoc, no python-docx. All code goes in new modules; `core.py` is read, not
+changed (T-019-A may propose a small, tested addition if hand-off needs it).
+
+**Done when:** tests generate a valid DOCX from several ordered Markdown
+components and a shell, with native tables, the shell's formatting intact,
+and placeholders in paragraphs and table cells filled by the existing core
+engine; and the Windows executable is still within 30 MB.
+
+#### T-019-A Spike: protect fields from Markdown, and hand off to core
 
 - **Status:** open
 - **Size:** M
 - **Agent:** careful
-- **Needs:** T-008
+- **Needs:** —
 
-See [PROPOSAL-001.md](PROPOSAL-001.md), sections 4, 7, 8, 10 and 11.
-This is the first technical proof for the component builder. Use the
-Python-native approach; do not add Pandoc or python-docx.
+The two biggest unknowns, settled before anything is built on them. Write
+the findings as a short section in this file's notes for T-019 (or a
+`docs/` note) and tick the boxes.
 
-Scope:
+- [ ] Show how `{{...}}` text behaves in markdown-it-py (tables enabled):
+      underscores and asterisks inside names (`{{First_Name}}`), the pipe in
+      `{{Fee | money-words}}` inside a table cell (the parser reads `|` as a
+      column break), `{{#if X}}` and `{{/if}}` alone on a line, inside a list
+      item, inside a table cell, and spanning two components
+- [ ] Choose and prove a protection method (for example: swap every
+      `{{...}}` span for a placeholder token before parsing, and restore it
+      as literal text in one run afterwards). It must handle every case above
+- [ ] Prove the hand-off: take a hand-built generated document, open it with
+      `core.Template` and `core.render`, and fill a field in a paragraph, a
+      list item and a table cell. Note what `core.read_parts` needs (path on
+      disk or in-memory) and whether each field ends up in one clean run
+- [ ] Record whether any `core.py` change is needed. If so, make it a
+      separate, tiny, tested change with the whole existing suite green
 
-- [ ] Add an isolated Markdown-to-Word composition module using
-      markdown-it-py (with its table rule explicitly enabled) and the
-      existing lxml/zipfile infrastructure.
-- [ ] Accept a Word shell and an ordered sequence of Markdown component
-      contents. Generate a new .docx; never modify the shell.
-- [ ] Support and test paragraphs, headings 1–3, bold, italic, hyperlinks,
-      ordered and unordered lists, and GFM-style tables.
-- [ ] Generate native Word tables, paragraphs, runs, and numbering. Do not
-      flatten tables into text or render document content as images.
-- [ ] Map Markdown headings and paragraphs to styles supplied by the shell;
-      use its document-level styles, page setup, headers, footers, and
-      section properties rather than hard-coding the document's typography.
-- [ ] Preserve the order of paragraphs, tables, and components.
-- [ ] Preserve {{Field}} and {{#if}} syntax so fields in paragraphs and table
-      cells remain discoverable and fillable by the existing core.Template
-      and core.render pipeline.
-- [ ] Add synthetic tests for the DOCX package, table structure, shell
-      properties, component order, and end-to-end field filling.
-- [ ] Measure the actual PyInstaller release-size change. Keep the Windows
-      release executable at or below 30 MB; do not infer the change from
-      dependency wheel sizes.
+**Done when:** each case above has a passing throwaway test and a written
+answer; T-019-C to T-019-G build on that method.
 
-Out of scope: DOCX import, SQLite schema, component editor UI, component
-library, component version management, saved assemblies, and changes to the
-existing template-based workflow.
+#### T-019-B Add the dependency and the configured parser
 
-**Done when:** tests generate a valid DOCX from multiple ordered Markdown
-components and a Word shell, including native tables, verify the shell's
-formatting metadata survives, and successfully fill placeholders in both
-paragraphs and table cells using the existing core engine. The packaged
-application remains within the 30 MB target.
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
 
-## T-020 Import Word content as Markdown
+- [ ] Add `markdown-it-py` (pin an exact version, plus `mdurl`) to the
+      project's requirements and to the PyInstaller build and CI install
+      steps (`build.yml`, `build-windows.ps1`, `build-mac.command`)
+- [ ] New module (for example `md_parse.py`) returning a parser with the
+      table rule explicitly enabled
+- [ ] Test that tables really are on (a pipe table yields table tokens) and
+      that raw HTML is not rendered (disable it: contract text is not HTML)
+- [ ] Keep `import` of the new module out of `simple_app.py` until a task
+      needs it
+
+**Done when:** tests pass, and the Windows and macOS CI builds still build.
+
+#### T-019-C Render paragraphs, headings and inline emphasis
 
 - **Status:** open
 - **Size:** M
 - **Agent:** careful
-- **Needs:** T-019
+- **Needs:** T-019-A, T-019-B, T-026 (shell style names)
 
-See [PROPOSAL-001.md](PROPOSAL-001.md), section 6. This task builds the
-conversion layer that lets users create reusable components from existing
-Word documents without knowing Markdown.
+- [ ] New module (for example `md_to_word.py`) turning tokens into
+      WordprocessingML paragraphs and runs with lxml
+- [ ] Paragraphs, line breaks, headings 1 to 3 (shell styles from T-026),
+      bold, italic and both together
+- [ ] Field text preserved as in T-019-A, including when it sits inside bold
+      or italic
+- [ ] Never emit raw HTML, images, or anything outside the supported subset;
+      an unsupported construct produces a clear warning in the return value,
+      not a silent drop
 
-Scope:
+**Done when:** tests check the XML of each construct and that styles come
+from the shell, not hard-coded fonts.
 
-- [ ] Add an isolated DOCX-to-Markdown importer using zipfile and lxml; do
-      not add python-docx or Pandoc.
-- [ ] Read paragraphs and tables in their original document order.
-- [ ] Convert ordinary paragraphs, heading styles, bold, italic, hyperlinks,
-      numbered/bulleted lists, and rectangular tables into the supported
-      Markdown subset.
-- [ ] Preserve literal {{Field}} and {{#if}} syntax.
-- [ ] Return import warnings for unsupported or lossy structures, including
-      merged cells, nested tables, images, floating objects, equations,
-      footnotes/endnotes, comments, tracked changes, and unusual Word fields.
-      Do not silently discard content.
-- [ ] Treat import as content conversion, not transfer of page layout,
-      headers, footers, or document-wide typography; the selected Word shell
-      owns those in the generated contract.
-- [ ] Add invented DOCX fixtures with mixed paragraphs and tables, and test
-      ordering, formatting conversion, list numbering, field preservation,
-      and warnings.
-- [ ] Leave the source DOCX unchanged.
+#### T-019-D Render lists with native Word numbering
 
-Out of scope: import dialog and component-editor UI; those belong to the
-later editor task.
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-019-C, T-025 (numbering decision), T-026
 
-**Done when:** a DOCX containing supported mixed content converts to
-reviewable Markdown in the correct order, field syntax remains intact, and
-unsupported content is explicitly reported rather than silently lost.
+- [ ] Bulleted and numbered lists, including nested lists, as real Word
+      numbering (`w:numPr`), never typed numbers
+- [ ] Use the shell's numbering definitions (T-026); add new `w:num`
+      instances so each numbered list restarts correctly
+- [ ] Implement whatever scheme T-025 chose for clause numbering
+- [ ] Tests: two separate numbered lists both start at 1; nesting; a field
+      in a list item
+
+**Done when:** tests inspect `numbering.xml` and the paragraph properties,
+and the numbering restarts as expected.
+
+#### T-019-E Render tables
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-019-C, T-026
+
+- [ ] GFM tables as native `w:tbl` with header row marked, column count
+      consistent, and the shell's table style
+- [ ] Inline emphasis and fields inside cells; the pipe case from T-019-A
+- [ ] Column alignment from the Markdown (`:---`, `:---:`, `---:`) where the
+      shell allows
+- [ ] Empty cells are valid (a cell needs a paragraph)
+
+**Done when:** tests check structure and that a `{{Fee | money-words}}`
+inside a cell survives and is fillable.
+
+#### T-019-F Compose the document from a shell
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-019-C, T-019-D, T-019-E
+
+- [ ] Function taking a shell path, an ordered list of Markdown strings and
+      an output path; writes a new `.docx`
+- [ ] Keep the shell's styles, headers, footers, page size, margins, section
+      properties and relationships; replace only the body content, keeping
+      the final `w:sectPr`
+- [ ] Order of components and of paragraphs and tables inside them preserved
+- [ ] The shell file is never opened for writing (test: byte-for-byte equal
+      before and after)
+- [ ] The output has a correct content-types part and relationships, so
+      Word opens it (see T-030 for a real-Word check)
+
+**Done when:** tests generate a document from three components and the
+shell's formatting metadata is verified in the output.
+
+#### T-019-G End-to-end through the field engine
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-019-F
+
+- [ ] Test: compose, then `core.Template` finds the fields once each even if
+      repeated across components, and `core.render` fills them in paragraphs,
+      list items and table cells
+- [ ] Test: `{{#if X}}` blocks across components and inside cells, true and
+      false
+- [ ] Test: formats (`money-words`, `date-formal`) work in the output
+
+**Done when:** the end-to-end tests pass with the same invented values the
+template workflow's tests use.
+
+#### T-019-H Measure the release size
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-019-B, T-027
+
+- [ ] Build the Windows executable with and without the new module (CI or
+      locally) and record both sizes in the Decision log
+- [ ] Stay at or below 30 MB (31,457,280 bytes); if the margin is under
+      3 MB, say so and name the next likely cost
+
+**Done when:** the measured numbers are in CLAUDE.md and T-027's check is
+green.
+
+### T-020 Import Word content as Markdown
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-020-A to T-020-G
+- **Agent:** careful
+- **Needs:** T-019-A (the field-protection method), T-019-B
+
+See PROPOSAL-001.md section 6. A new, isolated `docx_import.py` using
+zipfile and lxml. Import is content conversion, never layout; the source
+file is never changed.
+
+**Done when:** a DOCX of supported mixed content becomes reviewable Markdown
+in the right order, fields intact, and every unsupported structure reported.
+
+#### T-020-A Read the package and the body in order
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+
+- [ ] Open the `.docx` read-only; walk `w:body` children in document order,
+      yielding paragraphs and tables as they come (never paragraphs then
+      tables)
+- [ ] A result object holding Markdown text and a list of warnings (each
+      with a plain-English message and where it was found)
+- [ ] A file that is not a valid `.docx` gives a plain-English error, not a
+      stack trace
+
+**Done when:** tests on an invented fixture show body order is kept.
+
+#### T-020-B Paragraphs, headings and inline formatting
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-020-A
+
+- [ ] Heading styles to `#`..`###` (map by style id/name and outline level;
+      deeper headings are reported, not dropped)
+- [ ] Bold and italic across split runs (Word splits runs freely; merge
+      neighbours with the same formatting)
+- [ ] Escape Markdown characters in ordinary text so the round trip does not
+      turn a literal `*` or `_` into emphasis
+- [ ] `{{Field}}` and `{{#if}}` text kept literal, even when it is split
+      across runs (reuse `core`'s run-spanning logic where possible)
+- [ ] Underline, strikethrough, highlight, font and colour changes are
+      reported as dropped formatting (unless T-025 adds support)
+
+**Done when:** tests cover split runs and a field split across three runs.
+
+#### T-020-C Lists
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-020-B, T-025
+
+- [ ] Read `numbering.xml` to tell bulleted from numbered and find the
+      nesting level
+- [ ] Convert ordinary lists; apply T-025's decision for legal-style
+      multi-level numbering
+- [ ] Typed numbers that are not Word numbering (such as "1." typed by hand)
+      are kept as text and flagged as possible list items
+
+**Done when:** tests cover bullets, numbers, nesting and typed numbers.
+
+#### T-020-D Tables
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-020-B
+
+- [ ] Rectangular tables to GFM tables; first row as header
+- [ ] Merged cells (horizontal or vertical), nested tables, and cells with
+      more than one paragraph or a list are reported, with the best-effort
+      text still included where it is safe
+- [ ] A literal `|` in cell text is escaped
+
+**Done when:** tests cover a plain table, a merged-cell table, a cell with
+two paragraphs, and a mixed paragraph-table-paragraph body.
+
+#### T-020-E Warnings for everything else
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-020-A
+
+- [ ] Report images, drawings and floating shapes, equations, footnotes and
+      endnotes, comments, tracked changes, content controls, section and
+      page breaks, headers and footers (not imported, by design), and
+      unusual Word fields
+- [ ] Tracked changes: report them and import the accepted text (final
+      view), saying so
+- [ ] Never drop text silently: every dropped run is accounted for in a
+      warning
+
+**Done when:** one invented fixture per structure yields the expected
+warning, and the warning text is plain English.
+
+#### T-020-F Round trip: DOCX, Markdown, DOCX
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-020-C, T-020-D, T-019-F
+
+- [ ] Test: import an invented DOCX, compose it into a shell, and check the
+      text, order, tables and lists match the source
+- [ ] Test: a second import of the composed output gives the same Markdown
+      (stable round trip for the supported subset)
+
+**Done when:** both round-trip tests pass.
+
+#### T-020-G Markdown file import and export
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-019-B
+
+- [ ] Function pair to read a `.md` file (UTF-8, tolerate a BOM) and write
+      one; the exported text re-imports with identical supported content
+- [ ] Unsupported Markdown (raw HTML, images, footnotes) reported on import
+
+**Done when:** an export then import test passes unchanged.
+
+### T-021 Unified local database: components, versions, assemblies
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-021-A to T-021-E
+- **Agent:** careful
+- **Needs:** —
+
+See PROPOSAL-001.md section 9. **Choice made here:** extend the existing
+`publisher_profiles.sqlite3` with new tables; do not rename or move it. No
+user data migration is then needed. Add a schema version
+(`PRAGMA user_version`) so later changes are safe. Beaux to confirm when
+claiming the task.
+
+**Done when:** the new tables exist, are tested, and an existing user's
+publisher profiles are untouched.
+
+#### T-021-A Schema version and safe upgrade
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** —
+
+- [ ] Add `PRAGMA user_version`; a database with no version is version 1
+      (today's publisher schema)
+- [ ] Upgrade steps run in a transaction, after copying the file to
+      `publisher_profiles.sqlite3.bak-<version>` once; the backup is kept
+      until the upgrade has succeeded and been checked
+- [ ] Test: a database made by the current code upgrades and its publishers
+      are identical; a failed step leaves the original unchanged
+- [ ] Test: an older app opening an upgraded database does not damage it
+      (extra tables are ignored)
+
+#### T-021-B Components and immutable versions
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-021-A
+
+- [ ] Tables `components` (id, name, description, category, tags, status)
+      and `component_versions` (id, component_id, number, markdown, created,
+      note)
+- [ ] Saving an edit always creates a new version; a version's Markdown is
+      never updated (enforce with a trigger and test it)
+- [ ] Categories and tags are free text; suggested categories are only
+      suggestions
+
+#### T-021-C Assemblies and revisions
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-021-B
+
+- [ ] Tables `assemblies`, `assembly_versions` (shell reference included)
+      and `assembly_components` (component_version id, position, included
+      flag)
+- [ ] A revision pins component version ids, never "latest"
+- [ ] Shell reference stores a path and a content hash, so a moved or
+      changed shell is noticed (see T-026)
+
+#### T-021-D Archive instead of delete
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-021-B, T-021-C
+
+- [ ] Components and assemblies can be archived and restored; they are never
+      hard-deleted while any assembly revision refers to them
+- [ ] Test: an assembly pinned to an archived component's version still
+      generates the same Markdown
+
+#### T-021-E Storage module and tests
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-021-B, T-021-C, T-021-D
+
+- [ ] A plain module (for example `library.py`) with the functions the UI
+      will call: create/list/search components, save a version, create an
+      assembly, save a revision, list newer versions available for a pinned
+      revision. No Tkinter in it
+- [ ] Tests use a temporary database and invented data
+
+### T-022 In-app component editor
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-022-A to T-022-G
+- **Agent:** careful
+- **Needs:** T-021-E, T-019-A
+
+See PROPOSAL-001.md section 5. This was the largest, riskiest item, so it is
+now small steps. **Choice made here:** the first working editor is plain
+text plus a rendered preview, and the toolbar and table editor follow. A
+Tkinter Text widget cannot be a faithful Word view; the preview shows
+structure only, and the guide says so.
+
+**Done when:** a user who does not know Markdown can create, import, edit and
+save a component, with tables and fields, and see how it will look.
+
+#### T-022-A Editor window shell and save
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-021-E
+
+- [ ] A "Components" window, reached from the main window, separate from the
+      template workflow; name, category and tags fields; Save makes a new
+      version with an optional note
+- [ ] Unsaved-changes prompt in plain English
+- [ ] The existing template workflow's screen and menus are unchanged
+
+#### T-022-B Preview
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-A, T-019-C
+
+- [ ] A read-only preview pane using Text widget tags: headings, bold,
+      italic, lists, tables as aligned text, fields highlighted
+- [ ] Updates as the user stops typing (debounced), never blocks typing
+- [ ] A line under it: "Word decides the final page layout"
+
+#### T-022-C Formatting toolbar
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-B
+
+- [ ] Buttons for heading, bold, italic, bulleted list, numbered list; they
+      wrap or prefix the selection and write Markdown the user need not see
+- [ ] Keyboard shortcuts for bold and italic
+- [ ] Works when the editing area shows the formatted preview and when it
+      shows source (T-022-F)
+
+#### T-022-D Table editor
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-B
+
+- [ ] A dialog with a grid: add or remove rows and columns, type cell text,
+      mark the header row; produces the Markdown table without the user
+      typing pipes
+- [ ] Opening an existing table in the editor (round trip)
+- [ ] A literal pipe or a field with a pipe in a cell is handled as in
+      T-019-A
+
+#### T-022-E Insert a field
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-022-A
+
+- [ ] A button listing field names already used in the library and
+      publisher-profile fields, and the formats, inserting `{{Name}}` or
+      `{{Name | format}}`
+- [ ] Uses `core`'s own field parser to read and check names; do not write a
+      second parser. A malformed `{{` is flagged in plain English
+
+#### T-022-F Source view toggle
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-022-A
+
+- [ ] An "Advanced: show raw text" switch that shows the Markdown, kept off
+      by default and described plainly
+
+#### T-022-G Import review dialog
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-B, T-020-F
+
+- [ ] "Import from a Word file": choose a `.docx`, see the converted result
+      in the preview with the warnings listed above it in plain English
+- [ ] The user can fix text, then save as a component, or cancel; nothing is
+      saved before they agree
+- [ ] The source file is not modified
+
+### T-023 Component library and assembly builder
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-023-A to T-023-E
+- **Agent:** careful
+- **Needs:** T-021-E, T-026
+
+See PROPOSAL-001.md section 3B.
+
+**Done when:** a user can choose a shell, add, order, include or omit
+components, review the result, fill the fields once, and create the
+document.
+
+#### T-023-A Library browser
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-021-E
+
+- [ ] List by category and tag, with search by name and wording; archived
+      components hidden unless asked for
+- [ ] Open a component in the editor (T-022-A); see its version history
+
+#### T-023-B Choose a shell
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-026
+
+- [ ] Pick a shell file; validate it with T-026's checker and show its
+      plain-English findings; remember the last shell used
+
+#### T-023-C Build and order an assembly
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-023-A
+
+- [ ] Add components, move up and down, remove, and tick "include" to omit
+      an optional component without removing it
+- [ ] A component can be added more than once only if the user chooses
+
+#### T-023-D Review the assembled document
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-023-C, T-022-B
+
+- [ ] One preview of everything in order, fields highlighted
+
+#### T-023-E Fill and generate
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-023-D, T-019-G
+
+- [ ] Compose to a temporary `.docx`, then show the existing form (same code
+      path as the template workflow) with one input per field across all
+      components
+- [ ] Publisher profile loading as today; values shown for review before
+      creating the document
+- [ ] Output named and saved as the template workflow does
+- [ ] No change to the template workflow's behaviour; its tests stay green
+
+### T-024 Saved assembly revisions and deliberate updates
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-024-A to T-024-D
+- **Agent:** careful
+- **Needs:** T-021-E, T-023-C
+
+See PROPOSAL-001.md section 9.
+
+**Done when:** a saved assembly reopens with the same versions, and newer
+component versions are used only after the user reviews and chooses them.
+
+#### T-024-A Save and reopen
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-023-C
+
+- [ ] Save an assembly (name, shell, components, order, included flags) as
+      revision 1; reopen it and produce identical Markdown
+
+#### T-024-B List newer versions
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-024-A
+
+- [ ] On opening, show (not apply) which pinned components have newer
+      versions; nothing changes without a click
+
+#### T-024-C Review and choose updates
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-024-B
+
+- [ ] A dialog showing, per component, old and new wording with changes
+      marked (a simple line difference is enough)
+- [ ] The user ticks which to update; saves a new revision; the previous
+      revision remains and can be opened
+
+#### T-024-D Reproducibility tests
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-024-C
+
+- [ ] Revise a component twice; the saved revision still generates the old
+      wording; an updated revision generates the new
+
+### T-025 Decide clause numbering and legal formatting scope
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+Markdown has paragraphs, headings and simple lists. Real contracts also use
+"1.", "1.1", "(a)", "(i)", underlining, tab-aligned signature blocks and page
+breaks. The proposal does not say how these work, and T-019-D, T-020-C and
+T-022 cannot be finished without an answer. Beaux decides; record it in
+CLAUDE.md's Decision log.
+
+- [ ] How are numbered clauses and sub-clauses produced? Options: (1)
+      ordinary Word lists with the shell's multi-level definition (clean,
+      limited); (2) an extension to the supported subset, such as an
+      indent-based convention mapped to a shell numbering style; (3)
+      leave heavy numbering to Word templates and say so in the guide
+- [ ] Which extra formatting is in scope for components: underline, page
+      break, small tab-aligned lines (signature blocks), definitions
+      ("**Term**: ...")? List each as in or out
+- [ ] If anything is in, how it appears in the editor (T-022) and what the
+      importer does with it (T-020), so the round trip stays stable
+- [ ] Update T-019-D, T-020-C and T-022-C to match the decision
+
+**Done when:** the decision is in CLAUDE.md and the tasks above say what to
+build.
+
+### T-026 Define the Word shell contract and ship a sample shell
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+
+The proposal says a shell supplies styles, numbering and table formatting,
+but not what must be in one, nor what happens when something is missing.
+Without a clear contract and a sample, the feature cannot be used on day one.
+
+- [ ] Write the contract in USER-GUIDE.txt's style (plain English) and in a
+      short developer note: required style names or ids for Normal, Heading
+      1 to 3, the table style, list styles and numbering definitions, and
+      the final section properties
+- [ ] A checker module (for example `shell_check.py`) that reads a shell
+      read-only and returns findings in plain English ("This shell has no
+      style called Heading 2, so headings will use Normal"), with
+      severities: stops generation, or only warns
+- [ ] Decide fallbacks: missing styles get a warning and the nearest
+      available one, never silent defaults
+- [ ] An **invented** sample shell built in a test fixture (code, not a
+      committed file, unless Beaux approves one: no sample templates are
+      kept in the repository); a way for users to create a starting shell
+      from the app (for example a "Make a blank shell" button that writes
+      one) is a follow-up if wanted
+- [ ] Tests: a good shell passes; a shell missing each required part is
+      reported precisely; the checker never modifies its input
+
+**Done when:** T-019-C to T-019-F and T-023-B use the contract and the
+checker.
+
+### T-027 Keep the Windows executable within 30 MB in CI
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+
+The proposal's 30 MB target is checked by hand today. v0.3.0 is 17,795,673
+bytes.
+
+- [ ] A CI step after the Windows build that fails if the executable is over
+      31,457,280 bytes and prints the size and the margin otherwise
+- [ ] The step reads the size from the built file, not from wheels
+- [ ] Put the measured size in the CI log (and, for releases, the release
+      notes if T-017 allows)
+
+**Done when:** a deliberately tiny limit fails CI and the real limit passes.
+
+### T-028 Include third-party licence notices
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-019-B
+
+markdown-it-py and mdurl are MIT licensed; the notice must travel with the
+app.
+
+- [ ] A `THIRD-PARTY-LICENSES.txt` with each package's name, version,
+      copyright line and licence text (copy from the installed packages; do
+      not invent the text)
+- [ ] Bundle it with the app (the PyInstaller `--add-data`, like the guide)
+      and show it from Help
+- [ ] A test that fails when a runtime dependency has no entry
+
+**Done when:** the file is in the packaged app and the test passes.
+
+### T-029 Component library backup, and Markdown export and import
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-021-E, T-020-G
+
+Moved earlier than "Later" in the proposal: the library is the staff's
+accumulated work, kept on one PC. Losing it must not be possible by accident.
+
+- [ ] Export the whole library to one file (all components, versions,
+      assemblies, in a documented format) and import it back, merging or
+      replacing as the user chooses, with a plain-English summary first
+- [ ] Export one component or all as `.md` files, with metadata in a header
+      the importer understands
+- [ ] A reminder after some weeks without a backup (setting, off by
+      default is acceptable)
+- [ ] Never include publisher profiles unless the user ticks it
+
+**Done when:** a library exported, deleted and imported is identical.
+
+### T-030 Check generated documents in real Word
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** T-019-F
+
+Package-level tests cannot prove Word will open a file and show it
+correctly.
+
+- [ ] Beaux (or a colleague) opens documents generated from the test
+      fixtures in Word on Windows, and on macOS if possible: no repair
+      message, headings and tables right, numbering restarts, headers and
+      footers present
+- [ ] Record findings here; open a task for each fault, with the file
+- [ ] Repeat after T-019-D (lists) and T-031 (links)
+
+### T-031 Hyperlinks in components (optional)
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-019-F, T-020-B
+
+The proposal supports links "if they can be handled cleanly and safely". They
+need relationship entries in the shell's package and a safe-URL rule, so they
+are separate from T-019.
+
+- [ ] Allow only `http`, `https` and `mailto` targets; anything else is
+      shown as plain text with a warning
+- [ ] Render as Word hyperlinks with the right relationship ids, never
+      editing the shell file
+- [ ] Import links from Word (T-020-B) and show them in the editor and
+      preview (T-022)
+- [ ] Tests, including a link whose text contains a field
+
+**Done when:** a link survives import, storage and generation, and Word
+opens it.
 
 ## T-017 Show plain-English release notes in the update dialog
 
