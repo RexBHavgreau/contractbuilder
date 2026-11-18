@@ -108,11 +108,30 @@ def check_for_update(
             raise UpdateCheckError(
                 "GitHub has no published release for this app yet, or the repository has moved."
             ) from exc
-        if exc.code in (401, 403):
+        if exc.code in (403, 429):
+            headers = {
+                str(name).lower(): str(value).strip()
+                for name, value in (exc.headers or {}).items()
+            }
+            rate_limited = (
+                exc.code == 429
+                or headers.get("x-ratelimit-remaining") == "0"
+                or "retry-after" in headers
+            )
+            if rate_limited:
+                raise UpdateCheckError(
+                    "GitHub is limiting update checks from your network for now. "
+                    "The app will try again later."
+                ) from exc
+        if exc.code == 401:
             raise UpdateCheckError(
-                "GitHub denied the update check. Check the token in Help > Update "
-                "settings (it may have expired) and any GitHub API rate limit.",
-                needs_token=exc.code == 401,
+                "GitHub did not accept the update-check credentials. Remove or "
+                "replace the optional token in Help > Update settings."
+            , needs_token=True) from exc
+        if exc.code == 403:
+            raise UpdateCheckError(
+                "GitHub refused the update check. If you saved an optional token, "
+                "check it in Help > Update settings."
             ) from exc
         raise UpdateCheckError(f"GitHub returned HTTP {exc.code}.") from exc
     except (URLError, TimeoutError, OSError) as exc:
