@@ -18,13 +18,26 @@ class MarkdownImport:
 
 _FOOTNOTE_REFERENCE = re.compile(r"\[\^[^\]]+\]")
 _FOOTNOTE_DEFINITION = re.compile(r"^\s*\[\^[^\]]+\]:", re.MULTILINE)
+_HTML_TAG = re.compile(r"</?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*/?>")
+
+
+def _walk_tokens(tokens):
+    """Yield block and inline child tokens from markdown-it-py."""
+    for token in tokens:
+        yield token
+        if token.children:
+            yield from _walk_tokens(token.children)
 
 
 def inspect_markdown(text: str) -> MarkdownImport:
     """Return source unchanged and warn about constructs outside the component subset."""
-    tokens = create_parser().parse(text)
+    tokens = tuple(_walk_tokens(create_parser().parse(text)))
     warnings = []
-    if any(token.type in {"html_block", "html_inline"} for token in tokens):
+    # html=False intentionally prevents HTML from becoming renderable tokens;
+    # inspect the original source as well so disabling HTML does not hide it.
+    if _HTML_TAG.search(text) or any(
+        token.type in {"html_block", "html_inline"} for token in tokens
+    ):
         warnings.append("Raw HTML is not supported; it will be kept as source text.")
     if any(token.type == "image" for token in tokens):
         warnings.append("Images are not supported; image markup will be kept as source text.")
