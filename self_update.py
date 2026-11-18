@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -269,6 +270,8 @@ def automatic_update_check_due(path: Path | None = None, now: float | None = Non
         last_check = float(last_check)
         current_time = time.time() if now is None else float(now)
     except (TypeError, ValueError):
+        return True
+    if not math.isfinite(last_check) or not math.isfinite(current_time):
         return True
     return current_time - last_check >= AUTOMATIC_CHECK_INTERVAL_SECONDS
 
