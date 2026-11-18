@@ -215,3 +215,11 @@ Newest last.
   tests pass. Added `tests/test_no_private_details.py` and the CI secret it
   reads. Pushing it was refused to this session (it may push only its own
   branch), so it is prepared for Beaux as TASKS.md T-018.
+
+- **2026-11-18** Beaux pushed the cleaned history and sent GitHub Support the
+  purge request (T-018). Verified by Claude: every branch and tag on GitHub
+  matches the cleaned copy; a fresh clone has none of the removed details and
+  no personal email; the `BLOCKED_TERMS` secret reaches CI and the guard
+  passes (run 67); no forks. Still open: the old commits remain fetchable
+  through pull requests #1 to #9 until GitHub Support purges them.
+

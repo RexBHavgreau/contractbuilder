@@ -43,22 +43,25 @@ Reviewed 2026-11-18, revised after the history rewrite. Next free number: **T-01
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | **Push the cleaned history; finish the clean-up on GitHub** | open | human | Beaux |
-| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | T-018 |
-| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | T-018 |
-| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | T-018 |
-| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | T-018 |
+| [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
+| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | — |
+| [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | open | any | — |
+| [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
+| [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | open | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | What to do with `advanced_app.py` | open | human | Beaux |
-| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | T-018 |
+| [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | open | any | — |
 
-Suggested order: **T-018 first, and nothing else until it is done**: it
-force-pushes every branch, so work started on the old history would have to
-be redone. Then T-010, T-011, T-012, T-014 (any order; all small, and none
+Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
 touches the same lines as another except T-010 and T-012, which both edit
 `update_checker.py`: do them one after the other), then T-015, then the rest
-of T-002. T-008 waits for Beaux. T-017 any time after T-018.
+of T-002. T-008 waits for Beaux. T-017 any time. T-018 needs nothing from an
+agent until GitHub Support replies.
+
+**History was rewritten on 2026-11-18.** Work from a clone or download made
+after that date. A copy made earlier holds the old history; delete it rather
+than pushing from it.
 
 Done and kept for the record: T-001, T-003, T-004, T-005, T-006, T-007,
 T-009, T-013, T-016 (below the open tasks).
@@ -69,10 +72,11 @@ T-009, T-013, T-016 (below the open tasks).
 
 ## T-018 Push the cleaned history and finish the clean-up
 
-- **Status:** open (prepared by Claude, 2026-11-18)
+- **Status:** open, waiting only for GitHub Support (pushed by Beaux and
+  verified by Claude, 2026-11-18)
 - **Size:** S
 - **Agent:** human
-- **Needs:** Beaux. Do this before any other task.
+- **Needs:** GitHub Support's reply. Other tasks no longer wait for this one.
 
 Beaux decided on 2026-11-18 that details from real contracts must be removed
 permanently, even by rewriting history (T-016). Claude rewrote every branch
@@ -84,35 +88,53 @@ never commit it) were handed over in the chat, as a folder called
 
 Steps, in this order:
 
-- [ ] **GitHub email privacy first.** On github.com: your picture > Settings >
+- [x] **GitHub email privacy first.** On github.com: your picture > Settings >
       Emails. Tick "Keep my email addresses private" and "Block command line
       pushes that expose my email". Otherwise the next commit made on the
-      website records your personal address again.
-- [ ] **Allow the force-push.** Settings > Rules (or Branches): if a rule
+      website records your personal address again. (Verified 2026-11-18:
+      the merge of PR #10, made on the website, carries the noreply address.)
+- [x] **Allow the force-push.** Settings > Rules (or Branches): if a rule
       protects `main` against force pushes, turn that off for now, and back on
       afterwards.
-- [ ] **Push.** Install Git for Windows if needed (https://git-scm.com), then
+- [x] **Push.** Install Git for Windows if needed (https://git-scm.com), then
       double-click `push-cleaned-history.bat` in the handover folder. It shows
       what it will replace and asks before pushing. It refuses, changing
       nothing, if anything was pushed to GitHub after 2026-11-18 03:47 UTC.
-- [ ] **Turn on the guard.** Settings > Secrets and variables > Actions > New
+      (Verified 2026-11-18: all twelve branches and tags on GitHub matched the
+      cleaned copy exactly; a fresh clone holds 99 commits, none of the 51
+      removed details, and no personal email address.)
+- [x] **Turn on the guard.** Settings > Secrets and variables > Actions > New
       repository secret. Name: `BLOCKED_TERMS`. Value: the contents of
       `BLOCKED_TERMS.txt`. From then on CI fails if any of those terms is
       committed again (`tests/test_no_private_details.py`). Keep the file
-      somewhere private, such as your password manager.
-- [ ] **Ask GitHub Support to purge what a push cannot reach.** The nine
+      somewhere private, such as your password manager. (Verified: CI run 67
+      received the secret and passed all 88 tests, the guard included, with
+      none skipped.)
+- [x] **Ask GitHub Support to purge what a push cannot reach.** The nine
       pull requests (#1 to #9) keep their own copies of the old commits, and
       old commit pages stay viewable by their address until GitHub clears its
       caches. At https://support.github.com, choose "Remove sensitive data"
       (or "Contact us" about it), and paste the request text from
-      `github-support-request.txt` in the handover folder.
-- [ ] **Forks.** On the repository page, Insights > Forks. There should be
+      `github-support-request.txt` in the handover folder. (Sent by Beaux on
+      2026-11-18.)
+- [ ] **GitHub Support confirms the purge.** Until then the old commits can
+      still be fetched through pull requests #1 to #9 (checked 2026-11-18:
+      Build 2's old commit through #1, Build 4's through #6). When Support
+      replies, check again: `git fetch https://github.com/RexBHavgreau/contractbuilder.git refs/pull/6/head`
+      should no longer bring in commit `4becc60`. If Support declines, ask Beaux
+      whether to delete and recreate the repository, the only other way to
+      remove pull-request copies (it loses issues, pull requests, releases and
+      stars).
+- [x] **Forks.** On the repository page, Insights > Forks. There should be
       none (it was public for under a day). If there are, tell GitHub Support.
+      (Verified 2026-11-18: 0 forks.)
 - [ ] **Old copies.** Any other clone of the repository (another computer,
       ChatGPT or Codex workspaces, an extracted ZIP) still holds the old
       history. Delete them and download or clone afresh.
-- [ ] Tell Claude, or any agent, that it is done; it then reconnects its own
-      working copy to the new history.
+- [x] Tell Claude, or any agent, that it is done; it then reconnects its own
+      working copy to the new history. (Done 2026-11-18: Claude's working copy
+      matches GitHub, its old commits are purged, and its scratch copies of the
+      old history and of the private list are deleted.)
 
 **Done when:** `main` on GitHub starts with the commit the script names, the
 next CI run on `main` is green with `test_no_details_from_real_contracts`
