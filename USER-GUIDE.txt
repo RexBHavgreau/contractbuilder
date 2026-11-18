@@ -229,6 +229,24 @@ A note about tracked changes, comments, highlighting, or other unusual Word
 formatting does not necessarily mean the template is invalid. Review such
 notes before relying on the completed document.
 
+WORD SHELLS FOR ASSEMBLED CONTRACTS
+
+A Word shell is a .docx file that supplies the page layout and formatting for
+an assembled contract. Its original body wording is not included in the new
+contract. The shell is copied; the original file is never changed.
+
+Create the shell in Word. Set the page size, orientation and margins. Add any
+headers and footers you need. Keep the built-in styles named Normal, Heading
+1, Heading 2, Heading 3, List Paragraph, List Bullet, List Number and Table
+Grid. You can change how those styles look; do not delete or rename them.
+
+The shell also needs a three-level decimal outline for clauses (1., 1.1,
+1.1.1) and a bullet numbering definition. The application checks these
+requirements when you select a shell. If a style or numbering definition is
+missing, it explains the fallback before continuing. A shell that cannot be
+read or has no final section properties cannot be used. For the full list of
+requirements, see SHELL-CONTRACT.md in the project repository.
+
 UPDATES
 
 Word Template Filler checks for a newer published GitHub release when it

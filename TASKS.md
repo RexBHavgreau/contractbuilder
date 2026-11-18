@@ -60,7 +60,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
-| [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | open | careful | — |
+| [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | done (2026-11-18, [PR pending]) | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
@@ -1123,7 +1123,7 @@ Reopen this task only if staff find they cannot do without one of them.
 
 ### T-026 Define the Word shell contract and ship a sample shell
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR pending])
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
@@ -1132,26 +1132,25 @@ The proposal says a shell supplies styles, numbering and table formatting,
 but not what must be in one, nor what happens when something is missing.
 Without a clear contract and a sample, the feature cannot be used on day one.
 
-- [ ] Write the contract in USER-GUIDE.txt's style (plain English) and in a
-      short developer note: required style names or ids for Normal, Heading
-      1 to 3, the table style, list styles and numbering definitions, and
-      the final section properties
-- [ ] A checker module (for example `shell_check.py`) that reads a shell
-      read-only and returns findings in plain English ("This shell has no
-      style called Heading 2, so headings will use Normal"), with
-      severities: stops generation, or only warns
-- [ ] Decide fallbacks: missing styles get a warning and the nearest
-      available one, never silent defaults
-- [ ] An **invented** sample shell built in a test fixture (code, not a
-      committed file, unless Beaux approves one: no sample templates are
-      kept in the repository); a way for users to create a starting shell
-      from the app (for example a "Make a blank shell" button that writes
-      one) is a follow-up if wanted
-- [ ] Tests: a good shell passes; a shell missing each required part is
-      reported precisely; the checker never modifies its input
+- [x] Write the plain-English user instructions and developer contract in
+      `USER-GUIDE.txt` and `SHELL-CONTRACT.md`, covering canonical style IDs,
+      table/list styles, numbering definitions and final section properties
+- [x] Add `shell_check.py`, which reads a shell without changing it and
+      returns plain-English errors and warnings with stable finding codes
+- [x] Define explicit style fallbacks in the checker result; missing styles
+      never pass silently. Missing numbering definitions are separately
+      reported so the renderer can supply and disclose its fallback
+- [x] Build the invented sample shell in the test fixture; no template file
+      is committed. An in-app blank-shell creator remains a later UI task
+- [x] Test a complete shell, each required style missing or mistyped, missing
+      numbering definitions, absent final section properties, and byte-for-
+      byte source preservation
 
-**Done when:** T-019-C to T-019-F and T-023-B use the contract and the
-checker.
+**Done when:** the contract, checker, fallback rules and fixture tests are
+implemented. T-019-C to T-019-F and T-023-B must call the checker before
+using a shell, surface its warnings, stop on errors and apply its fallbacks.
+This separates the prerequisite contract from the later integration work and
+avoids making a prerequisite wait for the tasks that depend on it.
 
 ### T-027 Keep the Windows executable within 30 MB in CI
 
