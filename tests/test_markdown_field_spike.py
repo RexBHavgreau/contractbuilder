@@ -44,6 +44,15 @@ def test_field_names_with_underscores_and_asterisks_survive_as_literal_text():
         assert not any(child.type in ("em_open", "strong_open") for child in inline.children)
 
 
+def test_field_inside_markdown_emphasis_is_restored_in_its_inline_child():
+    tokens = _restore_parse("**{{First_Name}}**")
+    inline = next(token for token in tokens if token.type == "inline")
+    assert [child.type for child in inline.children] == [
+        "strong_open", "text", "strong_close"
+    ]
+    assert inline.children[1].content == "{{First_Name}}"
+
+
 def test_unprotected_pipe_is_treated_as_a_table_column_break():
     source = (
         "| Fee | Notes |\n"
