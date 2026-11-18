@@ -46,7 +46,7 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-18, revised for the component-builder proposal. Next free number: **T-032**.
+Reviewed 2026-11-18, revised for the component-builder proposal. Next free number: **T-033**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -58,14 +58,15 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
-| [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Decide clause numbering and legal formatting scope | open | human | Beaux |
+| [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
+| [T-032](#t-032-decide-extra-legal-formatting-for-components) | Decide extra legal formatting (underline, page break, signature blocks) | open | human | Beaux |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | open | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | open | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | open | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | open | careful | A, B, T-026 |
-| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists with native numbering | open | careful | C, T-025, T-026 |
+| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | open | careful | C, T-026 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | open | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | open | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | open | any | F |
@@ -74,7 +75,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
 | ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | open | any | — |
 | ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
-| ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B, T-025 |
+| ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B |
 | ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
 | ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | open | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
@@ -98,10 +99,10 @@ touches the same lines as another except T-010 and T-012, which both edit
 of T-002. T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
 agreed component-builder direction. Component builder order: first the three
 things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
-T-027 (size check), with Beaux deciding T-025 in parallel; then T-019-B to
+T-027 (size check); T-025 (numbering) is already decided; then T-019-B to
 T-019-H, with T-020 (importer) starting once T-019-A and T-019-B are done;
 T-021 (storage) can run alongside either; T-028 after T-019-B; then T-022,
-T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
+T-023, T-024; T-029 and T-031 last; T-032 (Beaux) before the editor work needs it. T-030 is Beaux's, once T-019-F exists.
 T-017 any time. T-018 needs nothing from an agent until GitHub Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
@@ -398,11 +399,11 @@ Decisions:
 implementation task is defined. T-019 covers the first technical proof:
 converting ordered Markdown content into a formatted Word document shell.
 
-## Component builder (T-019 to T-031)
+## Component builder (T-019 to T-032)
 
 Direction: [PROPOSAL-001.md](PROPOSAL-001.md), which is unchanged. These
 tasks implement it, with the gaps found in review closed by the extra tasks
-(T-025 to T-031) and by choices recorded inside the tasks below. Every task
+(T-019 to T-032) and by choices recorded inside the tasks below. Every task
 in this section uses **invented test content only**, adds tests, keeps the
 existing template workflow's tests green, and leaves `core.py`'s template
 behaviour unchanged unless a subtask says otherwise and proves no regression.
@@ -415,7 +416,8 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Hyperlinks** are a separate, optional task (T-031), not part of T-019.
 - **Library backup and Markdown export** move earlier (T-029).
 - **The size limit** becomes a CI check (T-027).
-- **Clause numbering and legal formatting** are decided first (T-025).
+- **Clause numbering** is decided (T-025): nested ordered lists, rendered as
+  a decimal outline. Other legal formatting is T-032.
 
 ### T-019 Prototype Markdown-to-Word composition
 
@@ -506,15 +508,23 @@ from the shell, not hard-coded fonts.
 - **Status:** open
 - **Size:** M
 - **Agent:** careful
-- **Needs:** T-019-C, T-025 (numbering decision), T-026
+- **Needs:** T-019-C, T-026 (T-025 is decided; see it)
 
 - [ ] Bulleted and numbered lists, including nested lists, as real Word
       numbering (`w:numPr`), never typed numbers
 - [ ] Use the shell's numbering definitions (T-026); add new `w:num`
       instances so each numbered list restarts correctly
-- [ ] Implement whatever scheme T-025 chose for clause numbering
-- [ ] Tests: two separate numbered lists both start at 1; nesting; a field
-      in a list item
+- [ ] Implement T-025's decision: nested ordered lists become one
+      multi-level decimal outline (1., 1.1, 1.1.1) with at least three
+      levels; position in the nesting decides the number, not the digits
+      typed in the Markdown; read each level's format from the shell's
+      definition rather than hard-coding it
+- [ ] A continuation paragraph indented under a list item stays with that
+      clause, unnumbered
+- [ ] Tests: two separate numbered lists both start at 1; nesting to three
+      levels gives 1, 1.1, 1.1.1; items typed as `7.` still number from 1;
+      moving an item renumbers; a field in a list item; a continuation
+      paragraph
 
 **Done when:** tests inspect `numbering.xml` and the paragraph properties,
 and the numbering restarts as expected.
@@ -636,7 +646,7 @@ in the right order, fields intact, and every unsupported structure reported.
 - [ ] `{{Field}}` and `{{#if}}` text kept literal, even when it is split
       across runs (reuse `core`'s run-spanning logic where possible)
 - [ ] Underline, strikethrough, highlight, font and colour changes are
-      reported as dropped formatting (unless T-025 adds support)
+      reported as dropped formatting (unless T-032 adds support)
 
 **Done when:** tests cover split runs and a field split across three runs.
 
@@ -645,12 +655,13 @@ in the right order, fields intact, and every unsupported structure reported.
 - **Status:** open
 - **Size:** M
 - **Agent:** careful
-- **Needs:** T-020-B, T-025
+- **Needs:** T-020-B (T-025 is decided; see it)
 
 - [ ] Read `numbering.xml` to tell bulleted from numbered and find the
       nesting level
-- [ ] Convert ordinary lists; apply T-025's decision for legal-style
-      multi-level numbering
+- [ ] Convert lists per T-025: multi-level Word lists become nested ordered
+      lists by level, whatever their numbering style; letter and Roman
+      styles become decimal, with a warning saying so
 - [ ] Typed numbers that are not Word numbering (such as "1." typed by hand)
       are kept as text and flagged as possible list items
 
@@ -853,8 +864,13 @@ save a component, with tables and fields, and see how it will look.
 - **Agent:** careful
 - **Needs:** T-022-B
 
-- [ ] Buttons for heading, bold, italic, bulleted list, numbered list; they
-      wrap or prefix the selection and write Markdown the user need not see
+- [ ] Buttons for heading, bold, italic, bulleted list, numbered list,
+      indent and outdent; they wrap, prefix or re-indent the selection and
+      write Markdown the user need not see. Indent and outdent move a
+      numbered item down or up a level (1. becomes 1.1); the user never types
+      indentation
+- [ ] The preview (T-022-B) shows the computed outline numbers (1., 1.1,
+      1.1.1), not the digits stored
 - [ ] Keyboard shortcuts for bold and italic
 - [ ] Works when the editing area shows the formatted preview and when it
       shows source (T-022-F)
@@ -1034,31 +1050,71 @@ component versions are used only after the user reviews and chooses them.
 
 ### T-025 Decide clause numbering and legal formatting scope
 
+- **Status:** done for numbering (2026-11-18, Beaux); extra formatting moved
+  to T-032
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+**Decision (Beaux, 2026-11-18): no new Markdown syntax.** Clause numbering is
+a feature of the editor and the renderer, built on standard nested ordered
+lists, which already carry the structure. ContractBuilder renders those
+lists as a decimal outline (1., 1.1, 1.1.1). Recorded in CLAUDE.md's
+Decision log. What it means:
+
+- **Stored form:** an ordinary nested ordered list (`1.` items, with
+  sub-items indented under their parent). The digits typed in the Markdown
+  are not the numbers shown: position in the nesting decides them, so
+  inserting or moving a clause renumbers everything.
+- **Word output (T-019-D):** one multi-level numbering definition supplied
+  by the shell (T-026), levels 1 to 3 at least, formatted as decimal
+  outline ("1.", "1.1", "1.1.1"). Each separate list gets its own `w:num`
+  so it restarts at 1. Plain bulleted lists remain bullets.
+- **Clause text with more than one paragraph:** a continuation paragraph
+  indented under its item belongs to that clause and is not numbered.
+- **Editor (T-022):** users never type the indentation. The toolbar has
+  "numbered list", "indent" (demote to 1.1) and "outdent". The preview shows
+  the computed outline numbers, so users see what Word will show.
+- **Import (T-020-C):** Word multi-level lists become nested ordered lists
+  by level, whatever their original numbering style. Letter and Roman styles
+  ((a), (i)) become decimal and the importer says so in a warning. Numbers
+  typed by hand are kept as text and flagged.
+- **Known limit:** a reference such as "see Section 2.1" typed into the
+  wording does not update when clauses move. Say so in the guide; automatic
+  cross-references are not in scope.
+
+- [x] Decide how numbered clauses and sub-clauses are produced
+- [x] Update T-019-D, T-020-C and T-022-C to match (done in this change)
+- [ ] Open question for the guide, not a blocker: whether a shell may offer
+      other level styles later (for example (a) at level 2). The renderer
+      should read level formats from the shell's definition rather than
+      hard-coding decimal, so this stays possible
+
+Underline, page breaks, tab-aligned signature blocks and defined-term
+formatting were not decided; they are T-032.
+
+**Done when:** the decision is in CLAUDE.md and the tasks above say what to
+build. (Both done.)
+
+### T-032 Decide extra legal formatting for components
+
 - **Status:** open
 - **Size:** S
 - **Agent:** human
 - **Needs:** Beaux
 
-Markdown has paragraphs, headings and simple lists. Real contracts also use
-"1.", "1.1", "(a)", "(i)", underlining, tab-aligned signature blocks and page
-breaks. The proposal does not say how these work, and T-019-D, T-020-C and
-T-022 cannot be finished without an answer. Beaux decides; record it in
-CLAUDE.md's Decision log.
+T-025 settled numbering only. Standard Markdown has no underline, page break,
+tab-aligned lines or defined-term style. Until Beaux decides, all of these
+are **out of scope** for the first release, and the importer reports them
+as dropped formatting (T-020-B, T-020-E). Following T-025's principle, prefer
+an editor feature or the shell's styles over new Markdown syntax.
 
-- [ ] How are numbered clauses and sub-clauses produced? Options: (1)
-      ordinary Word lists with the shell's multi-level definition (clean,
-      limited); (2) an extension to the supported subset, such as an
-      indent-based convention mapped to a shell numbering style; (3)
-      leave heavy numbering to Word templates and say so in the guide
-- [ ] Which extra formatting is in scope for components: underline, page
-      break, small tab-aligned lines (signature blocks), definitions
-      ("**Term**: ...")? List each as in or out
-- [ ] If anything is in, how it appears in the editor (T-022) and what the
-      importer does with it (T-020), so the round trip stays stable
-- [ ] Update T-019-D, T-020-C and T-022-C to match the decision
-
-**Done when:** the decision is in CLAUDE.md and the tasks above say what to
-build.
+- [ ] For each, decide in or out, and if in, how it is stored and shown:
+      underline; page break (possibly a shell-level setting or a
+      "starts on a new page" tick on an assembly entry instead of text);
+      signature blocks (possibly a one-row, two-column table with no borders,
+      which Markdown tables already hold); defined terms (bold is enough?)
+- [ ] Record the answer in CLAUDE.md; update T-020-B and T-022 to match
 
 ### T-026 Define the Word shell contract and ship a sample shell
 
