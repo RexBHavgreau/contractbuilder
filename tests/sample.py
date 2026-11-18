@@ -1,24 +1,27 @@
 """
-Builds examples/Sample Services Agreement.docx, the template the tests use
-and the one handed to the department as a worked example.
+Builds the sample Word template used by the tests.
 
-    python tests/sample.py
+    python tests/sample.py [OUTPUT.docx]
+
+Without OUTPUT, writes "Sample Services Agreement.docx" to the current
+working directory.
 """
+import argparse
 import pathlib
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt
 
-HERE = pathlib.Path(__file__).resolve().parent
-OUT = HERE.parent / "examples" / "Sample Services Agreement.docx"
+DEFAULT_FILENAME = "Sample Services Agreement.docx"
 
 
 def numbered(doc, text):
     return doc.add_paragraph(text, style="List Number")
 
 
-def build(path=OUT):
+def build(path=None):
+    path = pathlib.Path(path) if path is not None else pathlib.Path.cwd() / DEFAULT_FILENAME
     doc = Document()
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
@@ -103,5 +106,19 @@ def build(path=OUT):
     return path
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Build the sample Word template used by the tests."
+    )
+    parser.add_argument(
+        "output",
+        nargs="?",
+        type=pathlib.Path,
+        help="where to save the DOCX (defaults to the current folder)",
+    )
+    args = parser.parse_args()
+    print(build(args.output))
+
+
 if __name__ == "__main__":
-    print(build())
+    main()
