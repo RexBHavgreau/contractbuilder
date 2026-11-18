@@ -54,16 +54,14 @@ Before opening a downloaded copy for the first time, read the **FIRST RUN**
 section in `USER-GUIDE.txt` for the Windows SmartScreen and macOS Gatekeeper
 prompts.
 
-### Private-repository update checks
+### Optional token for rate-limited update checks
 
-This repository is private. A packaged application cannot contain a GitHub
-credential safely. To check private releases, set the
-`CONTRACTBUILDER_GITHUB_TOKEN` environment variable, or paste it into **Help →
-Update settings** (saved per user, beside the publisher profiles), using a GitHub
-fine-grained personal access token with read-only **Contents** access to this
-repository.
-Do not put the token in source code or distribute it with the application. If
-the repository is made public, the update checker works without a token.
+A token is not needed for normal update checks. If you often see "GitHub is
+limiting update checks from your network for now", you can add a fine-grained
+personal access token in **Help → Update settings**. Give it read-only
+**Contents** access to this repository only. The token is saved per user and
+raises GitHub's API limit for update checks. Never put it in source code or
+distribute it with the application.
 
 ## Project files
 

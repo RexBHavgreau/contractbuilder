@@ -82,11 +82,12 @@ itself, checks its size and SHA-256 against GitHub's, and a small batch
 script swaps it in after the app closes and reopens it (self_update.py). On
 macOS it opens the release page.
 
-PRIVATE REPOSITORY
-==================
+OPTIONAL UPDATE TOKEN
+=====================
 
-The update checker cannot contain a GitHub token safely. For a private
-repository, each user pastes a fine-grained token with read-only Contents
-access to this repository into Help > Update settings (or sets
-CONTRACTBUILDER_GITHUB_TOKEN). Do not commit or distribute that token.
-Public repositories need no token.
+Public release checks need no token. If a user often sees "GitHub is limiting
+update checks from your network for now", they may add a fine-grained token
+with read-only Contents access to this repository in Help > Update settings.
+It is saved per user and raises GitHub's API limit for update checks. The
+CONTRACTBUILDER_GITHUB_TOKEN environment variable is also supported. Never
+commit or distribute a token.

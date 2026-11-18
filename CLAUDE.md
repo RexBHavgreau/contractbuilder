@@ -43,7 +43,7 @@ trace.
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
-| `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores the per-user update token. |
+| `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
 | `version.py` | `APP_NAME`, `APP_VERSION`, `GITHUB_REPOSITORY`. The single source of the version. |
 | `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see TASKS.md. |
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
@@ -97,8 +97,7 @@ trace.
 - **The repository is public** (since 2026-11-17). Everything in it, and
   everything in its history, is visible to anyone. Test data must be
   invented; never commit names, addresses or terms from a real contract.
-  (While it was private, GitHub answered 404 to unsigned release checks, and
-  the updater needed a token. Text saying so is being removed: TASKS.md T-010.)
+
 - **Removing something from a public repository means rewriting history**,
   and even that does not reach GitHub's own copies: pull requests keep the
   old commits, and old commit pages stay viewable until GitHub Support purges
@@ -120,6 +119,9 @@ trace.
   and `cmd /c` needs `/s` and an outer pair of quotes for paths with spaces.
 
 ## Decision log
+
+- **2026-11-18 — Public update checks do not require a token.** The per-user token field remains optional for users who frequently hit GitHub's unauthenticated API limit. A 404 without a token means no release is published yet or the repository has moved; it does not prompt users to configure credentials.
+
 
 - **2026-11-18 — Explain first-run warnings for unsigned downloads.** The user guide tells staff how to approve the first launch in Windows SmartScreen and macOS Gatekeeper, and the README points to it before opening a download. The in-app Windows updater should not add the browser's internet-download mark, but that warning behavior remains unconfirmed until T-002 tests it on a real PC.
 
@@ -300,3 +302,5 @@ Newest last.
 - **2026-11-18** T-027 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added a tested executable-size checker and a Windows CI step that measures the packaged `.exe`, logs its size and remaining headroom, and fails above 30 MiB. Tests verify the normal limit, an intentionally tiny failing limit, and the exact boundary.
 
 - **2026-11-18** T-011 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added first-run SmartScreen and Gatekeeper instructions near the start of the user guide, linked to them from the README, and documented the unconfirmed expectation for Windows in-app updates. T-002 is responsible for confirming that behavior on a real PC.
+
+- **2026-11-18** T-010 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): removed mandatory private-repository update instructions, made the saved token explicitly optional for users who often hit GitHub's API limit, corrected the no-token 404 message and its `needs_token` flag, removed the obsolete startup status message, and updated tests and project documentation.

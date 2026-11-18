@@ -66,7 +66,7 @@ def test_check_for_update_parses_latest_release(monkeypatch):
     assert result.release_url == payload["html_url"]
 
 
-def test_private_repository_404_has_actionable_message(monkeypatch):
+def test_public_repository_404_without_token_says_no_release_yet(monkeypatch):
     from urllib.error import HTTPError
     for name in ("CONTRACTBUILDER_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
         monkeypatch.delenv(name, raising=False)
@@ -75,8 +75,12 @@ def test_private_repository_404_has_actionable_message(monkeypatch):
         raise HTTPError("https://api.github.com", 404, "Not Found", {}, None)
 
     monkeypatch.setattr(update_checker, "urlopen", fake_urlopen)
-    with pytest.raises(UpdateCheckError, match="CONTRACTBUILDER_GITHUB_TOKEN"):
+    with pytest.raises(UpdateCheckError) as info:
         check_for_update("0.1.0", "RexBHavgreau/contractbuilder")
+    assert str(info.value) == (
+        "GitHub has no published release for this app yet, or the repository has moved."
+    )
+    assert not info.value.needs_token
 
 
 # ------------------------------------------------- downloading and installing ---
@@ -124,20 +128,6 @@ def test_saved_token_is_sent_and_404_says_so(monkeypatch):
     assert seen["Authorization"] == "Bearer secret"
     assert info.value.needs_token and "saved token" in str(info.value)
 
-
-def test_private_without_token_points_to_settings(monkeypatch):
-    from urllib.error import HTTPError
-    for name in ("CONTRACTBUILDER_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
-        monkeypatch.delenv(name, raising=False)
-
-    def fake_urlopen(request, timeout):
-        assert "Authorization" not in request.headers
-        raise HTTPError(request.full_url, 404, "Not Found", {}, None)
-
-    monkeypatch.setattr(update_checker, "urlopen", fake_urlopen)
-    with pytest.raises(UpdateCheckError) as info:
-        check_for_update("0.1.0", "o/r")
-    assert info.value.needs_token and "Update settings" in str(info.value)
 
 
 def asset_for(data: bytes, **changes):

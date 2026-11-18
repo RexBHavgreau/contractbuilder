@@ -51,7 +51,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
 | [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
-| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | open | any | — |
+| [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | done | any | — |
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | open | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
@@ -188,7 +188,7 @@ passing (not skipped), and GitHub Support has confirmed the purge.
 
 ## T-010 Finish going public: stop telling users the repository is private
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
 - **Size:** S
 - **Agent:** any
 
@@ -214,16 +214,16 @@ still steer people to a token they do not need:
 Keep the token setting itself (it still raises GitHub's limit; see T-012),
 but present it as optional.
 
-- [ ] Reword the Update settings window: a token is not needed; it is only
+- [x] Reword the Update settings window: a token is not needed; it is only
       for someone who sees "GitHub is limiting update checks" often
-- [ ] 404 with no token: "GitHub has no published release for this app yet,
+- [x] 404 with no token: "GitHub has no published release for this app yet,
       or the repository has moved." Keep the `needs_token` flag off for it, so
       startup stays quiet
-- [ ] Remove or rewrite the four document sections above; the guide should
+- [x] Remove or rewrite the four document sections above; the guide should
       not mention tokens except as the optional setting
-- [ ] Update `tests/test_updates.py` for the new 404 wording, and keep a test
+- [x] Update `tests/test_updates.py` for the new 404 wording, and keep a test
       that a 404 with a saved token still names the token as a possible cause
-- [ ] CLAUDE.md: the pitfall was already corrected on 2026-11-18; once the
+- [x] CLAUDE.md: the pitfall was already corrected on 2026-11-18; once the
       wording is gone, delete its sentence "Text saying so is being removed"
 
 **Done when:** `git grep -n -i -E "repository is private|private repositor|is private, so" -- '*.py' '*.txt' README.md ':!tests'`

@@ -250,11 +250,11 @@ application offers to open the release page instead.
 The first time, versions older than 0.3.0 cannot install updates themselves:
 download 0.3.0 once by hand, and later versions install automatically.
 
-PRIVATE REPOSITORY
+OPTIONAL TOKEN FOR UPDATE CHECKS
 
-This repository is private, so GitHub only shows its releases to someone
-signed in. Until a token is set up, the status line says "Automatic updates
-are not set up yet". To set one up:
+You do not need a token for normal update checks. If you often see "GitHub is
+limiting update checks from your network for now", you can add an optional
+token in Help > Update settings to raise GitHub's API limit for your checks.
 
 1. On GitHub, open Settings > Developer settings > Personal access tokens >
    Fine-grained tokens, and generate a new token.
@@ -264,10 +264,9 @@ are not set up yet". To set one up:
 4. In this application, choose Help > Update settings, paste the token, and
    choose Save and check now.
 
-The token is saved for your user only, beside your publisher profiles. Never
-put a token in a template, script, or shared file. The environment variable
-CONTRACTBUILDER_GITHUB_TOKEN still works too. If the repository is made
-public, no token is needed.
+The token is saved for your Windows user only, beside your publisher profiles.
+Never put a token in a template, script, or shared file. To stop using it,
+choose Remove token in Help > Update settings.
 
 PRIVACY
 
