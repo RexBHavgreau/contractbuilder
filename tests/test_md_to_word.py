@@ -79,7 +79,7 @@ def test_unsupported_image_and_code_are_reported_and_text_is_kept(tmp_path):
 
 def test_table_is_rendered_as_native_word_table(tmp_path):
     result = md_to_word.render_markdown(
-        "| A | B |\\n| --- | --- |\\n| 1 | 2 |",
+        "| A | B |\n| --- | --- |\n| 1 | 2 |",
         make_shell(tmp_path / "shell.docx"),
     )
     assert result.can_generate
@@ -136,13 +136,15 @@ def _num_pr(paragraph):
 def test_separate_ordered_lists_get_separate_restarting_instances(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
     result = md_to_word.render_markdown(
-        "7. First list item\\n8. Second item\\n\\nA break.\\n\\n1. New list starts",
+        "7. First list item\n8. Second item\n\nA break.\n\n1. New list starts",
         shell,
     )
     paragraphs = [item for item in result.elements if item.tag == "{%s}p" % W]
     numbered = [_num_pr(item) for item in paragraphs]
-    assert all(numbered)
-    ids = [item.find("w:numId", NS).get("{%s}val" % W) for item in numbered]
+    assert numbered[0] is not None and numbered[1] is not None
+    assert numbered[2] is None  # the paragraph between lists is ordinary text
+    assert numbered[3] is not None
+    ids = [numbered[i].find("w:numId", NS).get("{%s}val" % W) for i in (0, 1, 3)]
     assert ids[0] == ids[1]
     assert ids[2] != ids[0]
     instances = {item.get("{%s}numId" % W): item for item in result.numbering
@@ -152,7 +154,7 @@ def test_separate_ordered_lists_get_separate_restarting_instances(tmp_path):
 
 def test_nested_ordered_lists_use_three_decimal_outline_levels(tmp_path):
     result = md_to_word.render_markdown(
-        "7. Parent\\n   4. Child\\n      9. Grandchild\\n8. Next parent",
+        "7. Parent\n   4. Child\n      9. Grandchild\n8. Next parent",
         make_shell(tmp_path / "shell.docx"),
     )
     paragraphs = [item for item in result.elements if item.tag == "{%s}p" % W]
@@ -170,7 +172,7 @@ def test_nested_ordered_lists_use_three_decimal_outline_levels(tmp_path):
 
 def test_list_continuation_paragraph_is_not_numbered(tmp_path):
     result = md_to_word.render_markdown(
-        "1. First paragraph\\n\\n   Continuation paragraph.\\n\\n2. Second item",
+        "1. First paragraph\n\n   Continuation paragraph.\n\n2. Second item",
         make_shell(tmp_path / "shell.docx"),
     )
     paragraphs = [item for item in result.elements if item.tag == "{%s}p" % W]
@@ -195,8 +197,8 @@ def test_fields_in_list_items_remain_fillable(tmp_path):
 def test_table_header_alignment_empty_cells_and_fields(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
     result = md_to_word.render_markdown(
-        "| Item | Fee | Notes |\\n| :--- | ---: | :---: |\\n"
-        "| A | {{Fee | money-words}} | **Bold** |\\n| B |  | C |",
+        "| Item | Fee | Notes |\n| :--- | ---: | :---: |\n"
+        "| A | {{Fee | money-words}} | **Bold** |\n| B |  | C |",
         shell,
     )
     table = result.elements[0]
@@ -217,7 +219,7 @@ def test_table_header_alignment_empty_cells_and_fields(tmp_path):
 def test_table_fields_are_fillable_by_existing_template_engine(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
     result = md_to_word.render_markdown(
-        "| Fee |\\n| --- |\\n| {{Fee | money-words}} |",
+        "| Fee |\n| --- |\n| {{Fee | money-words}} |",
         shell,
     )
     output = _append_rendered(shell, result)
@@ -230,6 +232,6 @@ def test_renderer_never_changes_shell_file(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
     before = shell.read_bytes()
     md_to_word.render_markdown(
-        "1. List\\n\\n| A |\\n| --- |\\n| B |", shell
+        "1. List\n\n| A |\n| --- |\n| B |", shell
     )
     assert shell.read_bytes() == before
