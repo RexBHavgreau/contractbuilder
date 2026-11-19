@@ -508,7 +508,7 @@ from the shell, not hard-coded fonts. (Done.)
 
 #### T-019-D Render lists with native Word numbering
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-19)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026 (T-025 is decided; see it)
@@ -534,7 +534,7 @@ and the numbering restarts as expected.
 
 #### T-019-E Render tables
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-19)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026
