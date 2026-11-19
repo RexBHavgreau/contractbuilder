@@ -995,13 +995,20 @@ document.
 
 #### T-023-B Choose a shell
 
-- **Status:** open
+- **Status:** open for the file picker; the checking and remembering are
+  done (2026-11-19, `shell_selection.py`, tests in `tests/test_shell_selection.py`)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-026
 
-- [ ] Pick a shell file; validate it with T-026's checker and show its
-      plain-English findings; remember the last shell used
+- [ ] Pick a shell file: the picker dialog waits for the component window
+      (T-023-A / T-022-A). `shell_selection.choose_shell(path)` is what it
+      calls with the file the user picked.
+- [x] Validate it with T-026's checker and show its plain-English findings
+      (`shell_selection.describe`, lines for errors and for each warning).
+- [x] Remember the last shell used, if it can be used (`last_shell()`); a
+      shell with errors is not remembered and a damaged settings file is
+      treated as nothing remembered.
 
 #### T-023-C Build and order an assembly
 

@@ -17,6 +17,16 @@ from lxml import etree
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 NS = {"w": W_NS}
 
+# Word's visible style names, for messages a user reads. Findings still carry
+# the stable style IDs in their codes and in style_fallbacks.
+DISPLAY_NAMES = {
+    "Normal": "Normal", "Heading1": "Heading 1",
+    "Heading2": "Heading 2", "Heading3": "Heading 3",
+    "ListParagraph": "List Paragraph", "ListBullet": "List Bullet",
+    "ListNumber": "List Number", "TableGrid": "Table Grid",
+    "TableNormal": "Normal Table",
+}
+
 
 @dataclass(frozen=True)
 class ShellFinding:
@@ -47,6 +57,12 @@ class ShellCheckResult:
     @property
     def warnings(self) -> Tuple[ShellFinding, ...]:
         return tuple(item for item in self.findings if item.severity == "warning")
+
+
+def _display(style_id: Optional[str]) -> Optional[str]:
+    if style_id is None:
+        return None
+    return DISPLAY_NAMES.get(style_id, style_id)
 
 
 def _tag(local_name: str) -> str:
@@ -213,12 +229,6 @@ def check_shell(path: Union[str, Path]) -> ShellCheckResult:
         "ListParagraph": "paragraph", "ListBullet": "paragraph",
         "ListNumber": "paragraph", "TableGrid": "table",
     }
-    display_names = {
-        "Normal": "Normal", "Heading1": "Heading 1",
-        "Heading2": "Heading 2", "Heading3": "Heading 3",
-        "ListParagraph": "List Paragraph", "ListBullet": "List Bullet",
-        "ListNumber": "List Number", "TableGrid": "Table Grid",
-    }
     for style_id, expected_type in required.items():
         actual_type = styles_by_id.get(style_id)
         if actual_type == expected_type:
@@ -228,12 +238,12 @@ def check_shell(path: Union[str, Path]) -> ShellCheckResult:
         if actual_type is not None:
             message = (
                 "This shell has a style with id '%s', but it is not a %s style. Use %s instead."
-                % (style_id, expected_type, fallback or "Word's default")
+                % (style_id, expected_type, _display(fallback) or "Word's default")
             )
         else:
             message = (
                 "This shell has no %s style called '%s'. Use %s instead."
-                % (expected_type, display_names[style_id], fallback or "Word's default formatting")
+                % (expected_type, DISPLAY_NAMES[style_id], _display(fallback) or "Word's default formatting")
             )
         findings.append(ShellFinding("shell.style.%s" % style_id, "warning", message))
 
