@@ -68,8 +68,8 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
 | ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
-| ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | open | careful | C, D, E |
-| ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | open | any | F |
+| ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, D, E |
+| ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | any | F |
 | ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | open | careful | B, T-027 |
 | [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
@@ -98,8 +98,8 @@ group is T-002 (Beaux, on a real Windows PC). T-008 is complete; see [PROPOSAL-0
 agreed component-builder direction. Component builder order: first the three
 things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
 T-027 (size check) and T-025 (numbering), plus T-019-A to T-019-C, T-020-A,
-T-020-G and T-028, are done. Next: T-019-F to T-019-H; T-020-B to T-020-F (importer) and T-021 (storage)
-can run alongside; then T-022,
+T-020-G and T-028, are done. Next: T-019-H; T-020-B to T-020-D (importer) and T-021 (storage) can run
+alongside; then T-020-F (round trip), T-022,
 T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
 T-018 needs nothing from an agent until GitHub Support replies.
 
@@ -550,38 +550,38 @@ inside a cell survives and is fillable.
 
 #### T-019-F Compose the document from a shell
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-019-D, T-019-E
 
-- [ ] Function taking a shell path, an ordered list of Markdown strings and
+- [x] Function taking a shell path, an ordered list of Markdown strings and
       an output path; writes a new `.docx`
-- [ ] Keep the shell's styles, headers, footers, page size, margins, section
+- [x] Keep the shell's styles, headers, footers, page size, margins, section
       properties and relationships; replace only the body content, keeping
       the final `w:sectPr`
-- [ ] Order of components and of paragraphs and tables inside them preserved
-- [ ] The shell file is never opened for writing (test: byte-for-byte equal
+- [x] Order of components and of paragraphs and tables inside them preserved
+- [x] The shell file is never opened for writing (test: byte-for-byte equal
       before and after)
-- [ ] The output has a correct content-types part and relationships, so
-      Word opens it (see T-030 for a real-Word check)
+- [x] The output has a correct content-types part and relationships, so
+      Word opens it (package-level tests; the real-Word check remains T-030)
 
 **Done when:** tests generate a document from three components and the
 shell's formatting metadata is verified in the output.
 
 #### T-019-G End-to-end through the field engine
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-F
 
-- [ ] Test: compose, then `core.Template` finds the fields once each even if
+- [x] Test: compose, then `core.Template` finds the fields once each even if
       repeated across components, and `core.render` fills them in paragraphs,
       list items and table cells
-- [ ] Test: `{{#if X}}` blocks across components and inside cells, true and
-      false
-- [ ] Test: formats (`money-words`, `date-formal`) work in the output
+- [x] Test: `{{#if X}}` blocks across components and inside cells, true and
+      false (all four true/false combinations)
+- [x] Test: formats (`money-words`, `date-formal`) work in the output
 
 **Done when:** the end-to-end tests pass with the same invented values the
 template workflow's tests use.
