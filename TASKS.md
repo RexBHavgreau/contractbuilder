@@ -64,7 +64,7 @@ composer. Next free number: **T-035**.
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)) | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
-| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open: T-019-D has one item reopened, T-019-H waits | careful | — |
+| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open: T-019-D has one item reopened pending T-033 | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
@@ -72,7 +72,7 @@ composer. Next free number: **T-035**.
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | any | F |
-| ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | open | careful | B, T-027 |
+| ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | done (2026-11-19, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)) | careful | B, T-027 |
 | [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
 | ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | — |
@@ -100,8 +100,10 @@ done. T-002 passed (2026-11-19) apart from an install error message that
 Beaux will describe in T-034. For the component
 builder: Beaux decides T-033 (numbering continuity), which gates the last
 item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
-and T-019-H (size, once the app imports the new modules) can run in parallel.
-Then T-020-F (round trip), T-022, T-023, T-024; T-029 and T-031 last.
+and T-019-H (measured in CI run #166) are done. T-019-D still waits on
+Beaux's T-033 numbering decision; after that decision, T-019-D and T-030's
+real-Word numbering check remain before T-019 can be closed. Then T-020-F
+(round trip), T-022, T-023, T-024; T-029 and T-031 last.
 T-030 (real Word) can start now and should be repeated after T-033.
 
 **Waiting, not a task:** GitHub Support's purge of the old commits behind
@@ -608,26 +610,36 @@ template workflow's tests use.
 
 #### T-019-H Measure the release size
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-019-B, T-027
 
-- [ ] Build the Windows executable with and without the new module (CI or
-      locally) and record both sizes in the Decision log
-- [ ] Stay at or below 30 MB (31,457,280 bytes); if the margin is under
-      3 MB, say so and name the next likely cost
+- [x] Build the Windows executable with and without the component-builder
+      modules and record both sizes in the Decision log
+- [x] Keep the component-enabled build at or below 30 MiB
+      (31,457,280 bytes); record the remaining headroom
 
-**Caution (found 2026-11-19):** the v0.3.1 executable is 17,800,891 bytes,
-only about 5 KB more than v0.3.0, although markdown-it-py is installed in
-the build. PyInstaller bundles only what the app imports, and `simple_app.py`
-does not yet import the component-builder modules. So T-027's check passes
-trivially and proves nothing about the real cost. Measure again once the
-app imports `md_parse` and `md_to_word` (first at T-022-A or T-023), or
-build a test executable that imports them now.
+**Measurement (GitHub Actions run #166, Windows x64):** both executables use
+`simple_app.py` as the entry point and the same one-file/windowed PyInstaller
+configuration. The comparison build explicitly includes `md_parse`,
+`markdown_fields`, `shell_check`, `md_to_word` and `docx_compose` so
+PyInstaller cannot omit the component-builder stack merely because the
+current application window does not import it yet.
 
-**Done when:** the measured numbers are in CLAUDE.md and T-027's check is
-green.
+- Without the component-builder modules: **17,801,283 bytes (16.98 MiB)**
+- With the component-builder modules: **17,962,926 bytes (17.13 MiB)**
+- Added bundled size: **161,643 bytes (0.15 MiB)**
+- Headroom below 30 MiB with the modules included: **13,494,354 bytes
+  (12.87 MiB)**
+
+The margin is well above 3 MiB, so there is no immediate size pressure and
+no next likely cost needs to be singled out. The Windows workflow retains
+this side-by-side measurement and enforces the 30 MiB limit on the
+component-enabled build as well as the release build.
+
+**Done when:** both actual executable sizes are recorded and the
+component-enabled executable passes the 30 MiB check.
 
 ### T-019 technical notes: field protection and hand-off
 

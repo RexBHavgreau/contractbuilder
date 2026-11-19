@@ -55,7 +55,7 @@ trace.
 | `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see TASKS.md. |
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
 | `build-mac.command` | Local macOS build. |
-| `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases. |
+| `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases, and side-by-side Windows package-size measurement with and without T-019 modules. |
 | `scripts/check_executable_size.py` | Measures the built Windows executable and enforces the 30 MiB release limit. |
 | `tests/` | `python -m pytest tests` |
 | `USER-GUIDE.txt` | Shown from Help and bundled into the app. |
@@ -340,6 +340,19 @@ lists and tables; block conditionals can cross component boundaries, and
 inline conditionals work inside table cells. The tests cover both values of
 each condition and the existing `money-words` and `date-formal` formats.
 
+**2026-11-19 — T-019-H measured Windows package size with the component
+stack included.** GitHub Actions run #166 built the same `simple_app.py`
+entry point twice with the same one-file/windowed PyInstaller configuration.
+The ordinary build was 17,801,283 bytes (16.98 MiB). The comparison build
+explicitly included `md_parse`, `markdown_fields`, `shell_check`,
+`md_to_word` and `docx_compose` and was 17,962,926 bytes (17.13 MiB).
+The component-builder stack therefore adds 161,643 bytes (0.15 MiB).
+The expanded build leaves 13,494,354 bytes (12.87 MiB) below the 30 MiB
+limit. This is not close to the 3 MiB warning margin, so there is no
+immediate packaging constraint. The Windows CI workflow retains this
+comparison and checks the expanded build against the size limit on future
+runs.
+
 ## Progress log
 
 Newest last.
@@ -440,3 +453,4 @@ Newest last.
 - **2026-11-19** T-019-D and T-019-E (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added native Word numbering for ordered and bulleted lists, independent list restart instances, three-level decimal outlines, unnumbered continuation paragraphs, nested bullet indentation, and native GFM tables with header rows, shell table styles, alignment, inline emphasis, protected fields and empty cells. The renderer returns numbering definitions/instances for the composer to merge; the shell remains read-only.
 
 - **2026-11-19** T-019-F and T-019-G (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added `docx_compose.py` to assemble ordered Markdown components into a new DOCX while preserving shell styles, headers, footers, page setup, relationships and final section properties. Numbering IDs are merged and remapped across components, including a generated numbering part when the shell lacks one. End-to-end tests prove field discovery and filling in paragraphs, lists and tables, conditional blocks across components and inside cells, and existing money/date formats. The shell remains byte-for-byte unchanged. CI run #160: 194 tests passed; Windows x64, macOS Intel and macOS Apple Silicon builds passed.
+- **2026-11-19** T-019-H (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): added a Windows CI comparison build that forces the T-019 modules into the same `simple_app.py` executable, then measures the actual files and checks both against 30 MiB. CI run #166 measured 17,801,283 bytes without the component stack and 17,962,926 bytes with it: a 161,643-byte (0.15 MiB) increase. The component-enabled build remains at 17.13 MiB with 12.87 MiB of headroom. The project remains open at the umbrella level because T-019-D has one separate numbering-continuity item reopened pending Beaux's T-033 decision.
