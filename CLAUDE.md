@@ -129,6 +129,8 @@ trace.
 
 ## Decision log
 
+Newest last. Each entry: date, decision, why, consequences. (Some entries from 2026-11-18 sit above the older ones and are not bolded; the order is not strictly chronological.)
+
 - **2026-11-18 — Public update checks do not require a token.** The per-user token field remains optional for users who frequently hit GitHub's unauthenticated API limit. A 404 without a token means no release is published yet or the repository has moved; it does not prompt users to configure credentials.
 
 
@@ -138,7 +140,7 @@ trace.
 - **2026-11-18 — Enforce the Windows executable size budget against the built file.** CI runs `scripts/check_executable_size.py` on the packaged release executable and fails above 31,457,280 bytes (30 MiB). The script accepts a smaller `--max-bytes` value so tests can prove the failure path without constructing a large executable.
 
 
-**2026-11-18 — Word shell contract and validation.** Shells are DOCX packages
+- **2026-11-18 — Word shell contract and validation.** Shells are DOCX packages
 whose body wording is ignored; they supply document styles, numbering,
 table formatting, headers, footers and final section properties. The checker
 requires the canonical style IDs documented in `SHELL-CONTRACT.md`, a
@@ -148,7 +150,7 @@ package, missing body or missing final section properties stops generation.
 The checker is read-only. Downstream composition and assembly tasks must run
 it before using a shell, surface warnings and apply the returned style map.
 
-**2026-11-18 — T-019-C paragraph renderer and unsupported-content handling.**
+- **2026-11-18 — T-019-C paragraph renderer and unsupported-content handling.**
 `md_to_word.render_markdown(source, shell_path)` checks the shell before
 rendering and returns WordprocessingML blocks plus warnings and errors.
 Paragraphs and heading styles come from the shell's canonical style IDs;
@@ -157,8 +159,6 @@ combination and hard line breaks become native Word run properties/elements.
 Unsupported inline constructs keep readable text where possible and return
 warnings; unsupported block constructs are omitted with an explicit warning.
 The list and table tasks extend this renderer with native Word numbering and tables.
-
-Newest last. Each entry: date, decision, why, consequences.
 
 - **2026-11-18 — Markdown file import/export preserves source text.** Read UTF-8
   with optional BOM support and write UTF-8 without a BOM. The importer reports
@@ -346,7 +346,7 @@ Newest last.
 
 - **2026-11-18** T-019-C (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added `md_to_word.py` to render paragraphs, headings 1–3, hard line breaks, bold, italic and combined emphasis as WordprocessingML. Field placeholders are restored before rendering, shell style fallbacks are applied, and unsupported Markdown is surfaced as warnings. Added XML-level tests for each supported construct and fallback/error behavior.
 
-- **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. Build assets and real-Windows self-update validation remain outstanding.
+- **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. The v0.3.1 release was published with the Windows `.exe` and both macOS zips (checked 2026-11-19); real-Windows self-update validation remains T-002.
 
 - **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
 

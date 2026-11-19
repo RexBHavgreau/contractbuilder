@@ -46,7 +46,8 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033**.
+Reviewed 2026-11-19 against the code, CI, releases and a hands-on test of the
+composer. Next free number: **T-034**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -58,15 +59,16 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | done (2026-11-18, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)); v0.3.1 published with all three files | any | — |
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open, ready: v0.3.1 is out | human | — |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
+| [T-033](#t-033-decide-whether-clause-numbering-continues-across-components) | Decide whether clause numbering continues across components | open | human | Beaux |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)) | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
-| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
+| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open: T-019-D has one item reopened, T-019-H waits | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
-| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
+| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | **reopened (one item):** lists restart is not true when rendered; see T-033 | careful | C, T-026, T-033 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | any | F |
@@ -85,23 +87,22 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
 | ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
 | [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
-| ↳ T-023-A to T-023-E | Browser; choose shell; order components; review; fill and generate | open | careful | see task |
+| ↳ T-023-A to T-023-E | Browser; choose shell (checking and remembering done, picker waits for the window); order components; review; fill and generate | open | careful | see task |
 | [T-024](#t-024-saved-assembly-revisions-and-deliberate-updates) | Saved revisions and deliberate updates (umbrella) | open | careful | T-021-E, T-023-C |
 | ↳ T-024-A to T-024-D | Save and reopen; list newer; review and choose; reproducibility tests | open | careful | see task |
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | T-021-E, T-020-G |
-| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open | human | T-019-F |
+| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready (T-019-F is done); include the numbering check from T-033 | human | — |
 | [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | T-019-F, T-020-B |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 
-Suggested order: T-010 to T-015 and T-017 are done; what is left of that
-group is T-002 (Beaux, on a real Windows PC). T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
-agreed component-builder direction. Component builder order: first the three
-things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
-T-027 (size check) and T-025 (numbering), plus T-019-A to T-019-C, T-020-A,
-T-020-G and T-028, are done. Next: T-019-H; T-020-B to T-020-D (importer) and T-021 (storage) can run
-alongside; then T-020-F (round trip), T-022,
-T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
-T-018 needs nothing from an agent until GitHub Support replies.
+Suggested order: the update and release group (T-010 to T-015, T-017) is
+done except T-002, which is Beaux's, on a real Windows PC. For the component
+builder: Beaux decides T-033 (numbering continuity), which gates the last
+item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
+and T-019-H (size, once the app imports the new modules) can run in parallel.
+Then T-020-F (round trip), T-022, T-023, T-024; T-029 and T-031 last.
+T-030 (real Word) can start now and should be repeated after T-033. T-018
+needs nothing from an agent until GitHub Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -507,7 +508,7 @@ from the shell, not hard-coded fonts. (Done.)
 
 #### T-019-D Render lists with native Word numbering
 
-- **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
+- **Status:** reopened 2026-11-19: all done ([PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) except the restart item below
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026 (T-025 is decided; see it)
@@ -515,7 +516,19 @@ from the shell, not hard-coded fonts. (Done.)
 - [x] Bulleted and numbered lists, including nested lists, as real Word
       numbering (`w:numPr`), never typed numbers
 - [x] Use the shell's numbering definitions (T-026); add new `w:num`
-      instances so each numbered list restarts correctly
+      instances for each list
+- [ ] **Behave as T-033 decides, and prove it by rendering.** Found
+      2026-11-19: every list gets its own `w:num`, but they all point at the
+      same abstract definition and carry no `w:lvlOverride` /
+      `w:startOverride`. Composing `1. Alpha / 2. Beta` then `1. Gamma /
+      2. Delta` and converting to text with LibreOffice gives 1, 2, 3, 4:
+      the second list does not restart. Word is reported to behave the same
+      way (check in T-030). So the test "two separate numbered lists both
+      start at 1" passes only because it compares `numId` values, not what
+      Word shows. Either add `startOverride` (restart) or share one `w:num`
+      (continue), as T-033 decides, and add a test that works out the shown
+      numbers from `numbering.xml` semantics (or renders with LibreOffice
+      when available) instead of comparing ids
 - [x] Implement T-025's decision: nested ordered lists become one
       multi-level decimal outline (1., 1.1, 1.1.1) with at least three
       levels; position in the nesting decides the number, not the digits
@@ -1173,6 +1186,38 @@ Reopen this task only if staff find they cannot do without one of them.
 - [x] Decided: all out of scope
 - [x] CLAUDE.md Decision log updated
 
+### T-033 Decide whether clause numbering continues across components
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+T-025 settled how clauses are numbered inside one list (1., 1.1, 1.1.1). It
+did not say what happens when two components each contain a numbered list.
+Today, by accident, the numbers **continue** across components (1, 2 in the
+first, 3, 4 in the second), while T-019-D's test says they should **restart**
+at 1. Assembling a contract from components makes this matter: a "Payment"
+component after a "Term" component would otherwise start again at clause 1,
+or continue, depending on a Word detail nobody chose.
+
+Options:
+
+1. **Continue across the whole document (recommended default).** Clause
+   numbers run through the assembled contract; an assembly entry can carry a
+   "restart numbering here" tick for a schedule or exhibit. Matches how most
+   contracts read, and needs the least thought from staff.
+2. **Restart in every component.** Each component's top-level list begins at
+   1. Simple to reason about, but an assembled contract would show repeated
+   "1." clauses unless each component holds all its clauses in one list.
+3. **Per component choice** stored in the component (a setting, not
+   Markdown syntax), defaulting to option 1.
+
+- [ ] Beaux chooses; record in CLAUDE.md's Decision log
+- [ ] T-019-D implements it and proves it (its reopened item); T-023-C shows
+      the restart tick if option 1 or 3 is chosen
+- [ ] T-030 checks it in real Word and on macOS
+
 ### T-026 Define the Word shell contract and ship a sample shell
 
 - **Status:** done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18))
@@ -1264,7 +1309,7 @@ accumulated work, kept on one PC. Losing it must not be possible by accident.
 
 ### T-030 Check generated documents in real Word
 
-- **Status:** open
+- **Status:** open, ready to start (T-019-F is done)
 - **Size:** S
 - **Agent:** human
 - **Needs:** T-019-F
