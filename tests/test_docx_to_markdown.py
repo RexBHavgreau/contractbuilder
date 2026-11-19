@@ -171,3 +171,18 @@ def test_warns_for_package_level_notes_comments_headers_and_footers(tmp_path):
     assert any("Comments are not imported" in message for message in messages)
     assert any("Headers are not imported" in message for message in messages)
     assert any("Footers are not imported" in message for message in messages)
+
+
+def test_warnings_inside_table_cells_have_a_precise_location(tmp_path):
+    doc = Document()
+    cell = doc.add_table(rows=1, cols=1).cell(0, 0)
+    paragraph = cell.paragraphs[0]
+    paragraph.add_run("Cell text")
+    paragraph._p.append(OxmlElement("w:footnoteReference"))
+    path = tmp_path / "table-note.docx"
+    doc.save(path)
+
+    result = import_docx(path)
+
+    warning = next(item for item in result.warnings if "footnote reference" in item.message)
+    assert warning.location == "table 1, row 1, cell 1, paragraph 1"
