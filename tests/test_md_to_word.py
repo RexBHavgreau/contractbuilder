@@ -235,3 +235,51 @@ def test_renderer_never_changes_shell_file(tmp_path):
         "1. List\n\n| A |\n| --- |\n| B |", shell
     )
     assert shell.read_bytes() == before
+
+
+def test_bulleted_lists_use_word_numbering(tmp_path):
+    result = md_to_word.render_markdown(
+        "- First\\n  - Nested bullet\\n- Second",
+        make_shell(tmp_path / "shell.docx"),
+    )
+    paragraphs = [item for item in result.elements if item.tag == "{%s}p" % W]
+    assert len(paragraphs) == 3
+    assert all(_num_pr(item) is not None for item in paragraphs)
+    assert len({item.find("w:numId", NS).get("{%s}val" % W)
+                for item in (_num_pr(p) for p in paragraphs)}) == 1
+
+
+def test_ordered_lists_reuse_shell_decimal_outline(tmp_path):
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    path = make_shell(tmp_path / "shell-with-outline.docx")
+    document = Document(path)
+    numbering = document.part.numbering_part.element
+    abstract = OxmlElement("w:abstractNum")
+    abstract.set(qn("w:abstractNumId"), "99")
+    multi = OxmlElement("w:multiLevelType")
+    multi.set(qn("w:val"), "multilevel")
+    abstract.append(multi)
+    for level_number, label in enumerate(("%1.", "%1.%2", "%1.%2.%3")):
+        level = OxmlElement("w:lvl")
+        level.set(qn("w:ilvl"), str(level_number))
+        fmt = OxmlElement("w:numFmt")
+        fmt.set(qn("w:val"), "decimal")
+        text = OxmlElement("w:lvlText")
+        text.set(qn("w:val"), label)
+        level.extend((fmt, text))
+        abstract.append(level)
+    numbering.append(abstract)
+    num = OxmlElement("w:num")
+    num.set(qn("w:numId"), "99")
+    abstract_ref = OxmlElement("w:abstractNumId")
+    abstract_ref.set(qn("w:val"), "99")
+    num.append(abstract_ref)
+    numbering.append(num)
+    document.save(path)
+
+    result = md_to_word.render_markdown("1. First\\n   1. Nested", path)
+    assert not any(item.tag == "{%s}abstractNum" % W for item in result.numbering)
+    instance = next(item for item in result.numbering if item.tag == "{%s}num" % W)
+    assert instance.find("w:abstractNumId", NS).get("{%s}val" % W) == "99"
