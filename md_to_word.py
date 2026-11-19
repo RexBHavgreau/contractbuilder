@@ -255,7 +255,7 @@ def _add_num_pr(paragraph: etree._Element, num_id: int, level: int) -> None:
 
 
 def _table(tokens: Sequence[object], start: int, style_id: str | None,
-           warnings: List[MarkdownWarning]) -> Tuple[etree._Element, int]:
+           normal_style: str | None, warnings: List[MarkdownWarning]) -> Tuple[etree._Element, int]:
     rows = []
     in_header = False
     row = cell = None
@@ -312,7 +312,7 @@ def _table(tokens: Sequence[object], start: int, style_id: str | None,
             tcw = etree.SubElement(tcpr, W + "tcW")
             tcw.set(_tag("w"), str(width))
             tcw.set(_tag("type"), "dxa")
-            paragraph = _paragraph("Normal", cell_data["align"])
+            paragraph = _paragraph(normal_style, cell_data["align"])
             _inline(paragraph, cell_data["children"], warnings)
             tc.append(paragraph)
     return table, index + 1
@@ -405,7 +405,8 @@ def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRender
             continue
         if kind == "table_open":
             style_id = shell.style_fallbacks.get("TableGrid", "TableGrid")
-            table, index = _table(tokens, index, style_id, warnings)
+            normal_style = shell.style_fallbacks.get("Normal", "Normal")
+            table, index = _table(tokens, index, style_id, normal_style, warnings)
             elements.append(table)
             continue
         if kind in ("paragraph_close", "heading_close", "inline"):
