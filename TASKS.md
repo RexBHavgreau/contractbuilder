@@ -77,7 +77,7 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
 | ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B |
 | ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
-| ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | open | careful | A |
+| ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | done (2026-11-19, [PR #22](https://github.com/RexBHavgreau/contractbuilder/pull/22)) | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
@@ -729,18 +729,18 @@ two paragraphs, and a mixed paragraph-table-paragraph body.
 
 #### T-020-E Warnings for everything else
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #22](https://github.com/RexBHavgreau/contractbuilder/pull/22))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-020-A
 
-- [ ] Report images, drawings and floating shapes, equations, footnotes and
+- [x] Report images, drawings and floating shapes, equations, footnotes and
       endnotes, comments, tracked changes, content controls, section and
       page breaks, headers and footers (not imported, by design), and
       unusual Word fields
-- [ ] Tracked changes: report them and import the accepted text (final
+- [x] Tracked changes: report them and import the accepted text (final
       view), saying so
-- [ ] Never drop text silently: every dropped run is accounted for in a
+- [x] Never drop text silently: every dropped run is accounted for in a
       warning
 
 **Done when:** one invented fixture per structure yields the expected
