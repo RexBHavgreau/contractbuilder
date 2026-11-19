@@ -98,7 +98,6 @@ def _merge_numbering(numbering_root, results) -> bool:
             new_id = str(next_num_id)
             next_num_id += 1
             copied.set(W + "numId", new_id)
-            next_num_id += 1
             abstract_ref = copied.find("w:abstractNumId", NS)
             if abstract_ref is not None:
                 old_abstract = abstract_ref.get(W + "val")
@@ -108,10 +107,12 @@ def _merge_numbering(numbering_root, results) -> bool:
             additions_num.append(copied)
 
         for element in result.elements:
-            for reference in element.findall(".//w:numPr/w:numId", NS):
-                old_id = reference.get(W + "val")
-                if old_id in num_ids:
-                    reference.set(W + "val", num_ids[old_id])
+            for reference in element.iter(W + "numId"):
+                parent = reference.getparent()
+                if parent is not None and parent.tag == W + "numPr":
+                    old_id = reference.get(W + "val")
+                    if old_id in num_ids:
+                        reference.set(W + "val", num_ids[old_id])
 
     first_num = numbering_root.find("w:num", NS)
     insertion_index = numbering_root.index(first_num) if first_num is not None else len(numbering_root)
