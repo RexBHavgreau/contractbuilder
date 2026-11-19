@@ -161,6 +161,8 @@ def test_warns_for_package_level_notes_comments_headers_and_footers(tmp_path):
         "word/footnotes.xml": "<w:footnotes xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'/>",
         "word/endnotes.xml": "<w:endnotes xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'/>",
         "word/comments.xml": "<w:comments xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'/>",
+        "word/header1.xml": "<w:hdr xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'/>",
+        "word/footer1.xml": "<w:ftr xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'/>",
     })
     result = import_docx(path)
     messages = [item.message for item in result.warnings]
