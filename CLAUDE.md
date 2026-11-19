@@ -42,6 +42,7 @@ trace.
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `md_to_word.py` | Converts supported component Markdown blocks and inline formatting to WordprocessingML paragraphs and runs. |
 | `shell_check.py` | Read-only validation of Word document shells, including style, numbering and final section requirements. |
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
@@ -144,6 +145,16 @@ styles and numbering are warnings with explicit fallbacks; an unreadable
 package, missing body or missing final section properties stops generation.
 The checker is read-only. Downstream composition and assembly tasks must run
 it before using a shell, surface warnings and apply the returned style map.
+
+**2026-11-18 — T-019-C paragraph renderer and unsupported-content handling.**
+`md_to_word.render_markdown(source, shell_path)` checks the shell before
+rendering and returns WordprocessingML blocks plus warnings and errors.
+Paragraphs and heading styles come from the shell's canonical style IDs;
+missing styles use the checker's explicit fallbacks. Bold, italic, their
+combination and hard line breaks become native Word run properties/elements.
+Unsupported inline constructs keep readable text where possible and return
+warnings; unsupported block constructs are omitted with an explicit warning.
+The renderer does not create tables or lists; those remain T-019-D/E.
 
 Newest last. Each entry: date, decision, why, consequences.
 
@@ -282,9 +293,23 @@ Newest last. Each entry: date, decision, why, consequences.
   Keep this import out of `simple_app.py` until a component-builder task
   needs it.
 
+- **2026-11-18 — Protect component fields before Markdown parsing.** Each
+  component is protected and parsed independently: replace complete
+  `{{...}}` spans with collision-free alphanumeric placeholders, parse the
+  Markdown, then restore the exact field text in the token tree (including
+  inline children). This prevents table pipes and Markdown syntax from
+  consuming field content and prevents fragments from adjacent components
+  from combining into a field. Use `markdown_fields.protect_fields` and
+  `restore_fields`; do not concatenate raw component source before parsing.
+  The existing core engine already discovers and fills fields in paragraphs,
+  list items and table cells, so no `core.py` change is needed. See T-019
+  notes in `TASKS.md`.
+
 ## Progress log
 
 Newest last.
+
+- **2026-11-18** T-019-C (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added `md_to_word.py` to render paragraphs, headings 1–3, hard line breaks, bold, italic and combined emphasis as WordprocessingML. Field placeholders are restored before rendering, shell style fallbacks are applied, and unsupported Markdown is surfaced as warnings. Added XML-level tests for each supported construct and fallback/error behavior.
 
 - **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. Build assets and real-Windows self-update validation remain outstanding.
 
@@ -368,3 +393,5 @@ Newest last.
 - **2026-11-18** T-011 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added first-run SmartScreen and Gatekeeper instructions near the start of the user guide, linked to them from the README, and documented the unconfirmed expectation for Windows in-app updates. T-002 is responsible for confirming that behavior on a real PC.
 
 - **2026-11-18** T-010 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): removed mandatory private-repository update instructions, made the saved token explicitly optional for users who often hit GitHub's API limit, corrected the no-token 404 message and its `needs_token` flag, removed the obsolete startup status message, and updated tests and project documentation.
+
+- **2026-11-18** T-019-A (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added per-component Markdown field protection using collision-free alphanumeric placeholders, with token-tree restoration. Tests demonstrate that unprotected table pipes split cells and paired double asterisks corrupt field names, preserve conditional markers in paragraphs, lists and table cells, guard component boundaries and placeholder collisions, and prove that the existing core engine fills fields in paragraphs, list items and table cells without a core.py change. GitHub Actions test job passed all 143 tests.

@@ -63,7 +63,7 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)) | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
-| ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | open | careful | — |
+| ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | open | careful | A, B, T-026 |
 | ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | open | careful | C, T-026 |
@@ -436,7 +436,7 @@ engine; and the Windows executable is still within 30 MB.
 
 #### T-019-A Spike: protect fields from Markdown, and hand off to core
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
@@ -445,19 +445,19 @@ The two biggest unknowns, settled before anything is built on them. Write
 the findings as a short section in this file's notes for T-019 (or a
 `docs/` note) and tick the boxes.
 
-- [ ] Show how `{{...}}` text behaves in markdown-it-py (tables enabled):
+- [x] Show how `{{...}}` text behaves in markdown-it-py (tables enabled):
       underscores and asterisks inside names (`{{First_Name}}`), the pipe in
       `{{Fee | money-words}}` inside a table cell (the parser reads `|` as a
       column break), `{{#if X}}` and `{{/if}}` alone on a line, inside a list
       item, inside a table cell, and spanning two components
-- [ ] Choose and prove a protection method (for example: swap every
+- [x] Choose and prove a protection method (for example: swap every
       `{{...}}` span for a placeholder token before parsing, and restore it
       as literal text in one run afterwards). It must handle every case above
-- [ ] Prove the hand-off: take a hand-built generated document, open it with
+- [x] Prove the hand-off: take a hand-built generated document, open it with
       `core.Template` and `core.render`, and fill a field in a paragraph, a
       list item and a table cell. Note what `core.read_parts` needs (path on
       disk or in-memory) and whether each field ends up in one clean run
-- [ ] Record whether any `core.py` change is needed. If so, make it a
+- [x] Record whether any `core.py` change is needed. If so, make it a
       separate, tiny, tested change with the whole existing suite green
 
 **Done when:** each case above has a passing throwaway test and a written
@@ -484,23 +484,23 @@ answer; T-019-C to T-019-G build on that method.
 
 #### T-019-C Render paragraphs, headings and inline emphasis
 
-- **Status:** open
+- **Status:** done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-A, T-019-B, T-026 (shell style names)
 
-- [ ] New module (for example `md_to_word.py`) turning tokens into
-      WordprocessingML paragraphs and runs with lxml
-- [ ] Paragraphs, line breaks, headings 1 to 3 (shell styles from T-026),
-      bold, italic and both together
-- [ ] Field text preserved as in T-019-A, including when it sits inside bold
-      or italic
-- [ ] Never emit raw HTML, images, or anything outside the supported subset;
-      an unsupported construct produces a clear warning in the return value,
-      not a silent drop
+- [x] New module `md_to_word.py` turns parser tokens into WordprocessingML
+      paragraphs and runs with lxml
+- [x] Paragraphs, hard line breaks, headings 1 to 3 (shell styles from T-026),
+      bold, italic and combined bold/italic
+- [x] Field text preserved as in T-019-A, including inside bold and italic
+- [x] Unsupported inline constructs produce warnings and retain readable
+      text where possible; unsupported block constructs, including lists,
+      tables and code blocks, produce warnings rather than being silently
+      treated as supported content
 
 **Done when:** tests check the XML of each construct and that styles come
-from the shell, not hard-coded fonts.
+from the shell, not hard-coded fonts. (Done.)
 
 #### T-019-D Render lists with native Word numbering
 
@@ -597,6 +597,40 @@ template workflow's tests use.
 
 **Done when:** the measured numbers are in CLAUDE.md and T-027's check is
 green.
+
+### T-019 technical notes: field protection and hand-off
+
+**Field protection (T-019-A, PR #19):** Before parsing, call
+`markdown_fields.protect_fields(source)` separately for each component.
+It replaces each complete `{{...}}` span with a collision-free token made
+only of letters and digits. Parse that component with `md_parse.create_parser()`,
+then call `markdown_fields.restore_fields(tokens, replacements)` on its
+token tree before rendering. Restoration visits block tokens and inline
+children, so fields remain literal text inside emphasis and table cells.
+Never concatenate raw component Markdown before protection or parse: two
+incomplete brace fragments at adjacent component boundaries can otherwise
+become one valid field. Parse components independently and append their
+rendered Word blocks.
+
+**Parser observations:** CommonMark currently leaves underscores and a single asterisk inside
+these sample names literal (`{{First_Name}}`, `{{First*Name}}`), but paired
+double asterisks are parsed as strong emphasis and stripped from the field
+name (`{{First**Name**}}` becomes `{{FirstName}}`). Without protection, the
+table rule also treats the pipe in `{{Fee | money-words}}` as a cell
+delimiter and corrupts the row.
+Standalone conditional markers survive parsing. Blank lines create separate
+paragraphs; soft line breaks stay inside one paragraph. List items can contain
+separate paragraphs. GFM table cells are inline-only: standalone markers in
+different cells survive as text, but a conditional pair cannot span cells
+because the existing core requires paired block markers to share a parent.
+An inline conditional pair within one cell remains in that cell's text.
+
+**Core hand-off:** `core.read_parts(path)` and `core.Template(path)` read a
+DOCX from a filesystem path; neither accepts in-memory package bytes.
+`core.render(template, values)` reads the template path and returns the
+finished DOCX as bytes. The spike test verifies field discovery and filling
+in a paragraph, a bulleted list item and a table cell; each replacement is
+one clean Word run. No `core.py` change is needed.
 
 ### T-020 Import Word content as Markdown
 
