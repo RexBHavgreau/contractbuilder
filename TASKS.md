@@ -98,8 +98,7 @@ group is T-002 (Beaux, on a real Windows PC). T-008 is complete; see [PROPOSAL-0
 agreed component-builder direction. Component builder order: first the three
 things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
 T-027 (size check) and T-025 (numbering), plus T-019-A to T-019-C, T-020-A,
-T-020-G and T-028, are done. Next: T-019-D (lists) and T-019-E (tables),
-then T-019-F to T-019-H; T-020-B to T-020-F (importer) and T-021 (storage)
+T-020-G and T-028, are done. Next: T-019-F to T-019-H; T-020-B to T-020-F (importer) and T-021 (storage)
 can run alongside; then T-022,
 T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
 T-018 needs nothing from an agent until GitHub Support replies.
