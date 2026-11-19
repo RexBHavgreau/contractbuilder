@@ -77,7 +77,7 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
 | ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B |
 | ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
-| ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | open | careful | A |
+| ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | done (2026-11-19, [PR #22](https://github.com/RexBHavgreau/contractbuilder/pull/22)) | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
