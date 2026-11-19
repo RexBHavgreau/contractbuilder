@@ -59,7 +59,7 @@ composer. Next free number: **T-035**.
 | [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | done (2026-11-19, Beaux); install error message to be described in T-034 | human | — |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
 | [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said | open | human | Beaux |
-| [T-033](#t-033-decide-whether-clause-numbering-continues-across-components) | Decide whether clause numbering continues across components | open | human | Beaux |
+| [T-033](#t-033-decide-whether-clause-numbering-continues-across-components) | Decide whether clause numbering continues across components | done (2026-11-19, decision + implementation in [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)) | human | — |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)) | careful | — |
@@ -68,7 +68,7 @@ composer. Next free number: **T-035**.
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
-| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | **reopened (one item):** lists restart is not true when rendered; see T-033 | careful | C, T-026, T-033 |
+| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | done (2026-11-19, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): one continuous clause sequence across components | careful | C, T-026, T-033 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | any | F |
@@ -517,27 +517,19 @@ from the shell, not hard-coded fonts. (Done.)
 
 #### T-019-D Render lists with native Word numbering
 
-- **Status:** reopened 2026-11-19: all done ([PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) except the restart item below
+- **Status:** done (2026-11-19, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026 (T-025 is decided; see it)
 
 - [x] Bulleted and numbered lists, including nested lists, as real Word
       numbering (`w:numPr`), never typed numbers
-- [x] Use the shell's numbering definitions (T-026); add new `w:num`
-      instances for each list
-- [ ] **Behave as T-033 decides, and prove it by rendering.** Found
-      2026-11-19: every list gets its own `w:num`, but they all point at the
-      same abstract definition and carry no `w:lvlOverride` /
-      `w:startOverride`. Composing `1. Alpha / 2. Beta` then `1. Gamma /
-      2. Delta` and converting to text with LibreOffice gives 1, 2, 3, 4:
-      the second list does not restart. Word is reported to behave the same
-      way (check in T-030). So the test "two separate numbered lists both
-      start at 1" passes only because it compares `numId` values, not what
-      Word shows. Either add `startOverride` (restart) or share one `w:num`
-      (continue), as T-033 decides, and add a test that works out the shown
-      numbers from `numbering.xml` semantics (or renders with LibreOffice
-      when available) instead of comparing ids
+- [x] Use the shell's numbering definitions (T-026); add native Word
+      numbering instances and preserve bullet-list behavior
+- [x] **Continue clause numbering across the assembled document.** Every
+      ordered list uses one shared decimal `w:num` instance, so the sequence
+      continues across separate lists, components, paragraphs and tables.
+      No per-component restart setting is exposed.
 - [x] Implement T-025's decision: nested ordered lists become one
       multi-level decimal outline (1., 1.1, 1.1.1) with at least three
       levels; position in the nesting decides the number, not the digits
@@ -545,14 +537,14 @@ from the shell, not hard-coded fonts. (Done.)
       definition rather than hard-coding it
 - [x] A continuation paragraph indented under a list item stays with that
       clause, unnumbered
-- [x] Tests: two separate numbered lists both start at 1; nesting to three
-      levels gives 1, 1.1, 1.1.1; items typed as `7.` still number from 1;
-      moving an item renumbers; a field in a list item; a continuation
-      paragraph
+- [x] Tests: nested levels, typed digits ignored, moving items renumbers,
+      fields in list items, continuation paragraphs, and continuous numbering
+      across component/list boundaries
 
-**Done when:** tests inspect `numbering.xml` and the paragraph properties,
-and the numbering restarts as expected.
-
+**Done when:** the assembled DOCX uses one shared decimal numbering
+instance for every ordered clause list; tests inspect the paragraph
+references and numbering definition. Real Word display is checked separately
+under T-030.
 #### T-019-E Render tables
 
 - **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
@@ -1229,35 +1221,23 @@ see it too.
 
 ### T-033 Decide whether clause numbering continues across components
 
-- **Status:** open
+- **Status:** done (2026-11-19; Beaux's decision implemented in [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27))
 - **Size:** S
 - **Agent:** human
-- **Needs:** Beaux
+- **Needs:** —
 
-T-025 settled how clauses are numbered inside one list (1., 1.1, 1.1.1). It
-did not say what happens when two components each contain a numbered list.
-Today, by accident, the numbers **continue** across components (1, 2 in the
-first, 3, 4 in the second), while T-019-D's test says they should **restart**
-at 1. Assembling a contract from components makes this matter: a "Payment"
-component after a "Term" component would otherwise start again at clause 1,
-or continue, depending on a Word detail nobody chose.
+**Decision: option 1 — continue numbering across the whole assembled
+document.** All ordered clause lists share one native Word numbering
+instance. Clause numbers therefore continue across components and across
+separate ordered lists, even when ordinary paragraphs or tables intervene.
+There is no component-level restart option. Schedules and exhibits that need
+different numbering will require a separately scoped future feature rather
+than an undocumented Word-numbering side effect.
 
-Options:
+- [x] Beaux chooses; recorded in CLAUDE.md's Decision log
+- [x] T-019-D implements and tests the decision
+- [ ] T-030 checks the result in real Word on Windows and macOS if available
 
-1. **Continue across the whole document (recommended default).** Clause
-   numbers run through the assembled contract; an assembly entry can carry a
-   "restart numbering here" tick for a schedule or exhibit. Matches how most
-   contracts read, and needs the least thought from staff.
-2. **Restart in every component.** Each component's top-level list begins at
-   1. Simple to reason about, but an assembled contract would show repeated
-   "1." clauses unless each component holds all its clauses in one list.
-3. **Per component choice** stored in the component (a setting, not
-   Markdown syntax), defaulting to option 1.
-
-- [ ] Beaux chooses; record in CLAUDE.md's Decision log
-- [ ] T-019-D implements it and proves it (its reopened item); T-023-C shows
-      the restart tick if option 1 or 3 is chosen
-- [ ] T-030 checks it in real Word and on macOS
 
 ### T-026 Define the Word shell contract and ship a sample shell
 
@@ -1350,7 +1330,7 @@ accumulated work, kept on one PC. Losing it must not be possible by accident.
 
 ### T-030 Check generated documents in real Word
 
-- **Status:** open, ready to start (T-019-F is done)
+- **Status:** open (package-level composition and numbering tests are complete; human verification remains)
 - **Size:** S
 - **Agent:** human
 - **Needs:** T-019-F
@@ -1363,7 +1343,7 @@ correctly.
       message, headings and tables right, numbering restarts, headers and
       footers present
 - [ ] Record findings here; open a task for each fault, with the file
-- [ ] Repeat after T-019-D (lists) and T-031 (links)
+- [ ] Repeat after T-019-D (continuous lists) and T-031 (links)
 
 ### T-031 Hyperlinks in components (optional)
 

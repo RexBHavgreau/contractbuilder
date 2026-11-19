@@ -58,8 +58,27 @@ def _max_id(root, element_name: str, attribute_name: str) -> int:
     return max(values or [-1])
 
 
+def _is_decimal_outline(abstract) -> bool:
+    """Whether an abstract numbering definition is the contract's decimal outline."""
+    level = next(
+        (item for item in abstract.findall("w:lvl", NS)
+         if item.get(W + "ilvl") == "0"),
+        None,
+    )
+    if level is None:
+        return False
+    number_format = level.find("w:numFmt", NS)
+    return number_format is not None and number_format.get(W + "val") == "decimal"
+
+
 def _merge_numbering(numbering_root, results) -> bool:
-    """Append generated definitions and remap each component's local numIds."""
+    """Merge numbering, sharing one decimal instance so clauses continue globally.
+
+    Bulleted lists retain independent instances. Every ordered list in the
+    assembled document (including lists from different components) uses one
+    decimal numId, so Word continues the clause sequence across component
+    boundaries and intervening paragraphs/tables.
+    """
     if not any(
         item.tag == W + "num"
         for result in results for item in result.numbering
@@ -70,10 +89,16 @@ def _merge_numbering(numbering_root, results) -> bool:
     next_num_id = _max_id(numbering_root, "num", "numId") + 1
     additions_abstract = []
     additions_num = []
+    shell_abstracts = {
+        item.get(W + "abstractNumId"): item
+        for item in numbering_root.findall("w:abstractNum", NS)
+    }
+    shared_decimal_abstract_id = None
+    shared_decimal_num_id = None
 
     for result in results:
         abstract_ids = {}
-        num_ids = {}
+        local_abstracts = dict(shell_abstracts)
 
         for source in result.numbering:
             if source.tag != W + "abstractNum":
@@ -81,30 +106,64 @@ def _merge_numbering(numbering_root, results) -> bool:
             old_id = source.get(W + "abstractNumId")
             if old_id is None:
                 raise ValueError("A generated numbering definition has no ID.")
-            copied = deepcopy(source)
-            new_id = str(next_abstract_id)
-            next_abstract_id += 1
-            copied.set(W + "abstractNumId", new_id)
-            abstract_ids[old_id] = new_id
-            additions_abstract.append(copied)
+            local_abstracts[old_id] = source
+            if _is_decimal_outline(source):
+                if shared_decimal_abstract_id is None:
+                    copied = deepcopy(source)
+                    shared_decimal_abstract_id = str(next_abstract_id)
+                    next_abstract_id += 1
+                    copied.set(W + "abstractNumId", shared_decimal_abstract_id)
+                    additions_abstract.append(copied)
+                abstract_ids[old_id] = shared_decimal_abstract_id
+            else:
+                copied = deepcopy(source)
+                new_id = str(next_abstract_id)
+                next_abstract_id += 1
+                copied.set(W + "abstractNumId", new_id)
+                abstract_ids[old_id] = new_id
+                additions_abstract.append(copied)
 
+        num_ids = {}
         for source in result.numbering:
             if source.tag != W + "num":
                 continue
             old_id = source.get(W + "numId")
             if old_id is None:
                 raise ValueError("A generated numbering instance has no ID.")
-            copied = deepcopy(source)
-            new_id = str(next_num_id)
-            next_num_id += 1
-            copied.set(W + "numId", new_id)
-            abstract_ref = copied.find("w:abstractNumId", NS)
-            if abstract_ref is not None:
-                old_abstract = abstract_ref.get(W + "val")
-                if old_abstract in abstract_ids:
-                    abstract_ref.set(W + "val", abstract_ids[old_abstract])
-            num_ids[old_id] = new_id
-            additions_num.append(copied)
+            abstract_ref = source.find("w:abstractNumId", NS)
+            if abstract_ref is None:
+                raise ValueError("A generated numbering instance has no abstract definition.")
+            old_abstract_id = abstract_ref.get(W + "val")
+            abstract = local_abstracts.get(old_abstract_id)
+            is_decimal = abstract is not None and _is_decimal_outline(abstract)
+
+            if is_decimal:
+                mapped_abstract_id = abstract_ids.get(
+                    old_abstract_id, old_abstract_id
+                )
+                if shared_decimal_num_id is None:
+                    copied = deepcopy(source)
+                    shared_decimal_num_id = str(next_num_id)
+                    next_num_id += 1
+                    copied.set(W + "numId", shared_decimal_num_id)
+                    copied.find("w:abstractNumId", NS).set(
+                        W + "val", mapped_abstract_id
+                    )
+                    additions_num.append(copied)
+                num_ids[old_id] = shared_decimal_num_id
+            else:
+                copied = deepcopy(source)
+                new_id = str(next_num_id)
+                next_num_id += 1
+                copied.set(W + "numId", new_id)
+                mapped_abstract_id = abstract_ids.get(
+                    old_abstract_id, old_abstract_id
+                )
+                copied.find("w:abstractNumId", NS).set(
+                    W + "val", mapped_abstract_id
+                )
+                num_ids[old_id] = new_id
+                additions_num.append(copied)
 
         remapped_references = 0
         for element in result.elements:
@@ -124,7 +183,6 @@ def _merge_numbering(numbering_root, results) -> bool:
     for instance in additions_num:
         numbering_root.append(instance)
     return True
-
 
 def _ensure_numbering_relationship(rels_root) -> None:
     relationships = rels_root.findall("{%s}Relationship" % REL_NS)
