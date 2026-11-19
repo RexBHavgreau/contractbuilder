@@ -106,13 +106,16 @@ def _merge_numbering(numbering_root, results) -> bool:
             num_ids[old_id] = new_id
             additions_num.append(copied)
 
+        remapped_references = 0
         for element in result.elements:
-            for reference in element.iter(W + "numId"):
-                parent = reference.getparent()
-                if parent is not None and parent.tag == W + "numPr":
+            for reference in element.iter():
+                if reference.tag == W + "numId":
                     old_id = reference.get(W + "val")
                     if old_id in num_ids:
                         reference.set(W + "val", num_ids[old_id])
+                        remapped_references += 1
+        if num_ids and remapped_references == 0:
+            raise ValueError("Generated list numbering could not be linked to its paragraphs.")
 
     first_num = numbering_root.find("w:num", NS)
     insertion_index = numbering_root.index(first_num) if first_num is not None else len(numbering_root)
@@ -194,22 +197,8 @@ def compose_document(
     try:
         with zipfile.ZipFile(str(shell), "r") as source_package:
             names = set(source_package.namelist())
-            document_root = _parse_xml(
-                source_package.read("word/document.xml"), "word/document.xml"
-            )
-            body = document_root.find("w:body", NS)
-            if body is None:
-                raise ValueError("The Word shell has no document body.")
-            children = list(body)
-            if not children or children[-1].tag != W + "sectPr":
-                raise ValueError("The Word shell has no final section properties.")
-            for child in children[:-1]:
-                body.remove(child)
-            for result in rendered:
-                for element in result.elements:
-                    body.insert(len(body) - 1, element)
+            replacements = {}
 
-            replacements = {"word/document.xml": _xml_bytes(document_root)}
             if "word/numbering.xml" in names:
                 numbering_root = _parse_xml(
                     source_package.read("word/numbering.xml"), "word/numbering.xml"
@@ -219,6 +208,8 @@ def compose_document(
                     W + "numbering", nsmap={"w": W_NS}
                 )
 
+            # Remap the component-local references before their XML nodes are
+            # moved into the final document body.
             has_numbering = _merge_numbering(numbering_root, rendered)
             if has_numbering:
                 replacements["word/numbering.xml"] = _xml_bytes(numbering_root)
@@ -238,6 +229,22 @@ def compose_document(
                 )
                 _ensure_numbering_content_type(types_root)
                 replacements["[Content_Types].xml"] = _xml_bytes(types_root)
+
+            document_root = _parse_xml(
+                source_package.read("word/document.xml"), "word/document.xml"
+            )
+            body = document_root.find("w:body", NS)
+            if body is None:
+                raise ValueError("The Word shell has no document body.")
+            children = list(body)
+            if not children or children[-1].tag != W + "sectPr":
+                raise ValueError("The Word shell has no final section properties.")
+            for child in children[:-1]:
+                body.remove(child)
+            for result in rendered:
+                for element in result.elements:
+                    body.insert(len(body) - 1, element)
+            replacements["word/document.xml"] = _xml_bytes(document_root)
 
             with zipfile.ZipFile(str(temporary), "w", zipfile.ZIP_DEFLATED) as target:
                 for info in source_package.infolist():
