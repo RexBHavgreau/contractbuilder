@@ -21,7 +21,7 @@ def make_shell(path):
 
 def test_paragraph_and_heading_use_shell_styles(tmp_path):
     result = md_to_word.render_markdown(
-        "A paragraph.\\n\\n# First\\n\\n## Second\\n\\n### Third",
+        "A paragraph.\n\n# First\n\n## Second\n\n### Third",
         make_shell(tmp_path / "shell.docx"),
     )
     assert result.can_generate
@@ -60,7 +60,7 @@ def test_field_spelling_survives_inside_emphasis(tmp_path):
 
 def test_hard_line_break_becomes_word_break(tmp_path):
     result = md_to_word.render_markdown(
-        "First line  \\nsecond line", make_shell(tmp_path / "shell.docx")
+        "First line  \nsecond line", make_shell(tmp_path / "shell.docx")
     )
     assert result.elements[0].find(".//w:br", NS) is not None
 
@@ -79,7 +79,7 @@ def test_unsupported_image_and_code_are_reported_and_text_is_kept(tmp_path):
 
 def test_unsupported_table_is_reported_not_silently_rendered(tmp_path):
     result = md_to_word.render_markdown(
-        "| A | B |\\n| --- | --- |\\n| 1 | 2 |",
+        "| A | B |\n| --- | --- |\n| 1 | 2 |",
         make_shell(tmp_path / "shell.docx"),
     )
     assert result.elements == ()
