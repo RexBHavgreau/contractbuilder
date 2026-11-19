@@ -247,6 +247,16 @@ def test_bulleted_lists_use_word_numbering(tmp_path):
     assert all(_num_pr(item) is not None for item in paragraphs)
     assert len({item.find("w:numId", NS).get("{%s}val" % W)
                 for item in (_num_pr(p) for p in paragraphs)}) == 1
+    # The shell's bullet definition may contain only level zero. Nested
+    # bullets keep that valid definition and gain direct paragraph indents.
+    assert _num_pr(paragraphs[0]).find("w:ilvl", NS).get("{%s}val" % W) == "0"
+    assert _num_pr(paragraphs[1]).find("w:ilvl", NS).get("{%s}val" % W) == "0"
+    first_indent = paragraphs[0].find("w:pPr/w:ind", NS)
+    nested_indent = paragraphs[1].find("w:pPr/w:ind", NS)
+    assert nested_indent is not None
+    assert int(nested_indent.get("{%s}left" % W)) > (
+        int(first_indent.get("{%s}left" % W)) if first_indent is not None else 0
+    )
 
 
 def test_ordered_lists_reuse_shell_decimal_outline(tmp_path):
