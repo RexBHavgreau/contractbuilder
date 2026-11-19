@@ -42,6 +42,7 @@ trace.
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
+| `md_to_word.py` | Converts supported component Markdown blocks and inline formatting to WordprocessingML paragraphs and runs. |
 | `shell_check.py` | Read-only validation of Word document shells, including style, numbering and final section requirements. |
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
@@ -144,6 +145,16 @@ styles and numbering are warnings with explicit fallbacks; an unreadable
 package, missing body or missing final section properties stops generation.
 The checker is read-only. Downstream composition and assembly tasks must run
 it before using a shell, surface warnings and apply the returned style map.
+
+**2026-11-18 — T-019-C paragraph renderer and unsupported-content handling.**
+`md_to_word.render_markdown(source, shell_path)` checks the shell before
+rendering and returns WordprocessingML blocks plus warnings and errors.
+Paragraphs and heading styles come from the shell's canonical style IDs;
+missing styles use the checker's explicit fallbacks. Bold, italic, their
+combination and hard line breaks become native Word run properties/elements.
+Unsupported inline constructs keep readable text where possible and return
+warnings; unsupported block constructs are omitted with an explicit warning.
+The renderer does not create tables or lists; those remain T-019-D/E.
 
 Newest last. Each entry: date, decision, why, consequences.
 
@@ -297,6 +308,8 @@ Newest last. Each entry: date, decision, why, consequences.
 ## Progress log
 
 Newest last.
+
+- **2026-11-18** T-019-C (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added `md_to_word.py` to render paragraphs, headings 1–3, hard line breaks, bold, italic and combined emphasis as WordprocessingML. Field placeholders are restored before rendering, shell style fallbacks are applied, and unsupported Markdown is surfaced as warnings. Added XML-level tests for each supported construct and fallback/error behavior.
 
 - **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. Build assets and real-Windows self-update validation remain outstanding.
 
