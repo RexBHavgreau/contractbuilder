@@ -47,18 +47,18 @@ Fields:
 ## Board
 
 Reviewed 2026-11-19 against the code, CI, releases and a hands-on test of the
-composer. Next free number: **T-034**.
+composer. Next free number: **T-035**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
 | [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | done | any | — |
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | done (2026-11-18, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)); v0.3.1 published with all three files | any | — |
-| [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open, ready: v0.3.1 is out | human | — |
+| [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | done (2026-11-19, Beaux); install error message to be described in T-034 | human | — |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
+| [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said | open | human | Beaux |
 | [T-033](#t-033-decide-whether-clause-numbering-continues-across-components) | Decide whether clause numbering continues across components | open | human | Beaux |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
@@ -96,13 +96,17 @@ composer. Next free number: **T-034**.
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 
 Suggested order: the update and release group (T-010 to T-015, T-017) is
-done except T-002, which is Beaux's, on a real Windows PC. For the component
+done. T-002 passed (2026-11-19) apart from an install error message that
+Beaux will describe in T-034. For the component
 builder: Beaux decides T-033 (numbering continuity), which gates the last
 item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
 and T-019-H (size, once the app imports the new modules) can run in parallel.
 Then T-020-F (round trip), T-022, T-023, T-024; T-029 and T-031 last.
-T-030 (real Word) can start now and should be repeated after T-033. T-018
-needs nothing from an agent until GitHub Support replies.
+T-030 (real Word) can start now and should be repeated after T-033.
+
+**Waiting, not a task:** GitHub Support's purge of the old commits behind
+pull requests #1 to #9 (details under T-018). Nobody needs to do anything
+until Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -117,8 +121,9 @@ T-009, T-013, T-016 (below the open tasks).
 
 ## T-018 Push the cleaned history and finish the clean-up
 
-- **Status:** open, waiting only for GitHub Support (pushed by Beaux and
-  verified by Claude, 2026-11-18)
+- **Status:** waiting on GitHub Support; no action for anyone else (all
+  other steps done, 2026-11-18 and 2026-11-19). Not counted as a task on the
+  board
 - **Size:** S
 - **Agent:** human
 - **Needs:** GitHub Support's reply. Other tasks no longer wait for this one.
@@ -166,22 +171,23 @@ Steps, in this order:
       still be fetched through pull requests #1 to #9 (checked 2026-11-18:
       Build 2's old commit through #1, Build 4's through #6). When Support
       replies, check again: `git fetch https://github.com/RexBHavgreau/contractbuilder.git refs/pull/6/head`
-      should no longer bring in commit `4becc60`. If Support declines, ask Beaux
+      should no longer bring in commit `4becc60`. (Checked 2026-11-19: not yet
+      purged. Pull request #6 still delivers `4becc60`, and #1 still delivers
+      Build 2 and Build 3's old commits.) If Support declines, ask Beaux
       whether to delete and recreate the repository, the only other way to
       remove pull-request copies (it loses issues, pull requests, releases and
       stars).
 - [x] **Forks.** On the repository page, Insights > Forks. There should be
       none (it was public for under a day). If there are, tell GitHub Support.
       (Verified 2026-11-18: 0 forks.)
-- [ ] **Old copies.** Any other clone of the repository (another computer,
-      ChatGPT or Codex workspaces, an extracted ZIP) still holds the old
-      history. Delete them and download or clone afresh.
+- [x] **Old copies.** Beaux confirmed 2026-11-19 that no copies were made
+      anywhere else.
 - [x] Tell Claude, or any agent, that it is done; it then reconnects its own
       working copy to the new history. (Done 2026-11-18: Claude's working copy
       matches GitHub, its old commits are purged, and its scratch copies of the
       old history and of the private list are deleted.)
 
-**Done when:** `main` on GitHub starts with the commit the script names, the
+**Done when (only the last part is open):** `main` on GitHub starts with the commit the script names, the
 next CI run on `main` is green with `test_no_details_from_real_contracts`
 passing (not skipped), and GitHub Support has confirmed the purge.
 
@@ -245,8 +251,9 @@ says so, and staff will reasonably think something is wrong.
       Control-click) the app, choose Open, then confirm. Once per computer.
 - [x] README.md: one line under "Build and releases" pointing at it
 - [x] Added the Windows update caveat as "should not" and explicitly marked it
-      unconfirmed; T-002 will verify it on a real PC and decide whether the
-      sentence stays.
+      unconfirmed. T-002 ran 2026-11-19 but did not say whether SmartScreen
+      warned after the self-update: ask Beaux, then keep or change the
+      sentence in USER-GUIDE.txt
 
 **Done when:** a colleague who has never seen the app can get it open on
 Windows from the guide alone.
@@ -330,10 +337,10 @@ step is now Beaux's.
 
 ## T-002 Confirm the 0.3.0 fixes on a real Windows PC
 
-- **Status:** open (first step confirmed 2026-11-18)
+- **Status:** done (2026-11-19, Beaux)
 - **Size:** S
 - **Agent:** human
-- **Needs:** — (v0.3.1 is published, so every step can be done now)
+- **Needs:** —
 
 Revised 2026-11-18: the repository is public, so no token is needed, and
 the token step has been removed.
@@ -353,7 +360,7 @@ the token step has been removed.
       SmartScreen warns this time; tell whoever does T-011
 - [x] Record the result in CLAUDE.md's Progress log; open a task for anything
       that failed, with `build-log.txt` or a screenshot
-Report 2026-11-19: Beaux ran it on his PC. Everything checks out except there was an error message on install, but it did not affect the running of the application.
+Report 2026-11-19: Beaux ran it on his PC. Everything checks out except there was an error message on install, but it did not affect the running of the application. The message is not yet recorded: T-034. Whether SmartScreen warned after the app updated itself was not reported either; T-011's sentence about that stays marked unconfirmed until Beaux says.
 
 ## T-008 Decide what to do with advanced_app.py
 
@@ -1186,6 +1193,28 @@ Reopen this task only if staff find they cannot do without one of them.
 - [x] Decided: all out of scope
 - [x] CLAUDE.md Decision log updated
 
+### T-034 Find out what the install error message said
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+During T-002 (2026-11-19) Beaux saw an error message while installing. The
+app ran normally afterwards, so it is not urgent, but the message could be
+from the Windows build, the self-update swap, or SmartScreen, and staff will
+see it too.
+
+- [ ] Beaux records exactly what it said (a screenshot or the words), which
+      step it came at (running the downloaded `.exe`, the update, or
+      `build-windows.bat`), and whether it appears every time
+- [ ] If it came during the self-update, attach `build-log.txt`, or look for
+      a `.exe.new` or batch file left beside the app
+- [ ] Also answer: did SmartScreen warn after the 0.3.0 app updated itself
+      to 0.3.1? (settles T-011's unconfirmed sentence)
+- [ ] An agent then opens a fix task, or closes this as harmless with the
+      reason written down
+
 ### T-033 Decide whether clause numbering continues across components
 
 - **Status:** open
@@ -1418,7 +1447,7 @@ personal email address as their author.
       differ only in the replaced words; all tests pass on `main` and on this
       branch
 - [x] Rehearsed the push against a stand-in copy of the repository
-- [ ] Push it, and the rest of the clean-up only Beaux can do: T-018
+- [x] Pushed (T-018); only GitHub Support's purge is outstanding
 
 Commit ids changed with the rewrite. The commit-id map is in the handover
 folder (`commit-map.txt`), for anyone who needs to follow an old id.
