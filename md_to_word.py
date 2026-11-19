@@ -20,7 +20,7 @@ from shell_check import ShellFinding, check_shell
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{%s}" % W_NS
 NS = {"w": W_NS}
-_HTML_TAG = re.compile(r"<\\s*/?\\s*[A-Za-z][^>]*>")
+_HTML_TAG = re.compile(r"<\s*/?\s*[A-Za-z][^>]*>")
 
 
 @dataclass(frozen=True)
