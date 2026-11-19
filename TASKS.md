@@ -729,7 +729,7 @@ two paragraphs, and a mixed paragraph-table-paragraph body.
 
 #### T-020-E Warnings for everything else
 
-- **Status:** done (2026-11-19, [PR pending])
+- **Status:** done (2026-11-19, [PR #22](https://github.com/RexBHavgreau/contractbuilder/pull/22))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-020-A
