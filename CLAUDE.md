@@ -155,7 +155,7 @@ missing styles use the checker's explicit fallbacks. Bold, italic, their
 combination and hard line breaks become native Word run properties/elements.
 Unsupported inline constructs keep readable text where possible and return
 warnings; unsupported block constructs are omitted with an explicit warning.
-The renderer does not create tables or lists; those remain T-019-D/E.
+The list and table tasks extend this renderer with native Word numbering and tables.
 
 Newest last. Each entry: date, decision, why, consequences.
 
@@ -308,6 +308,18 @@ Newest last. Each entry: date, decision, why, consequences.
 
 - **2026-11-19 — The last usable shell is remembered; a shell with errors never is.** `shell_selection.choose_shell` runs the T-026 checker on the file the user picked. A shell with warnings is remembered, because the user has read them and may continue; a shell with errors is reported and does not replace the remembered one. The path is stored in `shell-settings.json` in the per-user app folder, beside the update settings, and a missing, moved or damaged file means nothing is remembered rather than an error. If the settings cannot be written, the shell still works for this session and the user is told it was not remembered. Consequence: the picker dialog belongs to the component window (T-023-A/T-022-A), which calls this function; it is not in `simple_app.py` yet. Checker messages now name the Word style as users see it ("Heading 1", "Normal Table") rather than its internal ID; the IDs remain in finding codes and `style_fallbacks`.
 
+**2026-11-19 — T-019-D/E native list and table rendering.** Lists use real Word
+numbering. Each independent list gets a new numbering instance; ordered
+sub-lists share the shell's multi-level decimal definition, and their level
+determines the outline number. If a shell has only one bullet level, nested
+bullets reuse that valid level and use direct paragraph indentation rather
+than referencing missing numbering levels. Tables use native Word table,
+row, cell and grid elements; header rows repeat, alignment is mapped to
+paragraph alignment, and every cell contains a paragraph. The renderer
+returns new numbering definitions/instances separately from body elements.
+The composition task must merge them into the shell numbering part and
+remap numIds across component results. Rendering never modifies the shell.
+
 ## Progress log
 
 Newest last.
@@ -402,3 +414,5 @@ Newest last.
 - **2026-11-19** T-023-B (Claude): added `shell_selection.py`, which checks a picked shell with the T-026 checker, turns the findings into plain-English lines, and remembers the last shell that can be used in a per-user settings file. Checker messages now show Word's visible style names instead of style IDs. Added `tests/test_shell_selection.py` (17 tests, invented shells only). The file picker itself is not built yet; it belongs to the component window. Full suite: 167 passed, 1 skipped; `test_updates.py::test_successful_update_check_time_limits_only_automatic_checks` fails only because this sandbox's Python has no `tkinter` (it also fails on the untouched branch).
 
 - **2026-11-19** T-020-E (ChatGPT): DOCX import now reports unsupported body structures and package-level content with plain-English locations. Tracked changes are explicitly reported and read in Word's accepted view (insertions/move-to retained; deletions/move-from excluded). Added invented fixtures for drawings, equations, fields, content controls, notes, comments, page/section breaks, headers and footers; import remains read-only. Full suite: 173 passed.
+
+- **2026-11-19** T-019-D and T-019-E (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added native Word numbering for ordered and bulleted lists, independent list restart instances, three-level decimal outlines, unnumbered continuation paragraphs, nested bullet indentation, and native GFM tables with header rows, shell table styles, alignment, inline emphasis, protected fields and empty cells. The renderer returns numbering definitions/instances for the future composition step to merge; the shell remains read-only. CI: 185 tests passed.
