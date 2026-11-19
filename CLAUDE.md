@@ -42,7 +42,8 @@ trace.
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
-| `md_to_word.py` | Converts supported component Markdown blocks and inline formatting to WordprocessingML paragraphs and runs. |
+| `md_to_word.py` | Converts supported component Markdown blocks and inline formatting to WordprocessingML paragraphs, lists and tables. |
+| `docx_compose.py` | Builds a new DOCX from ordered Markdown components and a validated Word shell; preserves shell parts and merges/remaps list numbering. |
 | `shell_check.py` | Read-only validation of Word document shells, including style, numbering and final section requirements. |
 | `shell_selection.py` | Checks a picked shell, gives plain-English findings, and remembers the last shell that can be used. Does not change the shell file. |
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
@@ -155,7 +156,7 @@ missing styles use the checker's explicit fallbacks. Bold, italic, their
 combination and hard line breaks become native Word run properties/elements.
 Unsupported inline constructs keep readable text where possible and return
 warnings; unsupported block constructs are omitted with an explicit warning.
-The renderer does not create tables or lists; those remain T-019-D/E.
+The list and table tasks extend this renderer with native Word numbering and tables.
 
 Newest last. Each entry: date, decision, why, consequences.
 
@@ -308,6 +309,37 @@ Newest last. Each entry: date, decision, why, consequences.
 
 - **2026-11-19 — The last usable shell is remembered; a shell with errors never is.** `shell_selection.choose_shell` runs the T-026 checker on the file the user picked. A shell with warnings is remembered, because the user has read them and may continue; a shell with errors is reported and does not replace the remembered one. The path is stored in `shell-settings.json` in the per-user app folder, beside the update settings, and a missing, moved or damaged file means nothing is remembered rather than an error. If the settings cannot be written, the shell still works for this session and the user is told it was not remembered. Consequence: the picker dialog belongs to the component window (T-023-A/T-022-A), which calls this function; it is not in `simple_app.py` yet. Checker messages now name the Word style as users see it ("Heading 1", "Normal Table") rather than its internal ID; the IDs remain in finding codes and `style_fallbacks`.
 
+**2026-11-19 — T-019-D/E native list and table rendering.** Lists use real Word
+numbering. Each independent list gets a new numbering instance; ordered
+sub-lists share the shell's multi-level decimal definition, and their level
+determines the outline number. If a shell has only one bullet level, nested
+bullets reuse that valid level and use direct paragraph indentation rather
+than referencing missing numbering levels. Tables use native Word table,
+row, cell and grid elements; header rows repeat, alignment is mapped to
+paragraph alignment, and every cell contains a paragraph. The renderer
+returns new numbering definitions/instances separately from body elements.
+`docx_compose.compose_document` merges them into the shell numbering part,
+remaps abstract and instance IDs per component, and updates paragraph
+references before insertion. It creates a numbering part, relationship and
+content-type override when a shell lacks numbering. The shell is never
+modified; only its document body wording is replaced in the new output.
+
+**2026-11-19 — T-019-F/G shell composition and field-engine hand-off.**
+`docx_compose.compose_document(shell_path, components, output_path)` renders
+each component independently, replaces only the shell body, and retains the
+final section properties and all other shell package parts. It preserves
+component and block order, leaves the shell byte-for-byte unchanged, and
+writes through a temporary file. Generated numbering definitions and
+instances are merged into the shell numbering part; IDs and paragraph
+references are remapped per component so independent lists cannot collide.
+When a shell has no numbering part, the composer creates the part, document
+relationship and content-type override. The composed DOCX is then accepted by
+the existing `core.Template` and `core.render` pipeline without changing
+`core.py`: repeated fields are discovered once and filled in paragraphs,
+lists and tables; block conditionals can cross component boundaries, and
+inline conditionals work inside table cells. The tests cover both values of
+each condition and the existing `money-words` and `date-formal` formats.
+
 ## Progress log
 
 Newest last.
@@ -402,3 +434,7 @@ Newest last.
 - **2026-11-19** T-023-B (Claude): added `shell_selection.py`, which checks a picked shell with the T-026 checker, turns the findings into plain-English lines, and remembers the last shell that can be used in a per-user settings file. Checker messages now show Word's visible style names instead of style IDs. Added `tests/test_shell_selection.py` (17 tests, invented shells only). The file picker itself is not built yet; it belongs to the component window. Full suite: 167 passed, 1 skipped; `test_updates.py::test_successful_update_check_time_limits_only_automatic_checks` fails only because this sandbox's Python has no `tkinter` (it also fails on the untouched branch).
 
 - **2026-11-19** T-020-E (ChatGPT): DOCX import now reports unsupported body structures and package-level content with plain-English locations. Tracked changes are explicitly reported and read in Word's accepted view (insertions/move-to retained; deletions/move-from excluded). Added invented fixtures for drawings, equations, fields, content controls, notes, comments, page/section breaks, headers and footers; import remains read-only. Full suite: 173 passed.
+
+- **2026-11-19** T-019-D and T-019-E (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added native Word numbering for ordered and bulleted lists, independent list restart instances, three-level decimal outlines, unnumbered continuation paragraphs, nested bullet indentation, and native GFM tables with header rows, shell table styles, alignment, inline emphasis, protected fields and empty cells. The renderer returns numbering definitions/instances for the composer to merge; the shell remains read-only.
+
+- **2026-11-19** T-019-F and T-019-G (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added `docx_compose.py` to assemble ordered Markdown components into a new DOCX while preserving shell styles, headers, footers, page setup, relationships and final section properties. Numbering IDs are merged and remapped across components, including a generated numbering part when the shell lacks one. End-to-end tests prove field discovery and filling in paragraphs, lists and tables, conditional blocks across components and inside cells, and existing money/date formats. The shell remains byte-for-byte unchanged. CI run #160: 194 tests passed; Windows x64, macOS Intel and macOS Apple Silicon builds passed.
