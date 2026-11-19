@@ -113,9 +113,8 @@ def _part_warnings(package: zipfile.ZipFile, names: set[str]):
             yield DocxImportWarning(message, label)
 
 
-def _scan_paragraph(paragraph, paragraph_number: int, warnings: list):
+def _scan_paragraph(paragraph, location: str, warnings: list):
     """Report Word features whose formatting or separate content is not imported."""
-    location = f"paragraph {paragraph_number}"
     checks = (
         (W + "drawing", "Images, drawings and floating shapes are not imported; surrounding paragraph text is kept."),
         (W + "pict", "Legacy images and drawing objects are not imported; surrounding paragraph text is kept."),
@@ -184,12 +183,18 @@ def import_docx(path: str | Path) -> DocxImport:
     for child in body:
         if child.tag == W + "p":
             paragraph_number += 1
-            _scan_paragraph(child, paragraph_number, warnings)
+            _scan_paragraph(child, f"paragraph {paragraph_number}", warnings)
             value = _paragraph_text(child).strip()
             if value:
                 blocks.append(value)
         elif child.tag == W + "tbl":
             table_number += 1
+            for row_number, row in enumerate(child.findall("w:tr", NS), 1):
+                for cell_number, cell in enumerate(row.findall("w:tc", NS), 1):
+                    for para_number, paragraph in enumerate(cell.findall("w:p", NS), 1):
+                        location = (f"table {table_number}, row {row_number}, cell {cell_number}, "
+                                    f"paragraph {para_number}")
+                        _scan_paragraph(paragraph, location, warnings)
             value = _table_markdown(child)
             if value:
                 blocks.append(value)
