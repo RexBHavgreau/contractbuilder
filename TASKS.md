@@ -729,18 +729,18 @@ two paragraphs, and a mixed paragraph-table-paragraph body.
 
 #### T-020-E Warnings for everything else
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR pending])
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-020-A
 
-- [ ] Report images, drawings and floating shapes, equations, footnotes and
+- [x] Report images, drawings and floating shapes, equations, footnotes and
       endnotes, comments, tracked changes, content controls, section and
       page breaks, headers and footers (not imported, by design), and
       unusual Word fields
-- [ ] Tracked changes: report them and import the accepted text (final
+- [x] Tracked changes: report them and import the accepted text (final
       view), saying so
-- [ ] Never drop text silently: every dropped run is accounted for in a
+- [x] Never drop text silently: every dropped run is accounted for in a
       warning
 
 **Done when:** one invented fixture per structure yields the expected

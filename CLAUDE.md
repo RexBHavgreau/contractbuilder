@@ -312,6 +312,8 @@ Newest last. Each entry: date, decision, why, consequences.
 
 Newest last.
 
+- **2026-11-19** T-020-E (ChatGPT): DOCX import now reports unsupported body structures and package-level content with plain-English locations. Tracked changes are explicitly reported and read in Word's accepted view (insertions/move-to retained; deletions/move-from excluded). Added invented fixtures for drawings, equations, fields, content controls, notes, comments, page/section breaks, headers and footers; import remains read-only.
+
 - **2026-11-18** T-019-C (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added `md_to_word.py` to render paragraphs, headings 1–3, hard line breaks, bold, italic and combined emphasis as WordprocessingML. Field placeholders are restored before rendering, shell style fallbacks are applied, and unsupported Markdown is surfaced as warnings. Added XML-level tests for each supported construct and fallback/error behavior.
 
 - **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. Build assets and real-Windows self-update validation remain outstanding.
