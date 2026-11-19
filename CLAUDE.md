@@ -61,7 +61,7 @@ trace.
 
 ## Working on it
 
-- Python 3.9+. `pip install lxml openpyxl pytest python-docx`, then
+- Python 3.9+. `pip install -r requirements.txt pytest python-docx` (the app needs lxml, openpyxl, markdown-it-py and mdurl), then
   `python -m pytest tests`. Every change keeps the suite green and adds
   tests for new behaviour.
 - To see the window on a headless Linux box: install `python3-tk`, run under
@@ -315,7 +315,7 @@ Newest last.
 
 - **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
 
-- **2026-11-18** T-020-G and T-028 (ChatGPT, PR pending): added UTF-8 Markdown
+- **2026-11-18** T-020-G and T-028 (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added UTF-8 Markdown
   file import/export with BOM support and non-destructive warnings for raw
   HTML, images and footnotes; added bundled MIT notices for markdown-it-py
   and mdurl, displayed through Help and included in Windows/macOS builds.

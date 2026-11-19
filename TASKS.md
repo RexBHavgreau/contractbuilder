@@ -46,7 +46,7 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-18, revised for the component-builder proposal. Next free number: **T-033**.
+Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -55,8 +55,8 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
-| [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | open | any | T-010, T-011, T-012 |
-| [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open | human | T-015 for its last step |
+| [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | done (2026-11-18, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)); v0.3.1 published with all three files | any | — |
+| [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open, ready: v0.3.1 is out | human | — |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
@@ -65,21 +65,21 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
-| ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | open | careful | A, B, T-026 |
+| ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
 | ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | open | careful | C, T-026 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | open | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | open | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | open | any | F |
 | ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | open | careful | B, T-027 |
-| [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | claimed (ChatGPT, 2026-11-18) | any | T-019-B |
+| [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
-| ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | open | any | — |
+| ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | — |
 | ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
 | ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B |
 | ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
 | ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | open | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
-| ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | claimed (ChatGPT, 2026-11-18) | any | T-019-B |
+| ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
 | ↳ T-021-A to T-021-E | Schema version and backup; components and versions; assemblies; archive; storage module | open | careful | in order |
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
@@ -93,17 +93,16 @@ Reviewed 2026-11-18, revised for the component-builder proposal. Next free numbe
 | [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | T-019-F, T-020-B |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 
-Suggested order: T-010, T-011, T-012, T-014 (any order; all small, and none
-touches the same lines as another except T-010 and T-012, which both edit
-`update_checker.py`: do them one after the other), then T-015, then the rest
-of T-002. T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
+Suggested order: T-010 to T-015 and T-017 are done; what is left of that
+group is T-002 (Beaux, on a real Windows PC). T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
 agreed component-builder direction. Component builder order: first the three
 things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
-T-027 (size check); T-025 (numbering) is already decided; then T-019-B to
-T-019-H, with T-020 (importer) starting once T-019-A and T-019-B are done;
-T-021 (storage) can run alongside either; T-028 after T-019-B; then T-022,
+T-027 (size check) and T-025 (numbering), plus T-019-A to T-019-C, T-020-A,
+T-020-G and T-028, are done. Next: T-019-D (lists) and T-019-E (tables),
+then T-019-F to T-019-H; T-020-B to T-020-F (importer) and T-021 (storage)
+can run alongside; then T-022,
 T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
-T-017 any time. T-018 needs nothing from an agent until GitHub Support replies.
+T-018 needs nothing from an agent until GitHub Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -308,7 +307,7 @@ all tests pass.
 
 ## T-015 Release 0.3.1 to prove self-update end to end
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-010, T-011 and T-012 merged (so the release carries them)
@@ -317,11 +316,15 @@ Self-update has only been tested piecewise on Linux. The first real test is
 a 0.3.0 app updating itself to a newer release, and the changes above are
 worth releasing anyway.
 
-- [ ] Raise `APP_VERSION` in `version.py` to `0.3.1`, in its own pull request
-- [ ] After merging, confirm CI publishes the v0.3.1 release with
+- [x] Raise `APP_VERSION` in `version.py` to `0.3.1`, in its own pull request
+- [x] After merging, confirm CI publishes the v0.3.1 release with
       `Word-Template-Filler-windows-x64.exe` attached and a `digest` on it
       (the updater checks it)
-- [ ] Hand over to Beaux for T-002's last step
+- [x] Hand over to Beaux for T-002's last step
+
+Checked 2026-11-19: the v0.3.1 release has `Word-Template-Filler-windows-x64.exe`
+(17,800,891 bytes, with a SHA-256 digest) and both macOS zips. T-002's last
+step is now Beaux's.
 
 **Done when:** the v0.3.1 release exists with all three files.
 
@@ -330,7 +333,7 @@ worth releasing anyway.
 - **Status:** open (first step confirmed 2026-11-18)
 - **Size:** S
 - **Agent:** human
-- **Needs:** T-015 for the last step only
+- **Needs:** — (v0.3.1 is published, so every step can be done now)
 
 Revised 2026-11-18: the repository is public, so no token is needed, and
 the token step has been removed.
@@ -595,6 +598,14 @@ template workflow's tests use.
 - [ ] Stay at or below 30 MB (31,457,280 bytes); if the margin is under
       3 MB, say so and name the next likely cost
 
+**Caution (found 2026-11-19):** the v0.3.1 executable is 17,800,891 bytes,
+only about 5 KB more than v0.3.0, although markdown-it-py is installed in
+the build. PyInstaller bundles only what the app imports, and `simple_app.py`
+does not yet import the component-builder modules. So T-027's check passes
+trivially and proves nothing about the real cost. Measure again once the
+app imports `md_parse` and `md_to_word` (first at T-022-A or T-023), or
+build a test executable that imports them now.
+
 **Done when:** the measured numbers are in CLAUDE.md and T-027's check is
 green.
 
@@ -648,7 +659,7 @@ in the right order, fields intact, and every unsupported structure reported.
 
 #### T-020-A Read the package and the body in order
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -751,7 +762,7 @@ warning, and the warning text is plain English.
 
 #### T-020-G Markdown file import and export
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-B
@@ -1206,7 +1217,7 @@ bytes.
 
 ### T-028 Include third-party licence notices
 
-- **Status:** claimed (ChatGPT, 2026-11-18)
+- **Status:** done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-019-B
@@ -1214,12 +1225,12 @@ bytes.
 markdown-it-py and mdurl are MIT licensed; the notice must travel with the
 app.
 
-- [ ] A `THIRD-PARTY-LICENSES.txt` with each package's name, version,
+- [x] A `THIRD-PARTY-LICENSES.txt` with each package's name, version,
       copyright line and licence text (copy from the installed packages; do
       not invent the text)
-- [ ] Bundle it with the app (the PyInstaller `--add-data`, like the guide)
+- [x] Bundle it with the app (the PyInstaller `--add-data`, like the guide)
       and show it from Help
-- [ ] A test that fails when a runtime dependency has no entry
+- [x] A test that fails when a runtime dependency has no entry
 
 **Done when:** the file is in the packaged app and the test passes.
 
