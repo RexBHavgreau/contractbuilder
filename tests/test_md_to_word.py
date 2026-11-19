@@ -289,7 +289,7 @@ def test_ordered_lists_reuse_shell_decimal_outline(tmp_path):
     numbering.append(num)
     document.save(path)
 
-    result = md_to_word.render_markdown("1. First\\n   1. Nested", path)
+    result = md_to_word.render_markdown("1. First\n   1. Nested", path)
     assert not any(item.tag == "{%s}abstractNum" % W for item in result.numbering)
     instance = next(item for item in result.numbering if item.tag == "{%s}num" % W)
     assert instance.find("w:abstractNumId", NS).get("{%s}val" % W) == "99"
@@ -297,7 +297,7 @@ def test_ordered_lists_reuse_shell_decimal_outline(tmp_path):
 
 def test_typed_ordered_digits_are_not_rendered_as_text(tmp_path):
     result = md_to_word.render_markdown(
-        "7. First item\\n9. Second item",
+        "7. First item\n9. Second item",
         make_shell(tmp_path / "shell.docx"),
     )
     paragraphs = [item for item in result.elements if item.tag == "{%s}p" % W]
@@ -310,8 +310,8 @@ def test_typed_ordered_digits_are_not_rendered_as_text(tmp_path):
 
 def test_reordered_list_items_remain_native_and_follow_source_order(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
-    first = md_to_word.render_markdown("1. Alpha\\n2. Beta", shell)
-    moved = md_to_word.render_markdown("2. Beta\\n1. Alpha", shell)
+    first = md_to_word.render_markdown("1. Alpha\n2. Beta", shell)
+    moved = md_to_word.render_markdown("2. Beta\n1. Alpha", shell)
     def texts(result):
         return ["".join(item.xpath(".//w:t/text()", namespaces=NS))
                 for item in result.elements if item.tag == "{%s}p" % W]
