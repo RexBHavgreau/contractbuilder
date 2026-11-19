@@ -66,8 +66,8 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
-| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | open | careful | C, T-026 |
-| ↳ [T-019-E](#t-019-e-render-tables) | Tables | open | careful | C, T-026 |
+| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
+| ↳ [T-019-E](#t-019-e-render-tables) | Tables | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | open | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | open | any | F |
 | ↳ [T-019-H](#t-019-h-measure-the-release-size) | Measure the release size | open | careful | B, T-027 |
@@ -508,23 +508,23 @@ from the shell, not hard-coded fonts. (Done.)
 
 #### T-019-D Render lists with native Word numbering
 
-- **Status:** claimed (ChatGPT, 2026-11-19)
+- **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026 (T-025 is decided; see it)
 
-- [ ] Bulleted and numbered lists, including nested lists, as real Word
+- [x] Bulleted and numbered lists, including nested lists, as real Word
       numbering (`w:numPr`), never typed numbers
-- [ ] Use the shell's numbering definitions (T-026); add new `w:num`
+- [x] Use the shell's numbering definitions (T-026); add new `w:num`
       instances so each numbered list restarts correctly
-- [ ] Implement T-025's decision: nested ordered lists become one
+- [x] Implement T-025's decision: nested ordered lists become one
       multi-level decimal outline (1., 1.1, 1.1.1) with at least three
       levels; position in the nesting decides the number, not the digits
       typed in the Markdown; read each level's format from the shell's
       definition rather than hard-coding it
-- [ ] A continuation paragraph indented under a list item stays with that
+- [x] A continuation paragraph indented under a list item stays with that
       clause, unnumbered
-- [ ] Tests: two separate numbered lists both start at 1; nesting to three
+- [x] Tests: two separate numbered lists both start at 1; nesting to three
       levels gives 1, 1.1, 1.1.1; items typed as `7.` still number from 1;
       moving an item renumbers; a field in a list item; a continuation
       paragraph
@@ -534,17 +534,17 @@ and the numbering restarts as expected.
 
 #### T-019-E Render tables
 
-- **Status:** claimed (ChatGPT, 2026-11-19)
+- **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026
 
-- [ ] GFM tables as native `w:tbl` with header row marked, column count
+- [x] GFM tables as native `w:tbl` with header row marked, column count
       consistent, and the shell's table style
-- [ ] Inline emphasis and fields inside cells; the pipe case from T-019-A
-- [ ] Column alignment from the Markdown (`:---`, `:---:`, `---:`) where the
+- [x] Inline emphasis and fields inside cells; the pipe case from T-019-A
+- [x] Column alignment from the Markdown (`:---`, `:---:`, `---:`) where the
       shell allows
-- [ ] Empty cells are valid (a cell needs a paragraph)
+- [x] Empty cells are valid (a cell needs a paragraph)
 
 **Done when:** tests check structure and that a `{{Fee | money-words}}`
 inside a cell survives and is fillable.
