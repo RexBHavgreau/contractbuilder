@@ -154,7 +154,7 @@ def test_separate_ordered_lists_get_separate_restarting_instances(tmp_path):
 
 def test_nested_ordered_lists_use_three_decimal_outline_levels(tmp_path):
     result = md_to_word.render_markdown(
-        "7. Parent\n   4. Child\n      9. Grandchild\n8. Next parent",
+        "7. Parent\n    4. Child\n        9. Grandchild\n8. Next parent",
         make_shell(tmp_path / "shell.docx"),
     )
     paragraphs = [item for item in result.elements if item.tag == "{%s}p" % W]
