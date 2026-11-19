@@ -46,27 +46,29 @@ Fields:
 
 ## Board
 
-Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033**.
+Reviewed 2026-11-19 against the code, CI, releases and a hands-on test of the
+composer. Next free number: **T-035**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-018](#t-018-push-the-cleaned-history-and-finish-the-clean-up) | Clean-up done except GitHub Support's purge | open, waiting for Support | human | GitHub Support |
 | [T-010](#t-010-finish-going-public-stop-telling-users-the-repository-is-private) | Stop telling users the repository is private | done | any | — |
 | [T-011](#t-011-tell-users-what-windows-and-macos-will-say-about-an-unsigned-app) | Explain the SmartScreen / Gatekeeper warnings | done | any | — |
 | [T-012](#t-012-cope-with-githubs-limit-on-unsigned-update-checks) | Cope with GitHub's limit on update checks | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | [T-014](#t-014-stop-testssamplepy-pointing-at-the-deleted-examples-folder) | Tidy `tests/sample.py` after `examples/` was deleted | done | any | — |
 | [T-015](#t-015-release-031-to-prove-self-update-end-to-end) | Release 0.3.1 to prove self-update end to end | done (2026-11-18, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)); v0.3.1 published with all three files | any | — |
-| [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | open, ready: v0.3.1 is out | human | — |
+| [T-002](#t-002-confirm-the-030-fixes-on-a-real-windows-pc) | Confirm the build and updates on a real Windows PC | done (2026-11-19, Beaux); install error message to be described in T-034 | human | — |
 | [T-008](#t-008-decide-what-to-do-with-advanced_apppy) | Decide the future of `advanced_app.py` | done | human | — |
+| [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said | open | human | Beaux |
+| [T-033](#t-033-decide-whether-clause-numbering-continues-across-components) | Decide whether clause numbering continues across components | open | human | Beaux |
 | [T-025](#t-025-decide-clause-numbering-and-legal-formatting-scope) | Clause numbering: nested lists as decimal outline | done for numbering (2026-11-18) | human | — |
 | [T-032](#t-032-decide-extra-legal-formatting-for-components) | Extra legal formatting (underline, page break, signature blocks): out of scope | done (2026-11-18) | human | — |
 | [T-026](#t-026-define-the-word-shell-contract-and-ship-a-sample-shell) | Define the Word shell contract and checker | done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)) | careful | — |
 | [T-027](#t-027-keep-the-windows-executable-within-30-mb-in-ci) | Fail CI if the Windows executable passes 30 MB | done | any | — |
-| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open | careful | — |
+| [T-019](#t-019-prototype-markdown-to-word-composition) | Prototype Markdown-to-Word composition (umbrella) | open: T-019-D has one item reopened, T-019-H waits | careful | — |
 | ↳ [T-019-A](#t-019-a-spike-protect-fields-from-markdown-and-hand-off-to-core) | Spike: protect fields from Markdown; hand off to core | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | — |
 | ↳ [T-019-B](#t-019-b-add-the-dependency-and-the-configured-parser) | Add markdown-it-py and the table-enabled parser | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 | ↳ [T-019-C](#t-019-c-render-paragraphs-headings-and-inline-emphasis) | Paragraphs, headings, bold, italic | done (2026-11-18, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)) | careful | A, B, T-026 |
-| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
+| ↳ [T-019-D](#t-019-d-render-lists-with-native-word-numbering) | Lists as decimal outline, native numbering | **reopened (one item):** lists restart is not true when rendered; see T-033 | careful | C, T-026, T-033 |
 | ↳ [T-019-E](#t-019-e-render-tables) | Tables | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, T-026 |
 | ↳ [T-019-F](#t-019-f-compose-the-document-from-a-shell) | Compose the document from a shell | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | careful | C, D, E |
 | ↳ [T-019-G](#t-019-g-end-to-end-through-the-field-engine) | End to end through the field engine | done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) | any | F |
@@ -85,23 +87,26 @@ Reviewed 2026-11-19 against the code, CI and releases. Next free number: **T-033
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
 | ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
 | [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
-| ↳ T-023-A to T-023-E | Browser; choose shell; order components; review; fill and generate | open | careful | see task |
+| ↳ T-023-A to T-023-E | Browser; choose shell (checking and remembering done, picker waits for the window); order components; review; fill and generate | open | careful | see task |
 | [T-024](#t-024-saved-assembly-revisions-and-deliberate-updates) | Saved revisions and deliberate updates (umbrella) | open | careful | T-021-E, T-023-C |
 | ↳ T-024-A to T-024-D | Save and reopen; list newer; review and choose; reproducibility tests | open | careful | see task |
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | T-021-E, T-020-G |
-| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open | human | T-019-F |
+| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready (T-019-F is done); include the numbering check from T-033 | human | — |
 | [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | T-019-F, T-020-B |
 | [T-017](#t-017-show-plain-english-release-notes-in-the-update-dialog) | Plain-English "what's new" in the update dialog | done (2026-11-18, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)) | any | — |
 
-Suggested order: T-010 to T-015 and T-017 are done; what is left of that
-group is T-002 (Beaux, on a real Windows PC). T-008 is complete; see [PROPOSAL-001.md](PROPOSAL-001.md) for the
-agreed component-builder direction. Component builder order: first the three
-things nothing waits on, T-019-A (the spike), T-026 (shell contract) and
-T-027 (size check) and T-025 (numbering), plus T-019-A to T-019-C, T-020-A,
-T-020-G and T-028, are done. Next: T-019-H; T-020-B to T-020-D (importer) and T-021 (storage) can run
-alongside; then T-020-F (round trip), T-022,
-T-023, T-024; T-029 and T-031 last. T-030 is Beaux's, once T-019-F exists.
-T-018 needs nothing from an agent until GitHub Support replies.
+Suggested order: the update and release group (T-010 to T-015, T-017) is
+done. T-002 passed (2026-11-19) apart from an install error message that
+Beaux will describe in T-034. For the component
+builder: Beaux decides T-033 (numbering continuity), which gates the last
+item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
+and T-019-H (size, once the app imports the new modules) can run in parallel.
+Then T-020-F (round trip), T-022, T-023, T-024; T-029 and T-031 last.
+T-030 (real Word) can start now and should be repeated after T-033.
+
+**Waiting, not a task:** GitHub Support's purge of the old commits behind
+pull requests #1 to #9 (details under T-018). Nobody needs to do anything
+until Support replies.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -116,8 +121,9 @@ T-009, T-013, T-016 (below the open tasks).
 
 ## T-018 Push the cleaned history and finish the clean-up
 
-- **Status:** open, waiting only for GitHub Support (pushed by Beaux and
-  verified by Claude, 2026-11-18)
+- **Status:** waiting on GitHub Support; no action for anyone else (all
+  other steps done, 2026-11-18 and 2026-11-19). Not counted as a task on the
+  board
 - **Size:** S
 - **Agent:** human
 - **Needs:** GitHub Support's reply. Other tasks no longer wait for this one.
@@ -165,22 +171,23 @@ Steps, in this order:
       still be fetched through pull requests #1 to #9 (checked 2026-11-18:
       Build 2's old commit through #1, Build 4's through #6). When Support
       replies, check again: `git fetch https://github.com/RexBHavgreau/contractbuilder.git refs/pull/6/head`
-      should no longer bring in commit `4becc60`. If Support declines, ask Beaux
+      should no longer bring in commit `4becc60`. (Checked 2026-11-19: not yet
+      purged. Pull request #6 still delivers `4becc60`, and #1 still delivers
+      Build 2 and Build 3's old commits.) If Support declines, ask Beaux
       whether to delete and recreate the repository, the only other way to
       remove pull-request copies (it loses issues, pull requests, releases and
       stars).
 - [x] **Forks.** On the repository page, Insights > Forks. There should be
       none (it was public for under a day). If there are, tell GitHub Support.
       (Verified 2026-11-18: 0 forks.)
-- [ ] **Old copies.** Any other clone of the repository (another computer,
-      ChatGPT or Codex workspaces, an extracted ZIP) still holds the old
-      history. Delete them and download or clone afresh.
+- [x] **Old copies.** Beaux confirmed 2026-11-19 that no copies were made
+      anywhere else.
 - [x] Tell Claude, or any agent, that it is done; it then reconnects its own
       working copy to the new history. (Done 2026-11-18: Claude's working copy
       matches GitHub, its old commits are purged, and its scratch copies of the
       old history and of the private list are deleted.)
 
-**Done when:** `main` on GitHub starts with the commit the script names, the
+**Done when (only the last part is open):** `main` on GitHub starts with the commit the script names, the
 next CI run on `main` is green with `test_no_details_from_real_contracts`
 passing (not skipped), and GitHub Support has confirmed the purge.
 
@@ -244,8 +251,9 @@ says so, and staff will reasonably think something is wrong.
       Control-click) the app, choose Open, then confirm. Once per computer.
 - [x] README.md: one line under "Build and releases" pointing at it
 - [x] Added the Windows update caveat as "should not" and explicitly marked it
-      unconfirmed; T-002 will verify it on a real PC and decide whether the
-      sentence stays.
+      unconfirmed. T-002 ran 2026-11-19 but did not say whether SmartScreen
+      warned after the self-update: ask Beaux, then keep or change the
+      sentence in USER-GUIDE.txt
 
 **Done when:** a colleague who has never seen the app can get it open on
 Windows from the guide alone.
@@ -329,10 +337,10 @@ step is now Beaux's.
 
 ## T-002 Confirm the 0.3.0 fixes on a real Windows PC
 
-- **Status:** open (first step confirmed 2026-11-18)
+- **Status:** done (2026-11-19, Beaux)
 - **Size:** S
 - **Agent:** human
-- **Needs:** — (v0.3.1 is published, so every step can be done now)
+- **Needs:** —
 
 Revised 2026-11-18: the repository is public, so no token is needed, and
 the token step has been removed.
@@ -352,7 +360,7 @@ the token step has been removed.
       SmartScreen warns this time; tell whoever does T-011
 - [x] Record the result in CLAUDE.md's Progress log; open a task for anything
       that failed, with `build-log.txt` or a screenshot
-Report 2026-11-19: Beaux ran it on his PC. Everything checks out except there was an error message on install, but it did not affect the running of the application.
+Report 2026-11-19: Beaux ran it on his PC. Everything checks out except there was an error message on install, but it did not affect the running of the application. The message is not yet recorded: T-034. Whether SmartScreen warned after the app updated itself was not reported either; T-011's sentence about that stays marked unconfirmed until Beaux says.
 
 ## T-008 Decide what to do with advanced_app.py
 
@@ -507,7 +515,7 @@ from the shell, not hard-coded fonts. (Done.)
 
 #### T-019-D Render lists with native Word numbering
 
-- **Status:** done (2026-11-19, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25))
+- **Status:** reopened 2026-11-19: all done ([PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)) except the restart item below
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-C, T-026 (T-025 is decided; see it)
@@ -515,7 +523,19 @@ from the shell, not hard-coded fonts. (Done.)
 - [x] Bulleted and numbered lists, including nested lists, as real Word
       numbering (`w:numPr`), never typed numbers
 - [x] Use the shell's numbering definitions (T-026); add new `w:num`
-      instances so each numbered list restarts correctly
+      instances for each list
+- [ ] **Behave as T-033 decides, and prove it by rendering.** Found
+      2026-11-19: every list gets its own `w:num`, but they all point at the
+      same abstract definition and carry no `w:lvlOverride` /
+      `w:startOverride`. Composing `1. Alpha / 2. Beta` then `1. Gamma /
+      2. Delta` and converting to text with LibreOffice gives 1, 2, 3, 4:
+      the second list does not restart. Word is reported to behave the same
+      way (check in T-030). So the test "two separate numbered lists both
+      start at 1" passes only because it compares `numId` values, not what
+      Word shows. Either add `startOverride` (restart) or share one `w:num`
+      (continue), as T-033 decides, and add a test that works out the shown
+      numbers from `numbering.xml` semantics (or renders with LibreOffice
+      when available) instead of comparing ids
 - [x] Implement T-025's decision: nested ordered lists become one
       multi-level decimal outline (1., 1.1, 1.1.1) with at least three
       levels; position in the nesting decides the number, not the digits
@@ -1173,6 +1193,60 @@ Reopen this task only if staff find they cannot do without one of them.
 - [x] Decided: all out of scope
 - [x] CLAUDE.md Decision log updated
 
+### T-034 Find out what the install error message said
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+During T-002 (2026-11-19) Beaux saw an error message while installing. The
+app ran normally afterwards, so it is not urgent, but the message could be
+from the Windows build, the self-update swap, or SmartScreen, and staff will
+see it too.
+
+- [ ] Beaux records exactly what it said (a screenshot or the words), which
+      step it came at (running the downloaded `.exe`, the update, or
+      `build-windows.bat`), and whether it appears every time
+- [ ] If it came during the self-update, attach `build-log.txt`, or look for
+      a `.exe.new` or batch file left beside the app
+- [ ] Also answer: did SmartScreen warn after the 0.3.0 app updated itself
+      to 0.3.1? (settles T-011's unconfirmed sentence)
+- [ ] An agent then opens a fix task, or closes this as harmless with the
+      reason written down
+
+### T-033 Decide whether clause numbering continues across components
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+T-025 settled how clauses are numbered inside one list (1., 1.1, 1.1.1). It
+did not say what happens when two components each contain a numbered list.
+Today, by accident, the numbers **continue** across components (1, 2 in the
+first, 3, 4 in the second), while T-019-D's test says they should **restart**
+at 1. Assembling a contract from components makes this matter: a "Payment"
+component after a "Term" component would otherwise start again at clause 1,
+or continue, depending on a Word detail nobody chose.
+
+Options:
+
+1. **Continue across the whole document (recommended default).** Clause
+   numbers run through the assembled contract; an assembly entry can carry a
+   "restart numbering here" tick for a schedule or exhibit. Matches how most
+   contracts read, and needs the least thought from staff.
+2. **Restart in every component.** Each component's top-level list begins at
+   1. Simple to reason about, but an assembled contract would show repeated
+   "1." clauses unless each component holds all its clauses in one list.
+3. **Per component choice** stored in the component (a setting, not
+   Markdown syntax), defaulting to option 1.
+
+- [ ] Beaux chooses; record in CLAUDE.md's Decision log
+- [ ] T-019-D implements it and proves it (its reopened item); T-023-C shows
+      the restart tick if option 1 or 3 is chosen
+- [ ] T-030 checks it in real Word and on macOS
+
 ### T-026 Define the Word shell contract and ship a sample shell
 
 - **Status:** done (2026-11-18, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18))
@@ -1264,7 +1338,7 @@ accumulated work, kept on one PC. Losing it must not be possible by accident.
 
 ### T-030 Check generated documents in real Word
 
-- **Status:** open
+- **Status:** open, ready to start (T-019-F is done)
 - **Size:** S
 - **Agent:** human
 - **Needs:** T-019-F
@@ -1373,7 +1447,7 @@ personal email address as their author.
       differ only in the replaced words; all tests pass on `main` and on this
       branch
 - [x] Rehearsed the push against a stand-in copy of the repository
-- [ ] Push it, and the rest of the clean-up only Beaux can do: T-018
+- [x] Pushed (T-018); only GitHub Support's purge is outstanding
 
 Commit ids changed with the rewrite. The commit-id map is in the handover
 folder (`commit-map.txt`), for anyone who needs to follow an old id.
