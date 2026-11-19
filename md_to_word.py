@@ -242,7 +242,8 @@ def _new_num(abstract_id: str, num_id: int) -> etree._Element:
     return number
 
 
-def _add_num_pr(paragraph: etree._Element, num_id: int, level: int) -> None:
+def _add_num_pr(paragraph: etree._Element, num_id: int, level: int,
+                bullet_depth: int = 0) -> None:
     ppr = paragraph.find("w:pPr", NS)
     if ppr is None:
         ppr = etree.Element(W + "pPr")
@@ -252,6 +253,15 @@ def _add_num_pr(paragraph: etree._Element, num_id: int, level: int) -> None:
     ilvl.set(_tag("val"), str(level))
     num = etree.SubElement(num_pr, W + "numId")
     num.set(_tag("val"), str(num_id))
+    # Many Word shells define only one bullet level. Keep using that shell
+    # definition and express nested bullet indentation directly, rather than
+    # referencing a nonexistent ilvl 1 or 2.
+    if bullet_depth:
+        ind = ppr.find("w:ind", NS)
+        if ind is None:
+            ind = etree.SubElement(ppr, W + "ind")
+        ind.set(_tag("left"), str(720 * (bullet_depth + 1)))
+        ind.set(_tag("hanging"), "360")
 
 
 def _table(tokens: Sequence[object], start: int, style_id: str | None,
@@ -346,14 +356,15 @@ def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRender
         kind = "ordered" if ordered else "bullet"
         if parent and parent["kind"] == kind:
             num_id = parent["num_id"]
-            level = min(parent["level"] + 1, 2)
+            level = min(parent["level"] + 1, 2) if ordered else 0
         else:
             num_id = next_num_id
             next_num_id += 1
             numbering.append(_new_num(decimal_id if ordered else bullet_id, num_id))
             level = min(parent["level"] + 1, 2) if parent and parent["kind"] == "bullet" and ordered else 0
+        depth = parent["depth"] + 1 if parent else 0
         list_stack.append({"kind": kind, "num_id": num_id, "level": level,
-                           "first_paragraph": True, "in_item": False})
+                           "depth": depth, "first_paragraph": True, "in_item": False})
 
     index = 0
     while index < len(tokens):
@@ -393,7 +404,8 @@ def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRender
             if not is_heading and list_stack and list_stack[-1]["in_item"]:
                 context = list_stack[-1]
                 if context["first_paragraph"]:
-                    _add_num_pr(paragraph, context["num_id"], context["level"])
+                    _add_num_pr(paragraph, context["num_id"], context["level"],
+                                context["depth"] if context["kind"] == "bullet" else 0)
                     context["first_paragraph"] = False
             index += 1
             if index < len(tokens) and tokens[index].type == "inline":
