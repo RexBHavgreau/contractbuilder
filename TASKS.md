@@ -342,17 +342,18 @@ the token step has been removed.
       with `Word-Template-Filler-windows-x64.exe` attached (checked
       2026-11-18: run 44 green; the release also has both macOS builds, each
       with a SHA-256 digest)
-- [ ] On Beaux's PC, `build-windows.bat` builds `dist\Word Template Filler 0.3.0.exe`;
+- [x] On Beaux's PC, `build-windows.bat` builds `dist\Word Template Filler 0.3.0.exe`;
       `build-log.txt` reads as normal text (no "L o o k i n g") and lists
       Python 3.14 as `accepted`
-- [ ] Download `Word-Template-Filler-windows-x64.exe` from the v0.3.0
+- [x] Download `Word-Template-Filler-windows-x64.exe` from the v0.3.0
       release page and run it once. Note whether SmartScreen warns (T-011)
-- [ ] Help > Check for updates says 0.3.0 is the latest, with no token set
-- [ ] When v0.3.1 is out (T-015): the 0.3.0 app offers it, downloads it,
+- [x] Help > Check for updates says 0.3.0 is the latest, with no token set
+- [x] When v0.3.1 is out (T-015): the 0.3.0 app offers it, downloads it,
       closes and reopens as 0.3.1 (title bar shows 0.3.1). Note whether
       SmartScreen warns this time; tell whoever does T-011
-- [ ] Record the result in CLAUDE.md's Progress log; open a task for anything
+- [x] Record the result in CLAUDE.md's Progress log; open a task for anything
       that failed, with `build-log.txt` or a screenshot
+Report 2026-11-19: Beaux ran it on his PC. Everything checks out except there was an error message on install, but it did not affect the running of the application.
 
 ## T-008 Decide what to do with advanced_app.py
 
