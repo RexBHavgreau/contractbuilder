@@ -51,6 +51,7 @@ def test_composer_preserves_shell_and_component_order(tmp_path):
         [
             "Opening paragraph.\n\n| Item | Fee |\n| --- | ---: |\n| Service | 25 |",
             "## Later section\n\n1. First clause\n2. Second clause",
+            "Final component paragraph.",
         ],
         output,
     )
@@ -68,12 +69,13 @@ def test_composer_preserves_shell_and_component_order(tmp_path):
     assert document.sections[0].header.paragraphs[0].text == "Shell header"
     assert document.sections[0].footer.paragraphs[0].text == "Shell footer"
     assert [paragraph.style.style_id for paragraph in document.paragraphs] == [
-        "Normal", "Heading2", "ListParagraph", "ListParagraph"
+        "Normal", "Heading2", "ListParagraph", "ListParagraph", "Normal"
     ]
     body = xml_part(output, "word/document.xml").find("w:body", NS)
     assert [etree.QName(child).localname for child in body] == [
-        "p", "tbl", "p", "p", "p", "sectPr"
+        "p", "tbl", "p", "p", "p", "p", "sectPr"
     ]
+    assert document.paragraphs[-1].text == "Final component paragraph."
     assert [[cell.text for cell in row.cells] for row in document.tables[0].rows] == [
         ["Item", "Fee"], ["Service", "25"]
     ]

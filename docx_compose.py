@@ -98,6 +98,7 @@ def _merge_numbering(numbering_root, results) -> bool:
             new_id = str(next_num_id)
             next_num_id += 1
             copied.set(W + "numId", new_id)
+            next_num_id += 1
             abstract_ref = copied.find("w:abstractNumId", NS)
             if abstract_ref is not None:
                 old_abstract = abstract_ref.get(W + "val")
