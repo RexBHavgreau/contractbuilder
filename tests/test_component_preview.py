@@ -62,9 +62,12 @@ def test_preview_renders_tables_as_aligned_text_and_protects_field_pipes():
 def test_preview_uses_safe_plain_text_for_untrusted_html_and_code():
     markdown = (
         "Contract wording remains ordinary text.\n\n"
+        "<script>alert('not executable')</script>\n\n"
         "    {{Field}}\n"
     )
     text, segments = _rendered(markdown)
     assert "Contract wording remains ordinary text." in text
     assert "{{Field}}" in text
+    assert "<script>alert('not executable')</script>" in text
     assert any("code_block" in tags for _value, tags in segments)
+    assert any("field" in tags for _value, tags in segments if "{{Field}}" in _value)
