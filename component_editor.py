@@ -215,7 +215,7 @@ _FIELD_FORMATS = (
 
 def make_field_placeholder(name: str, format_name: str = "", options: str = "") -> str:
     """Build a field using the core engine's own field parser and format aliases."""
-    clean_name = str(name or "").strip()
+    clean_name = core.tidy_name(name or "")
     if not clean_name:
         raise ValueError("Choose or enter a field name.")
     expression = clean_name
@@ -1268,22 +1268,24 @@ class ComponentEditorWindow:
         return "break"
 
     def _available_field_names(self):
-        names = {
-            _PROFILE_FIELD_NAMES.get(field, field.replace("_", " ").title())
-            for field in PROFILE_FIELDS
-        }
+        names = {}
+        for field in PROFILE_FIELDS:
+            label = _PROFILE_FIELD_NAMES.get(
+                field, field.replace("_", " ").title()
+            )
+            names.setdefault(core.key(label), label)
         try:
-            for component in self.library.list_components():
+            for component in self.library.list_components(include_archived=True):
                 for version in self.library.list_component_versions(component["id"]):
                     for match in core.TOKEN.finditer(version["markdown"]):
                         kind, argument = core.classify(match.group(1))
                         if kind == "field":
                             name, _format_name, _options = core.parse_field(argument)
                             if name:
-                                names.add(name)
+                                names.setdefault(core.key(name), name)
         except (OSError, sqlite3.Error):
             pass
-        return sorted(names, key=str.casefold)
+        return sorted(names.values(), key=str.casefold)
 
     def open_field_dialog(self):
         if self.protected_content:
