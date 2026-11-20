@@ -88,7 +88,7 @@ Fields:
 
 Open and in-progress work only. Finished tasks leave this table and move to
 "Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
-(after PR #41). Next free number: **T-050**.
+(after PR #41). Next free number: **T-052**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -99,9 +99,11 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-045](#t-045-formatting-buttons-toggle) | Formatting buttons toggle on and off | open | careful | — |
 | [T-047](#t-047-open-the-windows-in-ci-under-a-virtual-display) | Open the windows in CI under a virtual display | open | careful | — |
 | [T-043](#t-043-field-picker-reusable-and-custom-fields-no-typing) | Field picker: reusable and custom fields (umbrella; A to D) | open | careful | — |
-| [T-046](#t-046-fill-from-the-publisher-profile-with-matching-the-user-controls) | Fill from the publisher profile, with user-defined matching (umbrella; A to C) | open | careful | T-043-A |
+| [T-046](#t-046-fill-from-the-publisher-profile-with-matching-the-user-controls) | Fill from the publisher profile, with user-defined matching (umbrella; A to D) | open | careful | T-043-A |
 | [T-048](#t-048-start-screen-build-contract-from) | Start screen: "Build contract from" Existing assembly / New assembly / Word file (umbrella; A to C) | open | careful | T-040 for A |
-| [T-049](#t-049-conditional-and-singularplural-wording-without-typing-the-syntax) | Conditional and singular/plural wording without typing the syntax (umbrella; A to D) | open | careful | T-043-C |
+| [T-049](#t-049-conditional-and-singularplural-wording-without-typing-the-syntax) | Conditional and singular/plural wording without typing the syntax (umbrella; A to E) | open | careful | T-043-C |
+| [T-050](#t-050-preview-shows-conditional-markers-as-if-they-were-fields) | Preview shows `{{else}}` and `{{/if}}` as fields: fix | open | any | — |
+| [T-051](#t-051-copying-out-of-the-editor-gives-clean-text-stray-backslashes) | Copying out of the editor gives clean text; stray backslashes | open | careful | — |
 | [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
@@ -482,7 +484,7 @@ reused without retyping, and new fields added by the user.
       picker is never missing a field the library already uses
 - [ ] Tests
 
-#### T-043-C Picker window
+#### T-043-C Field picker and field creator
 
 - **Status:** open
 - **Size:** M
@@ -490,15 +492,33 @@ reused without retyping, and new fields added by the user.
 - **Needs:** T-043-A, T-043-B, T-040
 - **Size gate:** yes
 
+Beaux (2026-11-20): conditional syntax is hard for people who do not know it,
+so the field creator should be a window where the user defines **different
+kinds of field**, and a conditional field should walk the user through its
+creation.
+
 - [ ] The Field button opens a searchable list grouped as Publisher, Fields
       from your library, and Your fields. Double-click or Insert places
       `{{Name}}` at the cursor, with the field's default format
-- [ ] **New field…** adds a custom field (name, description, group, format,
-      options) and inserts it; **Edit** and **Archive** manage the list
+- [ ] **New field…** opens the **field creator**. Step one asks what kind of
+      field it is, in plain words, with a one-line example for each:
+      **Text** (a name, an address), **Long text** (several lines),
+      **Date**, **Amount of money**, **Number**, **List** (one item per line,
+      such as titles), **Choice** (a drop-down of values), **Optional clause**
+      (include a paragraph or phrase only when ticked), **Conditional
+      wording** (different wording depending on a choice, T-049-A), and
+      **Singular or plural word** (T-049-B)
+- [ ] Each kind then asks only the questions it needs (name, description,
+      format and options, allowed values) and saves a field definition
+      (T-043-A); the plain kinds finish in one step, the three wording kinds
+      continue into their walk-throughs and insert the finished text
+- [ ] **Edit** and **Archive** manage the list; a field that is a choice shows
+      its values
 - [ ] The picker stays open on request so several fields can be inserted in a
       row; the editor's preview updates
 - [ ] Typing a name still works for a one-off, and a malformed one is still
       explained (`make_field_placeholder`, as today)
+- [ ] The kind-to-syntax rules are plain functions with tests
 - [ ] Hand check on Windows
 
 #### T-043-D Use the same fields elsewhere
@@ -598,7 +618,7 @@ direct way to remove them (Outdent only reduces a level).
 ### T-046 Fill from the publisher profile, with matching the user controls
 
 - **Status:** open (umbrella; work its subtasks)
-- **Size:** umbrella of T-046-A to T-046-C
+- **Size:** umbrella of T-046-A to T-046-D
 - **Agent:** careful
 - **Needs:** T-043-A (shared storage)
 
@@ -684,6 +704,35 @@ columns and no type, so this cannot be filled automatically.
 
 **Done when:** choosing a publisher selects the right alternative wording
 without the user answering a question.
+
+#### T-046-D More than one publisher in a contract (parties)
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-046-A, T-046-B
+- **Size gate:** yes
+
+Beaux's sample component has two parties with fields named for their role:
+`{{ Publisher One (Proprietor) }}`, `{{ Publisher One’s Address }}`,
+`{{ Publisher One’s State }}`, `{{ Publisher Two (Publisher) }}`,
+`{{ Publisher Two’s Address }}`, `{{ Publisher Two’s Contact }}`. Today the
+forms have one "Saved publisher" box, and the profile matching knows only a
+single set of names ("Publisher Name", "Contact Email"...). So none of these
+fields would fill from a profile, and a second party could not come from one.
+
+- [ ] Define **parties** (a name such as "Publisher One", with an optional role
+      label) in the field definitions or the field-matching window (T-046-A):
+      a field is "the address of Publisher One", so every profile column
+      (name, address, state, contact...) is available for each party without
+      listing every combined name by hand; a name like `Publisher One’s
+      Address` matches automatically
+- [ ] The template form and the assembly form show **one publisher choice per
+      party that appears in the document**, with the per-field and fill-all
+      controls of T-046-B working per party
+- [ ] A document with one publisher behaves as now; the old names keep working
+- [ ] Tests: two parties filled from two profiles, one party left to type, and
+      curly and straight apostrophes in the names; hand check on Windows
 
 **Done when (T-046):** any field can be tied to a publisher detail by the user,
 including a publisher type that selects alternative wording, and the user can
@@ -790,7 +839,7 @@ first screen and each leads to a filled-in form in one or two steps.
 ### T-049 Conditional and singular/plural wording without typing the syntax
 
 - **Status:** open (umbrella; work its subtasks)
-- **Size:** umbrella of T-049-A to T-049-D
+- **Size:** umbrella of T-049-A to T-049-E
 - **Agent:** careful
 - **Needs:** T-043-C (field picker)
 
@@ -811,7 +860,7 @@ So the same component can already serve one work or several. What is missing is
 a way to build these without knowing the syntax, and the matching of the
 publisher type to the profile (T-046-C).
 
-#### T-049-A Choice wording dialog
+#### T-049-A Conditional wording walk-through
 
 - **Status:** open
 - **Size:** M
@@ -819,18 +868,44 @@ publisher type to the profile (T-046-C).
 - **Needs:** T-043-C
 - **Size gate:** yes
 
-- [ ] An editor button **Choice wording…**: choose the field (from the picker,
-      or one with allowed values), then for each value type the wording that
-      applies. The editor writes one `{{#if Field = Value}}` block per value
-      on their own lines, so any number of alternatives works (the engine has
-      an `else` but no `else if`)
-- [ ] **Optional clause…**: a yes/no field and the clause it controls;
-      **Only if blank** is available too
+Beaux's own example (2026-11-20), typed by hand: "...of {{ Publisher One’s
+Address }}, {{#if Publisher Type = Non-profit}} a non-profit corporation
+{{else}} a sole proprietor {{/if}} organized in and doing business under the
+laws of the State of ...". The engine accepts it and picks the right words, but
+checked on 2026-11-20 it has two traps the walk-through must avoid:
+
+- **The form can offer only one choice.** A drop-down gets its values from the
+  conditions in the text. With `= Non-profit` and an `else`, the only value is
+  "Non-profit"; choosing "Sole proprietor" is rejected as "must be one of:
+  Non-profit", and only a blank answer gives the `else` wording. Writing one
+  `{{#if Publisher Type = ...}}` block per value, as below, lists every value
+- **Extra spaces.** Spaces inside the markers stay in the sentence, so the
+  result reads "X,  a non-profit corporation  organized" with two spaces
+
+- [ ] **Conditional wording** (from the field creator, and a **Choice
+      wording…** toolbar button) walks the user through four steps, each on
+      its own page with a plain explanation: (1) which choice field decides it,
+      or create one here; (2) its values (for example Non-profit, Sole
+      proprietor) and the wording for each, typed in a box with a live
+      sentence preview; (3) where it goes (inside the sentence, or as its own
+      paragraph; the markers go on their own lines when it is a paragraph);
+      (4) a summary showing the wording the contract will read for each value
+- [ ] It writes **one `{{#if Field = Value}}` block per value**, with no
+      spaces inside the markers, so every value is a drop-down option and the
+      sentence spacing is right. Where one alternative is "everything else",
+      it still writes explicit blocks
+- [ ] The field's allowed values are saved with the field definition
+      (T-043-A), so the publisher profile (T-046-C) offers the same values
 - [ ] The text is built by a plain function and checked by opening the result
-      with `core.Template`, so a malformed block can never be inserted; tests
-      for two, three and four alternatives, nesting inside a list item, and a
-      field used in more than one component
-- [ ] Editing an existing block reopens it in the dialog
+      with `core.Template`, so a malformed block can never be inserted. Tests:
+      Beaux's sample, two, three and four values, inside a list item, a field
+      used in more than one component, and each value rendering with single
+      spaces
+- [ ] **Optional clause…** (a yes/no field and the clause it controls) and an
+      **Only if blank** variant use the same walk-through pattern
+- [ ] Editing an existing block reopens it in the walk-through; hand-typed
+      text that does not fit (a lone `else`) is shown as it is with a warning
+      from T-049-C, never rewritten silently
 
 #### T-049-B Singular/plural helper
 
@@ -861,6 +936,10 @@ publisher type to the profile (T-046-C).
       alternatives (for example a tinted "If Publisher type is Non-profit"
       band) instead of raw markers, and warn in plain English when a closing
       marker is missing or not on its own line
+- [ ] Add the warnings the walk-through cannot give for hand-typed text: an
+      `else` with only one value listed ("the form will offer only
+      Non-profit; use Choice wording… to list every value"), a missing or
+      misplaced closing marker, and double spaces left around a phrase
 - [ ] A control to preview the assembly "as" a chosen value, so the author can
       check each alternative reads well; tests
 
@@ -877,9 +956,94 @@ publisher type to the profile (T-046-C).
       invented names, and the rule that choice values must match the allowed
       values exactly
 
+#### T-049-E Tidy spaces around inline conditional wording (engine)
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes (no new content; confirm)
+
+Found 2026-11-20: `of X, {{#if A = B}} a phrase {{else}} another {{/if}} organized`
+renders "of X,  a phrase  organized", with two spaces on each side, because the
+spaces inside and outside the markers both stay. The engine already collapses
+blank lines; extend that to a doubled space created by removing or replacing
+an inline conditional.
+
+- [ ] In `core.py`, collapse a run of spaces created where an inline
+      conditional was replaced, in both the kept and the dropped case, without
+      touching spaces the author typed elsewhere; a change to the engine, so
+      all existing template tests stay green and new ones cover: phrase kept,
+      phrase dropped, at the start and end of a sentence, next to punctuation,
+      and inside table cells
+- [ ] The template workflow produces the same documents as before for every
+      existing test fixture
+
 **Done when (T-049):** an author can write one clause that changes with the
 publisher type and with the number of works, using only buttons and typing the
 wording itself.
+
+### T-050 Preview shows conditional markers as if they were fields
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+- **Size gate:** yes (no new content; confirm)
+
+Reported by Beaux 2026-11-20 and reproduced: `component_preview.py` styles every
+`{{...}}` as a field, so `{{#if ...}}`, `{{else}}` and `{{/if}}` look like field
+names ("else", "/if"). The syntax is fine; the preview does not know which
+markers are instructions. The editor's field suggestions already tell them
+apart (`core.classify`).
+
+- [ ] Use `core.classify` to tell fields from `if`, `else` and `/if` markers;
+      give the markers their own style (a muted tag with plain words such as
+      "If Publisher Type is Non-profit", "Otherwise", "End of choice") and keep
+      fields highlighted as now. The same in the assembly preview
+- [ ] A short key under the preview says what the colors mean
+- [ ] Tests on the preview segments for a sentence with an `if`/`else`, a
+      block form, an optional clause and a field inside the conditional text
+- [ ] T-049-C builds on this for the fuller labelled-alternatives view
+
+**Done when:** no instruction marker is ever shown as a field.
+
+### T-051 Copying out of the editor gives clean text; stray backslashes
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+Beaux (2026-11-20) copied a component and found backslashes he did not type:
+`\(hereinafter the **proprietor\**)`. Two causes are known or likely:
+
+- **Known:** the editor stores what is typed as Markdown and escapes
+  punctuation that Markdown would act on, including `(`, `)`, `*`, `_`, `[`,
+  `]`, `{`, `}` and `|` (`plain_text_to_markdown`, checked 2026-11-20:
+  "(hereinafter the proprietor)" is stored as `\(hereinafter the
+  proprietor\)`). The formatted view hides the backslashes, but copying from
+  it probably brings the hidden characters along (to confirm: Tk includes
+  elided text when copying unless `get -displaychars` is used)
+- **Not reproduced:** the misplaced `proprietor\**)` suggests the bold button
+  put its closing marker next to an escaped character; reproduce it with the
+  pure formatting functions of T-045 before changing anything
+
+- [ ] **Copy** and **Cut** from the formatted view put the visible text on the
+      clipboard (no backslashes, no markers), with an option to "Copy as
+      stored text" for people who want the Markdown
+- [ ] **Paste** of plain text is escaped as typed text; pasting text that
+      already has `**bold**` or `\(` asks nothing and keeps it readable
+- [ ] Reproduce the bold-next-to-escape case, fix it, and add a test that
+      toggling bold on a word next to `(` or `)` never moves a backslash or a
+      marker (shares code with T-045)
+- [ ] The raw-text view says what it shows ("Stored text: backslashes here are
+      normal")
+- [ ] Hand check on Windows: copy from the editor into Word and into an email
+
+**Done when:** text copied from the editor reads exactly as shown, and bold or
+italic never leaves a stray backslash.
 
 ### T-035 Make the size gate complete and periodic
 
