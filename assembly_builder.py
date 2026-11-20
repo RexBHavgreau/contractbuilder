@@ -5,6 +5,7 @@ recipe pins immutable component versions and never rewrites the Word shell.
 """
 from __future__ import annotations
 
+import difflib
 import hashlib
 from pathlib import Path
 import sqlite3
@@ -62,12 +63,58 @@ def shell_file_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def compose_assembly_template(shell_path, components, output_path):
+    """Compose a temporary DOCX, then discover its unique fields with core.Template."""
+    included = list(components)
+    if not included:
+        raise ValueError("Include at least one component before generating a document.")
+    from docx_compose import compose_document
+    import core
+
+    composition = compose_document(shell_path, included, output_path)
+    return core.Template(output_path), composition
+
+
+def version_diff_lines(old_markdown: str, new_markdown: str) -> list[str]:
+    """Return a readable unified diff for pinned and proposed component wording."""
+    return list(difflib.unified_diff(
+        str(old_markdown).splitlines(),
+        str(new_markdown).splitlines(),
+        fromfile="Pinned wording",
+        tofile="Proposed wording",
+        lineterm="",
+    ))
+
+
+def update_component_items(items, selections):
+    """Apply only explicit, validated version selections to an ordered recipe."""
+    updated = []
+    for original in items:
+        item = dict(original)
+        key = int(item["key"])
+        selected = selections.get(key)
+        if selected is not None:
+            selected_component_id = selected.get("component_id", item["component_id"])
+            if int(selected_component_id) != int(item["component_id"]):
+                raise ValueError("A selected version belongs to a different component.")
+            if int(selected["number"]) <= int(item["component_version_number"]):
+                raise ValueError("Choose a version newer than the currently pinned wording.")
+            item.update(
+                component_version_id=int(selected["id"]),
+                component_version_number=int(selected["number"]),
+                markdown=str(selected["markdown"]),
+            )
+        updated.append(item)
+    return updated
+
+
 class AssemblyBuilderWindow:
     """Arrange components, choose a shell, preview and save immutable revisions."""
 
-    def __init__(self, parent, library: ComponentLibrary | None = None):
+    def __init__(self, parent, library: ComponentLibrary | None = None, on_generate=None):
         self.parent = parent
         self.library = library or ComponentLibrary()
+        self.on_generate = on_generate
         self.window = tk.Toplevel(parent)
         self.window.title("Build an assembly")
         self.window.geometry("1180x760")
@@ -247,6 +294,16 @@ class AssemblyBuilderWindow:
         ttk.Button(
             footer, text="Save assembly…", command=self.save_assembly
         ).pack(side="right", padx=(0, 7))
+        self.updates_button = ttk.Button(
+            footer, text="Review updates…", command=self.review_updates, state="disabled"
+        )
+        self.updates_button.pack(side="right", padx=(0, 7))
+        self.generate_button = ttk.Button(
+            footer, text="Fill fields and create document…",
+            command=self.generate_document,
+            state="normal" if self.on_generate is not None else "disabled",
+        )
+        self.generate_button.pack(side="right", padx=(0, 7))
         ttk.Button(
             footer, text="Open saved…", command=self.open_saved_assembly
         ).pack(side="right", padx=(0, 7))
@@ -484,6 +541,45 @@ class AssemblyBuilderWindow:
                 self.preview.insert("end", text, tags)
         self.preview.configure(state="disabled")
 
+    def generate_document(self):
+        """Compose the current draft and open the shared field-entry workflow."""
+        if self.on_generate is None:
+            return
+        shell_text = self.shell_variable.get()
+        if not self.shell_digest or not shell_text or shell_text == "No shell chosen":
+            messagebox.showerror(
+                "Choose a shell first",
+                "Choose a usable Word shell before generating the document.",
+                parent=self.window,
+            )
+            return
+        shell_path = Path(shell_text)
+        try:
+            if not shell_path.is_file():
+                raise OSError("The selected shell file no longer exists. Choose it again.")
+            if shell_file_sha256(shell_path) != self.shell_digest:
+                raise OSError(
+                    "The selected shell has changed since it was checked. "
+                    "Choose it again before generating a document."
+                )
+        except OSError as exc:
+            messagebox.showerror("The shell is unavailable", str(exc), parent=self.window)
+            return
+        components = [str(item["markdown"]) for item in self.items if item["included"]]
+        if not components:
+            messagebox.showerror(
+                "Nothing included",
+                "Add and include at least one component before generating a document.",
+                parent=self.window,
+            )
+            return
+        try:
+            self.on_generate(shell_path, components, self.name_variable.get().strip())
+        except (ValueError, TypeError, OSError, sqlite3.Error) as exc:
+            messagebox.showerror(
+                "Could not prepare the document", str(exc), parent=self.window
+            )
+
     def _snapshot(self):
         return (
             self.name_variable.get(),
@@ -609,11 +705,237 @@ class AssemblyBuilderWindow:
         self.assembly_name = name
         self.name_entry.configure(state="readonly")
         self.saved_snapshot = self._snapshot()
-        self.status.configure(
-            text=f"Saved {name} · revision {revision['number']}. "
-            "The component versions and their order are now pinned."
-        )
+        self._refresh_newer_versions(f"Saved {name} · revision {revision['number']}.")
         return True
+
+
+
+    def _refresh_newer_versions(self, prefix: str = ""):
+        """Show which pinned items have newer saved options; never apply them."""
+        for item in self.items:
+            item["newer_versions"] = []
+        if self.revision_id is None:
+            self.updates_button.configure(state="disabled")
+            if prefix:
+                self.status.configure(text=prefix)
+            return
+        try:
+            rows = self.library.list_newer_versions_for_revision(self.revision_id)
+        except (ValueError, sqlite3.Error) as exc:
+            self.updates_button.configure(state="disabled")
+            self.status.configure(text=f"{prefix} Could not check newer versions: {exc}".strip())
+            return
+
+        available = []
+        for row in rows:
+            position = int(row["position"])
+            if position >= len(self.items):
+                continue
+            versions = row["newer_versions"]
+            self.items[position]["newer_versions"] = versions
+            if versions:
+                available.append(
+                    f"{row['component_name']} (v{row['pinned_number']} → v{versions[-1]['number']})"
+                )
+        self.updates_button.configure(state="normal" if available else "disabled")
+        if available:
+            self.status.configure(
+                text=(prefix + " Newer wording is available but has NOT been applied: "
+                      + "; ".join(available)
+                      + ". Choose Review updates to compare versions.").strip()
+            )
+        elif prefix:
+            self.status.configure(text=prefix)
+
+    def review_updates(self):
+        """Compare pinned wording with newer options; save only checked choices."""
+        pending = [item for item in self.items if item.get("newer_versions")]
+        if not pending:
+            messagebox.showinfo(
+                "No newer versions",
+                "Every component in this revision is already at its latest saved version.",
+                parent=self.window,
+            )
+            return
+
+        dialog = tk.Toplevel(self.window)
+        dialog.title("Review component updates")
+        dialog.geometry("980x650")
+        dialog.minsize(760, 480)
+        dialog.transient(self.window)
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(1, weight=1)
+        ttk.Label(
+            dialog,
+            text=("New wording is available for the pinned components below. "
+                  "Nothing changes unless you tick an item and save the selected updates."),
+            wraplength=940,
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(12, 8))
+
+        body = ttk.Panedwindow(dialog, orient="horizontal")
+        body.grid(row=1, column=0, sticky="nsew", padx=12)
+        left = ttk.LabelFrame(body, text="Pinned components", padding=7)
+        left.columnconfigure(0, weight=1)
+        left.rowconfigure(0, weight=1)
+        body.add(left, weight=2)
+        tree = ttk.Treeview(
+            left, columns=("update", "component", "pinned", "latest"),
+            show="headings", selectmode="browse",
+        )
+        for column, label, width in (
+            ("update", "Update", 62), ("component", "Component", 170),
+            ("pinned", "Pinned", 66), ("latest", "Latest", 66),
+        ):
+            tree.heading(column, text=label)
+            tree.column(
+                column, width=width,
+                anchor="center" if column != "component" else "w",
+                stretch=column == "component",
+            )
+        tree.grid(row=0, column=0, sticky="nsew")
+        tree_scroll = ttk.Scrollbar(left, orient="vertical", command=tree.yview)
+        tree_scroll.grid(row=0, column=1, sticky="ns")
+        tree.configure(yscrollcommand=tree_scroll.set)
+
+        right = ttk.LabelFrame(body, text="Wording changes", padding=8)
+        right.columnconfigure(0, weight=1)
+        right.rowconfigure(2, weight=1)
+        body.add(right, weight=3)
+        ttk.Label(right, text="Compare the pinned wording with a newer version:").grid(
+            row=0, column=0, sticky="w"
+        )
+        version_variable = tk.StringVar(master=dialog)
+        version_combo = ttk.Combobox(
+            right, textvariable=version_variable, state="readonly", width=36
+        )
+        version_combo.grid(row=1, column=0, sticky="w", pady=(5, 7))
+        diff_text = tk.Text(
+            right, wrap="none", state="disabled", font="TkFixedFont", padx=7, pady=6
+        )
+        diff_text.grid(row=2, column=0, sticky="nsew")
+        diff_y = ttk.Scrollbar(right, orient="vertical", command=diff_text.yview)
+        diff_y.grid(row=2, column=1, sticky="ns")
+        diff_text.configure(yscrollcommand=diff_y.set)
+        diff_x = ttk.Scrollbar(right, orient="horizontal", command=diff_text.xview)
+        diff_x.grid(row=3, column=0, sticky="ew")
+        diff_text.configure(xscrollcommand=diff_x.set)
+        diff_text.tag_configure("added", foreground="#16733b", background="#eaf6ee")
+        diff_text.tag_configure("removed", foreground="#a32626", background="#faeeee")
+        diff_text.tag_configure(
+            "header", foreground="#555555", font=("TkFixedFont", 9, "bold")
+        )
+
+        by_key = {int(item["key"]): item for item in pending}
+        choices = {key: item["newer_versions"][-1] for key, item in by_key.items()}
+        checked: set[int] = set()
+
+        def show_diff(_event=None):
+            selection = tree.selection()
+            if not selection:
+                return
+            key = int(selection[0])
+            item = by_key.get(key)
+            if item is None:
+                return
+            versions = item["newer_versions"]
+            labels = [
+                f"v{version['number']} · {version['created'][:10]}"
+                for version in versions
+            ]
+            by_label = dict(zip(labels, versions))
+            version_combo.configure(values=labels)
+            chosen = choices.get(key, versions[-1])
+            version_variable.set(next(
+                (label for label, version in by_label.items()
+                 if int(version["id"]) == int(chosen["id"])),
+                labels[-1],
+            ))
+
+            def draw():
+                selected = by_label.get(version_variable.get(), versions[-1])
+                choices[key] = selected
+                diff_text.configure(state="normal")
+                diff_text.delete("1.0", "end")
+                lines = version_diff_lines(item["markdown"], selected["markdown"])
+                for line in lines or ["No wording changes."]:
+                    if line.startswith("+") and not line.startswith("+++"):
+                        tag = "added"
+                    elif line.startswith("-") and not line.startswith("---"):
+                        tag = "removed"
+                    elif line.startswith(("---", "+++", "@@")):
+                        tag = "header"
+                    else:
+                        tag = ""
+                    diff_text.insert("end", line + "\n", (tag,) if tag else ())
+                diff_text.configure(state="disabled")
+
+            draw()
+            version_combo.bind("<<ComboboxSelected>>", draw)
+
+        def toggle_update(event):
+            if (tree.identify_region(event.x, event.y) != "cell"
+                    or tree.identify_column(event.x) != "#1"):
+                return
+            row = tree.identify_row(event.y)
+            if not row:
+                return
+            key = int(row)
+            if key in checked:
+                checked.remove(key)
+            else:
+                checked.add(key)
+            tree.set(key, "update", "☑" if key in checked else "☐")
+
+        for item in pending:
+            key = int(item["key"])
+            tree.insert(
+                "", "end", iid=str(key),
+                values=(
+                    "☐", item["component_name"],
+                    f"v{item['component_version_number']}",
+                    f"v{item['newer_versions'][-1]['number']}",
+                ),
+            )
+        tree.bind("<<TreeviewSelect>>", show_diff)
+        tree.bind("<Button-1>", toggle_update)
+        tree.selection_set(str(pending[0]["key"]))
+        show_diff()
+
+        def save_selected():
+            if not checked:
+                messagebox.showinfo(
+                    "No updates selected",
+                    "Tick at least one component whose newer wording you want to use.",
+                    parent=dialog,
+                )
+                return
+            try:
+                revised = update_component_items(
+                    self.items, {key: choices[key] for key in checked}
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                messagebox.showerror("Could not apply updates", str(exc), parent=dialog)
+                return
+            previous = self.items
+            self.items = revised
+            if not self.save_assembly():
+                self.items = previous
+                self._render_items()
+                return
+            dialog.destroy()
+
+        actions = ttk.Frame(dialog, padding=12)
+        actions.grid(row=2, column=0, sticky="ew")
+        ttk.Label(
+            actions,
+            text="Saving creates a new revision; earlier revisions remain unchanged.",
+            foreground="#555555",
+        ).pack(side="left", fill="x", expand=True)
+        ttk.Button(actions, text="Cancel", command=dialog.destroy).pack(side="right")
+        ttk.Button(
+            actions, text="Save selected updates", command=save_selected
+        ).pack(side="right", padx=(0, 7))
+
 
     def open_saved_assembly(self):
         if not self._confirm_replace():
@@ -747,4 +1069,7 @@ class AssemblyBuilderWindow:
             self._next_item_key += 1
         self._render_items(self.items[0]["key"] if self.items else None)
         self.saved_snapshot = self._snapshot()
+        self._refresh_newer_versions(
+            f"Opened {self.assembly_name} · revision {revision['number']}."
+        )
 
