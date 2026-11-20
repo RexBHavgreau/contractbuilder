@@ -95,9 +95,9 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-039](#t-039-stop-the-update-restart-error-fix-in-041) | Stop the error shown when the app restarts after a self-update: cause confirmed, fix written; release 0.4.1 | open: needs a pull request, green CI, merge | careful | Beaux |
 | [T-040](#t-040-let-the-components-and-assembly-windows-be-maximized) | Let the Components and assembly windows be maximized | open | any | — |
 | [T-044](#t-044-make-saving-obvious) | Make saving obvious (visible confirmation, unsaved mark) | open | any | — |
-| [T-041](#t-041-make-the-editors-toolbar-wrap) | Make the editor's toolbar wrap | open | careful | — |
-| [T-045](#t-045-formatting-buttons-toggle) | Formatting buttons toggle on and off | open | careful | — |
-| [T-047](#t-047-open-the-windows-in-ci-under-a-virtual-display) | Open the windows in CI under a virtual display | open | careful | — |
+| [T-041](#t-041-make-the-editors-toolbar-wrap) | Make the editor's toolbar wrap | claimed (ChatGPT, 2026-11-20) | careful | — |
+| [T-045](#t-045-formatting-buttons-toggle) | Formatting buttons toggle on and off | claimed (ChatGPT, 2026-11-20) | careful | — |
+| [T-047](#t-047-open-the-windows-in-ci-under-a-virtual-display) | Open the windows in CI under a virtual display | claimed (ChatGPT, 2026-11-20) | careful | — |
 | [T-043](#t-043-field-picker-reusable-and-custom-fields-no-typing) | Field picker: reusable and custom fields (umbrella; A to D) | open | careful | — |
 | [T-046](#t-046-fill-from-the-publisher-profile-with-matching-the-user-controls) | Fill from the publisher profile, with user-defined matching (umbrella; A to D) | open | careful | T-043-A |
 | [T-048](#t-048-start-screen-build-contract-from) | Start screen: "Build contract from" Existing assembly / New assembly / Word file (umbrella; A to C) | open | careful | T-040 for A |
@@ -370,7 +370,7 @@ the layout fills the space.
 
 ### T-041 Make the editor's toolbar wrap
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
@@ -596,7 +596,7 @@ to miss and out of sight when the window is short.
 
 ### T-045 Formatting buttons toggle
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
@@ -749,7 +749,7 @@ is asked for.
 
 ### T-047 Open the windows in CI under a virtual display
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
