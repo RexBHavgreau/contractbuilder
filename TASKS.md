@@ -104,6 +104,9 @@ Fields:
   or another task
 - **Touches:** the files (or modules) the task will change, from T-055; two
   claimed tasks that share a file are done one after the other
+- **Schema migrations** are numbered in merge order: only one open task adds
+  a migration at a time, so a second one never renumbers on top of the first
+  (T-043-A, then T-046-C...). `scripts/overlaps.py` reads the Touches field.
 - **Size gate:** present on any task that adds code, a dependency or a bundled
   file; see "Size gate" below. It is part of that task's `Done when`
 
@@ -134,7 +137,7 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | done in [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47), needs merge; `component_editor/` frozen until then | careful | no open PR touching it |
 | [T-057](#t-057-require-green-up-to-date-pull-requests-on-main-github-setting) | Require green, up-to-date pull requests on `main` (GitHub setting) | open | human | Beaux |
 | [T-054](#t-054-one-file-per-task-and-a-generated-board) | One file per task and a generated board | open | careful | T-053, Beaux |
-| [T-055](#t-055-say-which-files-a-task-touches-and-which-tasks-can-run-together) | Say which files a task touches; which tasks can run together | open | any | — |
+| [T-055](#t-055-say-which-files-a-task-touches-and-which-tasks-can-run-together) | Say which files a task touches; which tasks can run together | ready for review (2026-11-20, no pull request yet) | any | — |
 | [T-056](#t-056-split-assembly_builderpy-and-simple_apppy) | Split `assembly_builder.py` and `simple_app.py` | open | careful | T-052 |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
 | [T-036](#t-036-housekeeping-stale-branches-and-legacy-code) | Housekeeping: stale branches and legacy code | open, needs decisions | human | Beaux |
@@ -276,6 +279,7 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Size:** S
 - **Agent:** careful
 - **Needs:** Beaux (merge and release)
+- **Touches:** `self_update.py`, `version.py`, `CHANGES.txt`
 - **Size gate:** yes, but this adds no module or file; confirm the CI size
   numbers as usual
 
@@ -316,6 +320,7 @@ started itself with the inherited environment, and started cleanly when
 - **Size:** S
 - **Agent:** human
 - **Needs:** Beaux (or a colleague)
+- **Touches:** none (a hand check on Windows)
 
 The editor and assembly windows are Tkinter dialogs. CI exercises their
 logic but opens no window, and Claude's environment has no display, so no
@@ -377,6 +382,7 @@ store of T-043-A. These ship after 0.4.1 (T-039) as 0.5.0.
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
+- **Touches:** `component_editor.py`, `assembly_builder.py`
 - **Size gate:** yes (no new code reaches the executable; say so and confirm)
 
 **Today:** the Components window and the Build assembly window are created
@@ -407,6 +413,7 @@ the layout fills the space.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `component_editor.py`
 - **Size gate:** yes
 
 **Today:** the formatting buttons sit in one row (`pack(side="left")`), so
@@ -434,6 +441,7 @@ without scrolling.
 - **Size:** M after the decision
 - **Agent:** human for the decision, then careful
 - **Needs:** Beaux
+- **Touches:** `md_to_word.py`, `docx_to_markdown.py`, `component_preview.py`, `component_editor.py` (if it adds a button)
 - **Size gate:** yes
 
 **Today:** nothing offers centering. Markdown has no centering. Table columns
@@ -473,6 +481,7 @@ survives edit, save, preview, import, assembly and the Word output.
 - **Size:** umbrella of T-043-A to T-043-D
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `library.py`; `publisher_profiles.py`; `core.py`; `field_picker.py`; `component_editor.py`; `simple_app.py`; `assembly_builder.py`; `USER-GUIDE.txt`
 
 **Today:** the Field button opens a small dialog with a drop-down of names
 already used in the library plus the publisher-profile names, a format box and
@@ -487,6 +496,7 @@ reused without retyping, and new fields added by the user.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `library.py`, `publisher_profiles.py` (schema migration), `core.py`
 - **Size gate:** yes
 
 - [ ] A database migration (next schema version, with the usual backup and
@@ -511,6 +521,7 @@ reused without retyping, and new fields added by the user.
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-043-A
+- **Touches:** `publisher_profiles.py`, `library.py`
 - **Size gate:** yes
 
 - [ ] The picker always offers the publisher-profile fields the app already
@@ -527,6 +538,7 @@ reused without retyping, and new fields added by the user.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-043-A, T-043-B, T-040
+- **Touches:** `field_picker.py` (new), `component_editor.py`
 - **Size gate:** yes
 
 Beaux (2026-11-20): conditional syntax is hard for people who do not know it,
@@ -564,6 +576,7 @@ creation.
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-043-C
+- **Touches:** `simple_app.py`, `assembly_builder.py`, `USER-GUIDE.txt`
 - **Size gate:** yes
 
 - [ ] The assembly field form (and the template form) show a field's
@@ -576,6 +589,7 @@ creation.
 - **Size:** S
 - **Agent:** human for the decision, then any
 - **Needs:** Beaux, T-043-A
+- **Touches:** `publisher_profiles.py`, `library.py`
 - **Size gate:** yes (a small text list; confirm it)
 
 Beaux (2026-11-20): standardized fields make automatic filling and conditional
@@ -604,6 +618,7 @@ field, and never has to type a name, from the Components window.
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
+- **Touches:** `component_editor.py`
 - **Size gate:** yes (no new executable content; say so and confirm)
 
 **Today:** after Save version the only sign is a small grey line at the bottom
@@ -633,6 +648,7 @@ to miss and out of sight when the window is short.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `component_editor.py`
 - **Size gate:** yes
 
 **Today:** bold and italic wrap the selection in markers every time; pressing
@@ -662,6 +678,7 @@ direct way to remove them (Outdent only reduces a level).
 - **Size:** umbrella of T-046-A to T-046-D
 - **Agent:** careful
 - **Needs:** T-043-A (shared storage)
+- **Touches:** `publisher_profiles.py`; `field_matching.py`; `simple_app.py`; `assembly_builder.py`
 
 **Today:** the template form and the assembly form each have one "Load" button
 for a saved publisher. It fills every field whose name matches a fixed list of
@@ -679,6 +696,7 @@ the profile, and it should be more customizable.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-043-A
+- **Touches:** `publisher_profiles.py` (schema migration), `field_matching.py` (new)
 - **Size gate:** yes
 
 - [ ] A "Field matching" window (Publishers menu) shows each profile column
@@ -698,6 +716,7 @@ the profile, and it should be more customizable.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-046-A
+- **Touches:** `simple_app.py`, `assembly_builder.py`
 - **Size gate:** yes
 
 - [ ] In the template form and the assembly form, every field that has a
@@ -719,6 +738,7 @@ the profile, and it should be more customizable.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-043-A, T-046-A
+- **Touches:** `publisher_profiles.py` (schema migration), `simple_app.py`
 - **Size gate:** yes
 
 Beaux (2026-11-20) wants some wording to depend on the publisher, for example
@@ -752,6 +772,7 @@ without the user answering a question.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-046-A, T-046-B
+- **Touches:** `simple_app.py`, `assembly_builder.py`, `publisher_profiles.py`
 - **Size gate:** yes
 
 Beaux's sample component has two parties with fields named for their role:
@@ -786,6 +807,7 @@ is asked for.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `.github/workflows/build.yml`, `tests/test_window_smoke.py` (new)
 - **Size gate:** yes (CI only; say so)
 
 **Today:** CI tests only the logic behind the windows, and Claude's own
@@ -812,6 +834,7 @@ T-040 to T-045 have never been seen running before a user finds them.
 - **Size:** umbrella of T-048-A to T-048-C
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `simple_app.py`; `start_screen.py`; `assembly_builder.py`
 
 **Today:** the main window opens on "Choose a template" with a Browse button
 for a Word file. Starting from a saved assembly means Components > Manage
@@ -825,6 +848,7 @@ choices up front.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-040
+- **Touches:** `simple_app.py`, `start_screen.py` (new)
 - **Size gate:** yes
 
 - [ ] The top of the main window gets a **Build contract from:** row with three
@@ -845,6 +869,7 @@ choices up front.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-048-A
+- **Touches:** `start_screen.py`, `assembly_builder.py`
 - **Size gate:** yes
 
 - [ ] **Existing contract assembly** opens a list of saved assemblies (name,
@@ -866,6 +891,7 @@ choices up front.
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-048-B
+- **Touches:** `start_screen.py`, `simple_app.py`
 - **Size gate:** yes
 
 - [ ] Under the three buttons, a short "Recent" list of the last few
@@ -883,6 +909,7 @@ first screen and each leads to a filled-in form in one or two steps.
 - **Size:** umbrella of T-049-A to T-049-E
 - **Agent:** careful
 - **Needs:** T-043-C (field picker)
+- **Touches:** `conditional_walkthrough.py`; `component_editor.py`; `singular_plural_dialog.py`; `component_preview.py`; `assembly_builder.py`; `USER-GUIDE.txt`; `core.py`
 
 **Today:** the engine already does both, and they work inside components
 (tested in T-019-G), but a user has to type the markers by hand:
@@ -907,6 +934,7 @@ publisher type to the profile (T-046-C).
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-043-C
+- **Touches:** `conditional_walkthrough.py` (new), `component_editor.py`
 - **Size gate:** yes
 
 Beaux's own example (2026-11-20), typed by hand: "...of {{ Publisher One’s
@@ -954,6 +982,7 @@ checked on 2026-11-20 it has two traps the walk-through must avoid:
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-043-C
+- **Touches:** `singular_plural_dialog.py` (new), `component_editor.py`
 - **Size gate:** yes
 
 - [ ] In the Field picker, **Singular/plural word…**: choose a list field
@@ -971,6 +1000,7 @@ checked on 2026-11-20 it has two traps the walk-through must avoid:
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-049-A
+- **Touches:** `component_preview.py`, `component_editor.py`, `assembly_builder.py`
 - **Size gate:** yes
 
 - [ ] The editor and assembly previews show conditional blocks as labelled
@@ -990,6 +1020,7 @@ checked on 2026-11-20 it has two traps the walk-through must avoid:
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-049-A, T-049-B
+- **Touches:** `USER-GUIDE.txt`
 - **Size gate:** no executable change (say so)
 
 - [ ] USER-GUIDE.txt: how to build choice wording and singular/plural wording
@@ -1003,6 +1034,7 @@ checked on 2026-11-20 it has two traps the walk-through must avoid:
 - **Size:** S
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `core.py`
 - **Size gate:** yes (no new content; confirm)
 
 Found 2026-11-20: `of X, {{#if A = B}} a phrase {{else}} another {{/if}} organized`
@@ -1031,6 +1063,7 @@ wording itself.
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
+- **Touches:** `component_preview.py`, `component_editor.py`, `assembly_builder.py`
 - **Size gate:** yes (no new content; confirm)
 
 Reported by Beaux 2026-11-20 and reproduced: `component_preview.py` styles every
@@ -1058,6 +1091,7 @@ apart (`core.classify`).
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `component_editor.py`
 - **Size gate:** yes
 
 Beaux (2026-11-20) copied a component and found backslashes he did not type:
@@ -1216,7 +1250,7 @@ and T-043-B), so the unit of conflict is the subtask.
 
 ### T-055 Say which files a task touches, and which tasks can run together
 
-- **Status:** open
+- **Status:** ready for review (2026-11-20, `ccr-9076da7d-zvifun`): code and tests done; no pull request yet
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -1227,7 +1261,7 @@ Rule: **a task names the files it will change, and two open tasks that share a
 file are done one after the other** (or the file is split first). A new
 window or dialog is a new module, never more lines in an existing big one.
 
-- [ ] Add a **Touches** field to the task fields and to every open task. The
+- [x] Add a **Touches** field to the task fields and to every open task. The
       first map, worked out 2026-11-20 from the task texts:
       - `component_editor.py` (until T-052 splits it): T-041, T-043-C,
         T-044, T-045, T-049-A/B/C, T-050, T-051 (and T-042 if it adds a
@@ -1241,13 +1275,13 @@ window or dialog is a new module, never more lines in an existing big one.
       - `core.py` (engine; the template tests must stay green): T-049-E
       - `md_to_word.py`, `docx_to_markdown.py`: T-042
       - `.github/workflows/build.yml`: T-035, T-047
-- [ ] `scripts/overlaps.py` lists pairs of open tasks that share a file, from
+- [x] `scripts/overlaps.py` lists pairs of open tasks that share a file, from
       the Touches fields, and exits non-zero when two *claimed* tasks overlap
       (a warning in CI, not a failure)
-- [ ] **Schema migrations are numbered in merge order:** only one open
+- [x] **Schema migrations are numbered in merge order:** only one open
       task may add a migration at a time (T-043-A, then T-046-C...), or the
       second renumbers on top of the first
-- [ ] Add the rule to CLAUDE.md "Working on it" (a pointer; the text lives in
+- [x] Add the rule to CLAUDE.md "Working on it" (a pointer; the text lives in
       TASKS.md)
 
 **Done when:** every open task has a Touches line and two overlapping tasks
@@ -1313,6 +1347,7 @@ A stale branch merged after `main` moved is how `main` went red on
 - **Size:** M
 - **Agent:** careful
 - **Needs:** —
+- **Touches:** `.github/workflows/build.yml`, `scripts/list_app_modules.py`, `scripts/check_executable_size.py`
 
 The size gate measures the real release executable (T-027), and since T-019-H
 it also builds a comparison executable that includes the component-builder
@@ -1372,6 +1407,7 @@ no executable code, only CI.
 - **Agent:** human (decisions and branch deletion); an agent can do the code
   removal once Beaux agrees
 - **Needs:** Beaux
+- **Touches:** `advanced_app.py`, `core.py`, `requirements.txt`
 
 Repository clutter that no task owns. Nothing here is urgent; it makes the
 project easier to read and the Actions and branch lists shorter.
@@ -1430,6 +1466,7 @@ removal must leave the size check green.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-E, T-020-G
+- **Touches:** `library_backup.py` (new), `library.py`, `markdown_files.py`, `component_editor.py`
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
 Moved earlier than "Later" in the proposal: the library is the staff's
@@ -1452,6 +1489,7 @@ accumulated work, kept on one PC. Losing it must not be possible by accident.
 - **Size:** S
 - **Agent:** human
 - **Needs:** T-019-F
+- **Touches:** none (a check in real Word)
 
 Package-level tests cannot prove Word will open a file and show it
 correctly.
@@ -1469,6 +1507,7 @@ correctly.
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-019-F, T-020-B
+- **Touches:** `md_to_word.py`, `docx_to_markdown.py`, `docx_compose.py`, `component_preview.py`, `component_editor.py`
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
 The proposal supports links "if they can be handled cleanly and safely". They
