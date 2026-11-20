@@ -67,6 +67,19 @@ a queued or in-progress run, or no run at all does not count. In practice:
 - After a merge, look at the run on `main`. If it is red, fixing it comes
   before any other work, and say so at the top of your report
 
+**Parallel work (interim rules, until T-053 and T-054 are done).** Several
+agents edit this file and CLAUDE.md at the same time, which is the main source
+of conflicts. Until the documents are split:
+(1) **claim a task by a one-line pull request** that changes only that task's
+status line, merged before any other work, and look at the open pull requests
+first; (2) **before opening or merging a pull request, merge the latest `main`
+into your branch** and read both sides of any conflict in this file; (3) keep
+your edits to this file to your own task's status and boxes, and add your
+progress entry in one block at the very end of the Progress log; (4) **do not
+start a task whose "Touches" files another claimed task is changing**; and
+(5) a task named T-052 or T-056 freezes its files: leave them alone until it
+merges. See "Working in parallel without conflicts" below.
+
 **To add a task:** give it the next number and every field below. Write the
 acceptance check so someone else can tell, without asking, whether it is
 done. Add it to the board.
@@ -81,6 +94,8 @@ Fields:
   person can do it)
 - **Needs:** anything that must happen first, such as `Beaux` for a decision
   or another task
+- **Touches:** the files (or modules) the task will change, from T-055; two
+  claimed tasks that share a file are done one after the other
 - **Size gate:** present on any task that adds code, a dependency or a bundled
   file; see "Size gate" below. It is part of that task's `Done when`
 
@@ -88,7 +103,7 @@ Fields:
 
 Open and in-progress work only. Finished tasks leave this table and move to
 "Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
-(after PR #41). Next free number: **T-052**.
+(after PR #41). Next free number: **T-058**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -107,6 +122,12 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
+| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | open: first | careful | no open PR touching the docs |
+| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | open | careful | no open PR touching it |
+| [T-057](#t-057-require-green-up-to-date-pull-requests-on-main-github-setting) | Require green, up-to-date pull requests on `main` (GitHub setting) | open | human | Beaux |
+| [T-054](#t-054-one-file-per-task-and-a-generated-board) | One file per task and a generated board | open | careful | T-053, Beaux |
+| [T-055](#t-055-say-which-files-a-task-touches-and-which-tasks-can-run-together) | Say which files a task touches; which tasks can run together | open | any | — |
+| [T-056](#t-056-split-assembly_builderpy-and-simple_apppy) | Split `assembly_builder.py` and `simple_app.py` | open | careful | T-052 |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
 | [T-036](#t-036-housekeeping-stale-branches-and-legacy-code) | Housekeeping: stale branches and legacy code | open, needs decisions | human | Beaux |
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | — |
@@ -123,6 +144,10 @@ the error one more time; the update after that should not) and T-030 (Word).
 T-035 before the next feature lands, since the size comparison is currently
 meaningless and every pull request runs three platform builds. T-029
 (backup) and T-031 (links) are next features; T-036 is tidying.
+
+Conflict fixes first (T-053, then T-052, with T-057 set by Beaux at any
+time), then T-055; feature work on the files they split follows. T-056 goes
+before T-048 and T-046-B/D.
 
 Usability fixes from Beaux's hand testing (T-040 to T-047) are grouped under
 "Component manager usability"; they ship as 0.5.0 after 0.4.1.
@@ -1055,6 +1080,223 @@ Beaux (2026-11-20) copied a component and found backslashes he did not type:
 
 **Done when:** text copied from the editor reads exactly as shown, and bold or
 italic never leaves a stray backslash.
+
+## Working in parallel without conflicts (T-052 to T-057)
+
+Several agents work on different tasks at once and their pull requests keep
+conflicting. Measured on 2026-11-20 over the pull requests merged since
+2026-11-18: `TASKS.md` changed 41 times and `CLAUDE.md` 35 times (every task
+edits its own status line, a board row and the end of the progress log, all
+at the same spot), and `component_editor.py` 26 times (it is now 2,360 lines
+and eight open tasks touch it). Two kinds of fix, done in this order: separate
+the documents from each other, separate the code, and set rules for who works
+where. None of these tasks changes what the app does.
+
+Until T-053 and T-054 are done, the interim rules in "How to use this file"
+apply.
+
+### T-052 Split `component_editor.py` into a package
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful (one agent; no other pull request may touch the file
+  until this merges)
+- **Needs:** no open pull request touches `component_editor.py`
+- **Touches:** `component_editor.py` (becomes a package), its tests
+- **Size gate:** yes (moving code adds none; confirm the size numbers)
+
+The file holds, in order: pure text rules (escaping, block and inline
+formatting, toggles, toolbar wrapping), table helpers, field helpers, then
+`TableEditorDialog`, `FieldInsertDialog`, `ImportReviewDialog` and the 1,100
+line `ComponentEditorWindow`. Eight open tasks touch it (T-041 to T-045,
+T-049, T-050, T-051).
+
+- [ ] Make `component_editor/` a package with one module per concern, for
+      example `text_rules.py` (pure Markdown rules), `tables.py` (pure table
+      helpers) and `table_dialog.py`, `fields.py` (pure placeholder helpers)
+      and `field_dialog.py` (the future picker and creator of T-043 lands
+      here), `import_dialog.py`, `toolbar.py` (the wrapping layout and
+      builder), `history_dialog.py`, and `window.py` (the main window, kept
+      as small as possible)
+- [ ] **No behaviour change.** `from component_editor import ...` keeps
+      working for every name the app and the tests use (re-exports in
+      `__init__.py`); the existing tests pass unchanged, and the window tests
+      of T-047 pass
+- [ ] Pure modules import no Tkinter, so CI can test them without a display
+- [ ] A short "where things live" table in CLAUDE.md's Layout, and the rule
+      from T-055: a new window or dialog is a new module
+- [ ] PyInstaller still finds every submodule (the import inside
+      `simple_app.py` pulls in the package; check the Windows build) and the
+      size numbers are unchanged within a few kilobytes
+- [ ] Announce in the task status that the file is frozen for other agents
+      until the merge, and keep the pull request open for hours, not days
+
+**Done when:** the package replaces the file, all tests and the Windows and
+macOS builds pass, and the largest module is well under 800 lines.
+
+### T-053 One file per progress and decision entry; claiming a task
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** no open pull request touches `CLAUDE.md` or `TASKS.md`
+- **Touches:** `CLAUDE.md`, `TASKS.md`, new `progress/` and `decisions/`,
+  `scripts/`
+- **Size gate:** no executable change (say so)
+
+Appending to the end of a shared file is the largest source of conflicts: any
+two pull requests that add an entry collide, even when they have nothing else
+in common.
+
+- [ ] `progress/` and `decisions/` hold one Markdown file per entry, named
+      `YYYY-MM-DD-T-NNN[-sub]-short-title.md`, with a small header (date,
+      task, author, pull request, CI run, size numbers) and the existing
+      wording. A script moves all existing entries out of `CLAUDE.md`
+      without changing their text, and a check compares the old and new text
+      so nothing is lost
+- [ ] `CLAUDE.md` keeps the standing rules, layout, pitfalls and a short
+      summary of the decisions that steer day-to-day work, plus a pointer
+      to the two folders and `scripts/show_log.py progress|decisions` which
+      prints them in order. It is edited rarely, by a decision task, not by
+      every pull request
+- [ ] `TASKS.md` "When done" and the Size gate text say: add a file under
+      `progress/` (and `decisions/` if a choice was made); do not edit
+      `CLAUDE.md`
+- [ ] A test fails when a progress file lacks its header fields (task, pull
+      request, CI run, size numbers) so the size gate stays visible
+- [ ] **Claiming:** claiming a task is its own one-line pull request that
+      changes only that task's status, merged within minutes and before work
+      starts (after T-054 it touches only that task's file). Two agents can
+      then never take the same task. Written into "How to use this file"
+- [ ] Guard: a pull request whose branch is behind `main` must merge `main`
+      first (see T-057)
+
+**Done when:** a pull request that finishes a task adds new files and edits
+no shared document except its own task's status.
+
+### T-054 One file per task and a generated board
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-053, Beaux (whether a bot may commit the board)
+- **Touches:** `TASKS.md`, new `tasks/`, `scripts/`, one workflow
+- **Size gate:** no executable change (say so)
+
+`TASKS.md` is about 1,300 lines; the board table in it is edited by every
+task. Agents often work on different subtasks of one task at once (T-043-A
+and T-043-B), so the unit of conflict is the subtask.
+
+- [ ] `tasks/T-NNN.md` for each umbrella or standalone task, and
+      `tasks/T-NNN-X.md` for each subtask, each with a header (status, size,
+      agent, needs, **touches**, size gate) and its checklist. Done tasks go
+      to `tasks/done/` for a month, as now. A script converts the current
+      `TASKS.md` and a check proves the text is unchanged
+- [ ] `scripts/board.py` reads the headers and writes the board; nobody edits
+      a board by hand. `TASKS.md` shrinks to "How to use this file", the
+      Size gate and CI rules, and a link to the board
+- [ ] The board is rebuilt by a workflow on `main` after each merge and
+      committed by the Actions bot (pull requests never touch it). If Beaux
+      does not want bot commits, the workflow publishes it as the job summary
+      and as an artifact, and `python scripts/board.py` prints it on demand
+- [ ] Links between tasks keep working (they use the task number, not a
+      heading anchor)
+- [ ] Tests for the header parser and board generator, with invented tasks
+
+**Done when:** claiming or finishing a task edits only that task's file.
+
+### T-055 Say which files a task touches, and which tasks can run together
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+- **Touches:** `TASKS.md` now; the task files after T-054
+- **Size gate:** no executable change (say so)
+
+Rule: **a task names the files it will change, and two open tasks that share a
+file are done one after the other** (or the file is split first). A new
+window or dialog is a new module, never more lines in an existing big one.
+
+- [ ] Add a **Touches** field to the task fields and to every open task. The
+      first map, worked out 2026-11-20 from the task texts:
+      - `component_editor.py` (until T-052 splits it): T-041, T-043-C,
+        T-044, T-045, T-049-A/B/C, T-050, T-051 (and T-042 if it adds a
+        button)
+      - `component_preview.py`: T-042, T-049-C, T-050
+      - `library.py` and `publisher_profiles.py` (schema migrations; only
+        one migration at a time, numbered in merge order): T-043-A, T-046-A,
+        T-046-C
+      - `simple_app.py`: T-046-B, T-046-D, T-048 (and the splits of T-056)
+      - `assembly_builder.py`: T-040, T-046-B, T-046-D, T-048-B
+      - `core.py` (engine; the template tests must stay green): T-049-E
+      - `md_to_word.py`, `docx_to_markdown.py`: T-042
+      - `.github/workflows/build.yml`: T-035, T-047
+- [ ] `scripts/overlaps.py` lists pairs of open tasks that share a file, from
+      the Touches fields, and exits non-zero when two *claimed* tasks overlap
+      (a warning in CI, not a failure)
+- [ ] **Schema migrations are numbered in merge order:** only one open
+      task may add a migration at a time (T-043-A, then T-046-C...), or the
+      second renumbers on top of the first
+- [ ] Add the rule to CLAUDE.md "Working on it" (a pointer; the text lives in
+      TASKS.md)
+
+**Done when:** every open task has a Touches line and two overlapping tasks
+are never claimed together.
+
+### T-056 Split `assembly_builder.py` and `simple_app.py`
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful (one agent at a time; a file is frozen while its split is
+  open)
+- **Needs:** T-052 (so the pattern is set), no open pull request touching
+  these files
+- **Touches:** `simple_app.py`, `assembly_builder.py`
+- **Size gate:** yes (confirm numbers; `simple_app.py` stays the build's entry
+  point and keeps its name)
+
+`simple_app.py` (1,390 lines) holds the main window, the publisher profile
+window, update dialogs and the assembly field window; `assembly_builder.py`
+(1,075) holds the composition helpers, the builder window, the open-saved and
+review-updates dialogs. T-046 and T-048 both change them.
+
+- [ ] Split by concern, as in T-052: for example `publisher_window.py`,
+      `assembly_field_window.py`, `update_dialogs.py`, `assembly_open_dialog.py`,
+      `assembly_review_dialog.py`, with pure helpers in modules that import
+      no Tkinter. `simple_app.py` keeps the application class and the entry
+      point and re-exports what tests import
+- [ ] No behaviour change; every test and the window tests pass; the Windows
+      build still starts and updates itself (the restart environment of
+      `self_update.py` is unchanged)
+- [ ] **Sequence:** do this before T-048 and T-046-B/D start, since they all
+      edit these files; T-048's new code goes in `start_screen.py`
+
+**Done when:** no module over about 800 lines and nothing visible has changed.
+
+### T-057 Require green, up-to-date pull requests on `main` (GitHub setting)
+
+- **Status:** open
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux (repository owner)
+- **Touches:** GitHub settings only
+
+A stale branch merged after `main` moved is how `main` went red on
+2026-11-20, and it multiplies conflicts.
+
+- [ ] Settings > Branches > add a rule for `main`: **Require status checks to
+      pass before merging** (the test job and the Windows build; macOS builds
+      once T-035 settles which jobs run on pull requests), and **Require
+      branches to be up to date before merging**
+- [ ] Optional: **Merge queue**, which merges one pull request at a time on a
+      fresh `main`
+- [ ] Settings > General > Pull Requests: **Automatically delete head
+      branches** (T-036)
+- [ ] Decide whether Actions may commit the board (T-054): Settings > Actions >
+      General > Workflow permissions, and any rule exemptions
+
+**Done when:** GitHub refuses to merge a pull request that is red or behind.
 
 ### T-035 Make the size gate complete and periodic
 
