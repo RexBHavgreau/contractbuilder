@@ -7,8 +7,12 @@ decisions every task assumes.
 
 ## How to use this file
 
-**To take a task:** change its `Status` to `claimed (your name or agent id,
-date)` in the same commit or pull request that starts the work. Take only
+**To take a task:** look at the open pull requests first, then claim the
+task with **its own one-line pull request** that changes only that task's
+`Status` to `claimed (your name or agent id, date)` (and its board row).
+Merge it within minutes and before any other work starts; if someone else's
+claim merged first, pick another task. Two agents then never take the same
+task. Take only
 tasks marked `Agent: any` unless you are a stronger model or a person. Do
 not take a task marked `Needs: Beaux` until its decision is recorded in
 CLAUDE.md, and do not take one whose `Needs` names an unfinished task.
@@ -18,10 +22,12 @@ bigger than its size, split it: add new tasks below with the next free
 number and say so in the original.
 
 **When done:** set `Status: done (date, PR link)`, tick every subtask that
-was done (and say why any was not), update the board below, add a line to
-the Progress log in CLAUDE.md, and add a Decision log entry for any choice
-you made that someone would otherwise have to rediscover. Leave done tasks
-here for a month after they are done, then delete them.
+was done (and say why any was not), update the board below, **add a file
+under `progress/`** (see [progress/README.md](progress/README.md)), and a file
+under `decisions/` for any choice you made that someone would otherwise have
+to rediscover. **Do not edit `CLAUDE.md`** to record progress or decisions;
+it changes only by a deliberate rules change. Leave done tasks here for a
+month after they are done, then delete them.
 
 **Subtasks:** a large task is an umbrella with subtasks named
 `T-022-A`, `T-022-B` and so on (letters; if one itself needs splitting, use
@@ -44,7 +50,8 @@ self-contained app, not a final check, so it applies at three points:
    later". Add it with the task that uses it.
 3. **Final confirmation.** Before `Status: done`, read the CI size output for
    the release build and the component-enabled build, and put both sizes and
-   the headroom in the Progress log entry. Under 3 MiB of headroom: stop and
+   the headroom in the `size` field of the task's `progress/` file (a test
+   fails if the field is missing). Under 3 MiB of headroom: stop and
    tell Beaux. A task is not done while the size check is red or was skipped.
 
 The CI check also runs weekly (T-035), because build tools that are not
@@ -63,19 +70,20 @@ a queued or in-progress run, or no run at all does not count. In practice:
 - After pushing, wait for the run. Fix a red run on the branch. Never skip,
   delete, loosen or quarantine a test to get green
 - Write the run number and the two size numbers (see Size gate) in the
-  Progress log entry for the task
+  `ci_run` and `size` fields of the task's `progress/` file
+- Before opening or merging a pull request, merge the latest `main` into
+  your branch and read both sides of any conflict (GitHub will enforce this
+  once T-057 is set)
 - After a merge, look at the run on `main`. If it is red, fixing it comes
   before any other work, and say so at the top of your report
 
-**Parallel work (interim rules, until T-053 and T-054 are done).** Several
-agents edit this file and CLAUDE.md at the same time, which is the main source
-of conflicts. Until the documents are split:
-(1) **claim a task by a one-line pull request** that changes only that task's
-status line, merged before any other work, and look at the open pull requests
-first; (2) **before opening or merging a pull request, merge the latest `main`
-into your branch** and read both sides of any conflict in this file; (3) keep
-your edits to this file to your own task's status and boxes, and add your
-progress entry in one block at the very end of the Progress log; (4) **do not
+**Parallel work (until T-054 splits this file too).** Progress and decision
+entries are separate files since T-053, so they no longer collide. This file
+still does:
+(1) claim a task by its own one-line pull request (above); (2) **before
+opening or merging a pull request, merge the latest `main` into your branch**
+and read both sides of any conflict in this file; (3) keep your edits to this
+file to your own task's status, boxes and board row; (4) **do not
 start a task whose "Touches" files another claimed task is changing**; and
 (5) a task named T-052 or T-056 freezes its files: leave them alone until it
 merges. See "Working in parallel without conflicts" below.
@@ -122,8 +130,8 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
-| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | open: first | careful | no open PR touching the docs |
-| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | open | careful | no open PR touching it |
+| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | done in [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47), needs merge | careful | no open PR touching the docs |
+| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | done in [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47), needs merge; `component_editor/` frozen until then | careful | no open PR touching it |
 | [T-057](#t-057-require-green-up-to-date-pull-requests-on-main-github-setting) | Require green, up-to-date pull requests on `main` (GitHub setting) | open | human | Beaux |
 | [T-054](#t-054-one-file-per-task-and-a-generated-board) | One file per task and a generated board | open | careful | T-053, Beaux |
 | [T-055](#t-055-say-which-files-a-task-touches-and-which-tasks-can-run-together) | Say which files a task touches; which tasks can run together | open | any | — |
@@ -449,7 +457,7 @@ Options to decide between (Claude recommends B):
   the user picks by name. Needs a shell contract change (T-026) and more
   steps for the user
 
-- [ ] Beaux chooses; record it in CLAUDE.md's Decision log
+- [ ] Beaux chooses; record it as a file under `decisions/`
 - [ ] If B or C: renderer (`md_to_word.py`), preview, editor button (a toggle,
       see T-045), importer (`docx_to_markdown.py`, so imported centered text
       stays centered; today it is dropped silently with no warning), field
@@ -584,7 +592,7 @@ app ships is only an optional, editable starting list, never a fixed schema.
       supplies the real list, with invented examples only in the repository)
 - [ ] If (2): "Add the starter fields" in the picker, never re-adding ones the
       user archived; tests
-- [ ] Record the decision in CLAUDE.md
+- [ ] Record the decision as a file under `decisions/`
 
 **Done when (T-043):** a user can insert a stored field, add and reuse a custom
 field, and never has to type a name, from the Components window.
@@ -1097,7 +1105,7 @@ apply.
 
 ### T-052 Split `component_editor.py` into a package
 
-- **Status:** open
+- **Status:** done (Claude, 2026-11-20, [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47)); waiting for green CI and merge. **`component_editor/` is frozen for other agents until it merges.**
 - **Size:** M
 - **Agent:** careful (one agent; no other pull request may touch the file
   until this merges)
@@ -1111,24 +1119,24 @@ formatting, toggles, toolbar wrapping), table helpers, field helpers, then
 line `ComponentEditorWindow`. Eight open tasks touch it (T-041 to T-045,
 T-049, T-050, T-051).
 
-- [ ] Make `component_editor/` a package with one module per concern, for
+- [x] Make `component_editor/` a package with one module per concern, for
       example `text_rules.py` (pure Markdown rules), `tables.py` (pure table
       helpers) and `table_dialog.py`, `fields.py` (pure placeholder helpers)
       and `field_dialog.py` (the future picker and creator of T-043 lands
       here), `import_dialog.py`, `toolbar.py` (the wrapping layout and
       builder), `history_dialog.py`, and `window.py` (the main window, kept
       as small as possible)
-- [ ] **No behaviour change.** `from component_editor import ...` keeps
+- [x] **No behaviour change.** `from component_editor import ...` keeps
       working for every name the app and the tests use (re-exports in
       `__init__.py`); the existing tests pass unchanged, and the window tests
       of T-047 pass
-- [ ] Pure modules import no Tkinter, so CI can test them without a display
-- [ ] A short "where things live" table in CLAUDE.md's Layout, and the rule
+- [x] Pure modules import no Tkinter, so CI can test them without a display
+- [x] A short "where things live" table in CLAUDE.md's Layout, and the rule
       from T-055: a new window or dialog is a new module
-- [ ] PyInstaller still finds every submodule (the import inside
+- [x] PyInstaller still finds every submodule (the import inside
       `simple_app.py` pulls in the package; check the Windows build) and the
       size numbers are unchanged within a few kilobytes
-- [ ] Announce in the task status that the file is frozen for other agents
+- [x] Announce in the task status that the file is frozen for other agents
       until the merge, and keep the pull request open for hours, not days
 
 **Done when:** the package replaces the file, all tests and the Windows and
@@ -1136,7 +1144,7 @@ macOS builds pass, and the largest module is well under 800 lines.
 
 ### T-053 One file per progress and decision entry; claiming a task
 
-- **Status:** open
+- **Status:** done (Claude, 2026-11-20, [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47)); waiting for green CI and merge
 - **Size:** M
 - **Agent:** careful
 - **Needs:** no open pull request touches `CLAUDE.md` or `TASKS.md`
@@ -1148,28 +1156,29 @@ Appending to the end of a shared file is the largest source of conflicts: any
 two pull requests that add an entry collide, even when they have nothing else
 in common.
 
-- [ ] `progress/` and `decisions/` hold one Markdown file per entry, named
+- [x] `progress/` and `decisions/` hold one Markdown file per entry, named
       `YYYY-MM-DD-T-NNN[-sub]-short-title.md`, with a small header (date,
       task, author, pull request, CI run, size numbers) and the existing
       wording. A script moves all existing entries out of `CLAUDE.md`
       without changing their text, and a check compares the old and new text
       so nothing is lost
-- [ ] `CLAUDE.md` keeps the standing rules, layout, pitfalls and a short
+- [x] `CLAUDE.md` keeps the standing rules, layout, pitfalls and a short
       summary of the decisions that steer day-to-day work, plus a pointer
       to the two folders and `scripts/show_log.py progress|decisions` which
       prints them in order. It is edited rarely, by a decision task, not by
       every pull request
-- [ ] `TASKS.md` "When done" and the Size gate text say: add a file under
+- [x] `TASKS.md` "When done" and the Size gate text say: add a file under
       `progress/` (and `decisions/` if a choice was made); do not edit
       `CLAUDE.md`
-- [ ] A test fails when a progress file lacks its header fields (task, pull
+- [x] A test fails when a progress file lacks its header fields (task, pull
       request, CI run, size numbers) so the size gate stays visible
-- [ ] **Claiming:** claiming a task is its own one-line pull request that
+- [x] **Claiming:** claiming a task is its own one-line pull request that
       changes only that task's status, merged within minutes and before work
       starts (after T-054 it touches only that task's file). Two agents can
       then never take the same task. Written into "How to use this file"
-- [ ] Guard: a pull request whose branch is behind `main` must merge `main`
-      first (see T-057)
+- [x] Guard: a pull request whose branch is behind `main` must merge `main`
+      first (see T-057). Written as a rule in "CI before merge"; GitHub
+      enforces it only once Beaux sets T-057
 
 **Done when:** a pull request that finishes a task adds new files and edits
 no shared document except its own task's status.
@@ -1412,7 +1421,7 @@ project easier to read and the Actions and branch lists shorter.
       unbolded entries; they are now in date order, newest last
 
 **Done when:** the branch list holds only `main` and branches with open
-work, and the legacy-code decision is written in CLAUDE.md. Size gate: any
+work, and the legacy-code decision is written under `decisions/`. Size gate: any
 removal must leave the size check green.
 
 ### T-029 Component library backup, and Markdown export and import

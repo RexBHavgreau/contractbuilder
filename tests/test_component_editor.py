@@ -261,3 +261,39 @@ def test_heading_and_list_controls_toggle_off_or_switch_type():
     )
     assert plain == source
     assert plain[start:end] == source
+
+
+def test_pure_editor_modules_load_without_tkinter():
+    """T-052: the text, table, field, toolbar-layout and save-feedback rules need no display."""
+    import subprocess
+    import textwrap
+
+    script = textwrap.dedent(
+        """
+        import importlib.util, sys, types
+        root = sys.argv[1]
+        sys.path.insert(0, root)
+
+        class NoTk:
+            def find_spec(self, name, path=None, target=None):
+                if name == "tkinter" or name.startswith("tkinter."):
+                    raise ImportError("tkinter is blocked in this test")
+                return None
+
+        sys.meta_path.insert(0, NoTk())
+        # Load submodules without running the package __init__, which builds the window.
+        package = types.ModuleType("component_editor")
+        package.__path__ = [root + "/component_editor"]
+        sys.modules["component_editor"] = package
+        for name in ("text_rules", "toolbar_layout", "tables", "fields", "save_feedback", "styling"):
+            importlib.import_module("component_editor." + name)
+        assert "tkinter" not in sys.modules
+        print("ok")
+        """
+    )
+    root = pathlib.Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-c", script, str(root)], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "ok"
