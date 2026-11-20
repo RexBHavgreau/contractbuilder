@@ -1244,7 +1244,10 @@ class ComponentEditorWindow:
         return "break"
 
     def _available_field_names(self):
-        names = set(_PROFILE_FIELD_NAMES.values())
+        names = {
+            _PROFILE_FIELD_NAMES.get(field, field.replace("_", " ").title())
+            for field in PROFILE_FIELDS
+        }
         try:
             for component in self.library.list_components():
                 for version in self.library.list_component_versions(component["id"]):
