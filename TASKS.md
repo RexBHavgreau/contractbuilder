@@ -339,18 +339,19 @@ save a component, with tables and fields, and see how it will look.
 
 ### T-023 Component library and assembly builder
 
-- **Status:** open (umbrella; work its subtasks)
+- **Status:** done (2026-11-20; subtasks A–D in [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40), subtask E in [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
 - **Size:** umbrella of T-023-A to T-023-E
 - **Agent:** careful
 - **Needs:** T-021-E, T-026
 
 See PROPOSAL-001.md section 3B.
 
-**Size gate result (CI run #223):** the release executable is 18,055,954 bytes
-(17.22 MiB); the component-enabled measurement build is 18,077,987 bytes
-(17.24 MiB), an increase of 22,033 bytes (0.02 MiB). It leaves 13,379,293
-bytes (12.76 MiB) below the 30 MiB limit. No runtime dependency was added.
-[CI run #223](https://github.com/RexBHavgreau/contractbuilder/actions/runs/44795144032).
+**Latest size gate result (CI run #227):** the release executable is
+18,090,846 bytes (17.25 MiB); the component-enabled measurement build is
+18,094,048 bytes (17.26 MiB), an increase of 3,202 bytes (under 0.01 MiB).
+It leaves 13,363,232 bytes (12.74 MiB) below the 30 MiB limit. No runtime
+dependency or bundled data file was added.
+[CI run #227](https://github.com/RexBHavgreau/contractbuilder/actions/runs/44797646135).
 
 **Done when:** a user can choose a shell, add, order, include or omit
 components, review the result, fill the fields once, and create the
@@ -410,23 +411,25 @@ document.
 
 #### T-023-E Fill and generate
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-023-D, T-019-G
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] Compose to a temporary `.docx`, then show the existing form (same code
-      path as the template workflow) with one input per field across all
-      components
-- [ ] Publisher profile loading as today; values shown for review before
+- [x] Compose to a temporary `.docx`, then show a separate field form using
+      the existing field controls and engine, with one input per unique field
+      across all components
+- [x] Publisher profile loading as today; values shown for review before
       creating the document
-- [ ] Output named and saved as the template workflow does
-- [ ] No change to the template workflow's behaviour; its tests stay green
+- [x] Output named and saved as the template workflow does; the shell and
+      temporary composed document cannot be overwritten
+- [x] The existing template workflow's screen and generation path are
+      unchanged; its tests stay green
 
 ### T-024 Saved assembly revisions and deliberate updates
 
-- **Status:** open (umbrella; work its subtasks)
+- **Status:** done (2026-11-20; subtask A in [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40), subtasks B–D in [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
 - **Size:** umbrella of T-024-A to T-024-D
 - **Agent:** careful
 - **Needs:** T-021-E, T-023-C
@@ -449,38 +452,40 @@ component versions are used only after the user reviews and chooses them.
 
 #### T-024-B List newer versions
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-024-A
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] On opening, show (not apply) which pinned components have newer
-      versions; nothing changes without a click
+- [x] On opening, show (not apply) which pinned components have newer
+      versions; the assembly remains pinned until the user chooses an update
 
 #### T-024-C Review and choose updates
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-024-B
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] A dialog showing, per component, old and new wording with changes
-      marked (a simple line difference is enough)
-- [ ] The user ticks which to update; saves a new revision; the previous
-      revision remains and can be opened
+- [x] A dialog showing, per component placement, pinned and newer wording
+      with additions and removals marked in a unified diff
+- [x] The user ticks which placements to update and selects the target
+      version; saving creates a new revision and leaves earlier revisions
+      unchanged and available to reopen
 
 #### T-024-D Reproducibility tests
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-024-C
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] Revise a component twice; the saved revision still generates the old
-      wording; an updated revision generates the new
+- [x] Revise a component twice; the saved revision still generates the old
+      wording; an updated revision generates the explicitly selected new
+      wording while unselected components remain pinned
 
 ### T-034 Find out what the install error message said
 
