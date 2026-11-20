@@ -81,32 +81,51 @@ def test_composer_preserves_shell_and_component_order(tmp_path):
     ]
 
 
-def test_numbering_ids_are_remapped_between_components(tmp_path):
+def test_ordered_clause_numbering_continues_across_components_and_lists(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
-    output = tmp_path / "lists.docx"
+    output = tmp_path / "continuous-lists.docx"
     docx_compose.compose_document(
-        shell, ["1. First component", "1. Second component"], output
+        shell,
+        [
+            "1. Alpha\n2. Beta\n\nA paragraph break.\n\n1. Gamma",
+            "1. Delta\n\n| Note |\n| --- |\n| Intervening table |\n\n1. Epsilon",
+        ],
+        output,
     )
 
     document_root = xml_part(output, "word/document.xml")
     numbering_root = xml_part(output, "word/numbering.xml")
-    paragraph_ids = [
-        paragraph.find("w:pPr/w:numPr/w:numId", NS).get(W + "val")
-        for paragraph in document_root.findall(".//w:body/w:p", NS)
+    paragraphs = document_root.findall(".//w:body/w:p", NS)
+    numbered = [
+        paragraph for paragraph in paragraphs
+        if paragraph.find("w:pPr/w:numPr/w:numId", NS) is not None
     ]
-    assert len(paragraph_ids) == 2
-    assert paragraph_ids[0] != paragraph_ids[1]
+    assert ["".join(p.xpath(".//w:t/text()", namespaces=NS)) for p in numbered] == [
+        "Alpha", "Beta", "Gamma", "Delta", "Epsilon"
+    ]
+
+    # All clause lists share one native Word numbering instance, so numbering
+    # continues 1–5 across separate lists, components, paragraphs and tables.
+    ids = [
+        p.find("w:pPr/w:numPr/w:numId", NS).get(W + "val")
+        for p in numbered
+    ]
+    assert len(set(ids)) == 1
     instances = {
-        item.get(W + "numId"): item.find("w:abstractNumId", NS).get(W + "val")
+        item.get(W + "numId"): item
         for item in numbering_root.findall("w:num", NS)
     }
-    abstract_ids = {
-        item.get(W + "abstractNumId")
-        for item in numbering_root.findall("w:abstractNum", NS)
-    }
-    assert all(number_id in instances for number_id in paragraph_ids)
-    assert all(instances[number_id] in abstract_ids for number_id in paragraph_ids)
-    assert len(instances) == len(set(instances))
+    assert ids[0] in instances
+    shared_instance = instances[ids[0]]
+    assert shared_instance.find("w:lvlOverride", NS) is None
+    abstract_id = shared_instance.find("w:abstractNumId", NS).get(W + "val")
+    abstract = next(
+        item for item in numbering_root.findall("w:abstractNum", NS)
+        if item.get(W + "abstractNumId") == abstract_id
+    )
+    level_zero = next(item for item in abstract.findall("w:lvl", NS)
+                      if item.get(W + "ilvl") == "0")
+    assert level_zero.find("w:start", NS).get(W + "val") == "1"
 
 
 def test_missing_numbering_part_is_created_with_relationship_and_content_type(tmp_path):

@@ -156,6 +156,70 @@ jobs:
           python scripts/check_executable_size.py dist/Word-Template-Filler-windows-x64.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Compare the release build with the same application while forcing in
+      # the Markdown-to-Word component stack. This makes PyInstaller include
+      # modules not imported by simple_app.py yet, so the size check measures
+      # their actual bundled cost instead of silently omitting them.
+      - name: Measure component-builder executable size
+        shell: pwsh
+        run: |
+          $releaseAsset = "dist/Word-Template-Filler-windows-x64.exe"
+          if (-not (Test-Path -LiteralPath $releaseAsset)) {
+            throw "The normal Windows executable is missing."
+          }
+          $withoutBytes = (Get-Item -LiteralPath $releaseAsset).Length
+
+          $versionLine = Select-String -Path "version.py" -Pattern '^APP_VERSION\s*=\s*"([^"]+)"'
+          if (-not $versionLine) { throw "Could not read APP_VERSION from version.py." }
+          $appName = "Word Template Filler $($versionLine.Matches[0].Groups[1].Value)"
+
+          $probeRoot = Join-Path $env:RUNNER_TEMP "component-builder-size"
+          $probeDist = Join-Path $probeRoot "dist"
+          $probeWork = Join-Path $probeRoot "work"
+          New-Item -ItemType Directory -Force -Path $probeRoot, $probeDist, $probeWork | Out-Null
+
+          $arguments = @(
+            "-m", "PyInstaller", "--clean", "--noconfirm", "--onefile", "--windowed",
+            "--name", $appName,
+            "--distpath", $probeDist,
+            "--workpath", $probeWork,
+            "--specpath", $probeRoot,
+            "--add-data", ((Join-Path $env:GITHUB_WORKSPACE "USER-GUIDE.txt") + ";."),
+            "--add-data", ((Join-Path $env:GITHUB_WORKSPACE "THIRD-PARTY-LICENSES.txt") + ";."),
+            "--hidden-import", "md_parse",
+            "--hidden-import", "markdown_fields",
+            "--hidden-import", "shell_check",
+            "--hidden-import", "md_to_word",
+            "--hidden-import", "docx_compose",
+            "simple_app.py"
+          )
+          python @arguments
+          if ($LASTEXITCODE -ne 0) { throw "The component-builder measurement build failed." }
+
+          $probeExe = Join-Path $probeDist "$appName.exe"
+          if (-not (Test-Path -LiteralPath $probeExe)) {
+            throw "PyInstaller did not produce the component-builder measurement executable."
+          }
+          $withBytes = (Get-Item -LiteralPath $probeExe).Length
+          $deltaBytes = $withBytes - $withoutBytes
+          $mib = 1MB
+
+          Write-Host ("Without component builder: {0:N0} bytes ({1:N2} MiB)" -f $withoutBytes, ($withoutBytes / $mib))
+          Write-Host ("With component builder:    {0:N0} bytes ({1:N2} MiB)" -f $withBytes, ($withBytes / $mib))
+          Write-Host ("Added bundled size:        {0:N0} bytes ({1:N2} MiB)" -f $deltaBytes, ($deltaBytes / $mib))
+
+          @"
+          ## Component-builder executable size
+          | Build | Bytes | MiB |
+          | --- | ---: | ---: |
+          | Current application (without component modules) | $withoutBytes | $([math]::Round($withoutBytes / $mib, 2)) |
+          | Same application with Markdown-to-Word modules included | $withBytes | $([math]::Round($withBytes / $mib, 2)) |
+          | Additional bundled size | $deltaBytes | $([math]::Round($deltaBytes / $mib, 2)) |
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+          python scripts/check_executable_size.py $probeExe
+          if ($LASTEXITCODE -ne 0) { throw "The component-builder executable exceeds the 30 MiB release limit." }
+
       - name: Upload Windows executable
         uses: actions/upload-artifact@v7
         with:
