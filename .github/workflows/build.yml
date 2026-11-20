@@ -191,6 +191,7 @@ jobs:
             "--hidden-import", "shell_check",
             "--hidden-import", "md_to_word",
             "--hidden-import", "docx_compose",
+            "--hidden-import", "library",
             "simple_app.py"
           )
           python @arguments

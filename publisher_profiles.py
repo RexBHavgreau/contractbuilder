@@ -19,7 +19,7 @@ from typing import Callable, Iterator, Mapping, Sequence
 
 # The existing publisher_profiles.sqlite3 layout is schema version 1.
 # Later component-library changes add one migration per new version.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 _MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 PROFILE_FIELDS = (
@@ -207,6 +207,64 @@ def _create_publisher_schema(connection: sqlite3.Connection) -> None:
 
 def _set_schema_version(connection: sqlite3.Connection, version: int) -> None:
     connection.execute(f"PRAGMA user_version = {int(version)}")
+
+
+def _migrate_components_and_versions(connection: sqlite3.Connection) -> None:
+    """Add reusable components and immutable, numbered Markdown versions."""
+    connection.execute(
+        """
+        CREATE TABLE components (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+            description TEXT NOT NULL DEFAULT '',
+            category TEXT NOT NULL DEFAULT '',
+            tags TEXT NOT NULL DEFAULT '[]',
+            status TEXT NOT NULL DEFAULT 'active'
+                CHECK (status IN ('active', 'archived'))
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE component_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            component_id INTEGER NOT NULL
+                REFERENCES components(id) ON DELETE RESTRICT,
+            number INTEGER NOT NULL CHECK (number > 0),
+            markdown TEXT NOT NULL,
+            created TEXT NOT NULL,
+            note TEXT NOT NULL DEFAULT '',
+            UNIQUE (component_id, number)
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX idx_component_versions_component_number "
+        "ON component_versions(component_id, number DESC)"
+    )
+    # A saved version is a historical record, not an editable row. Edits
+    # insert a new version; no update or delete may rewrite old wording.
+    connection.execute(
+        """
+        CREATE TRIGGER component_versions_immutable_update
+        BEFORE UPDATE ON component_versions
+        BEGIN
+            SELECT RAISE(ABORT, 'component versions are immutable');
+        END
+        """
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER component_versions_immutable_delete
+        BEFORE DELETE ON component_versions
+        BEGIN
+            SELECT RAISE(ABORT, 'component versions cannot be deleted');
+        END
+        """
+    )
+
+
+_MIGRATIONS[2] = _migrate_components_and_versions
 
 
 def _verify_publisher_schema(connection: sqlite3.Connection) -> None:
