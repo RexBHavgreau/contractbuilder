@@ -920,7 +920,7 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-B Preview
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-022-A, T-019-C
