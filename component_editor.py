@@ -946,10 +946,14 @@ class ImportReviewDialog:
 class ComponentEditorWindow:
     """Manage saved components and create immutable wording versions."""
 
-    def __init__(self, parent, library: ComponentLibrary | None = None, on_close=None):
+    def __init__(
+        self, parent, library: ComponentLibrary | None = None,
+        on_close=None, on_generate=None,
+    ):
         self.parent = parent
         self.library = library or ComponentLibrary()
         self.on_close = on_close
+        self.on_generate = on_generate
         self.current_component_id: int | None = None
         self.loaded_markdown: str | None = None
         self.loaded_plain_text = ""
@@ -1913,7 +1917,7 @@ class ComponentEditorWindow:
             from assembly_builder import AssemblyBuilderWindow
 
             self.assembly_builder_window = AssemblyBuilderWindow(
-                self.window, self.library
+                self.window, self.library, on_generate=self.on_generate
             )
         except (ImportError, OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
             messagebox.showerror(
