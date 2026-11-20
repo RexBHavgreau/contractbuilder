@@ -12,6 +12,7 @@ from tkinter import messagebox, ttk
 
 import core
 from library import ComponentLibrary
+from component_preview import render_markdown_preview
 
 
 _MARKDOWN_SPECIAL = frozenset(
@@ -95,6 +96,7 @@ class ComponentEditorWindow:
         self.protected_content = False
         self.saved_snapshot = None
         self.suspend_selection = False
+        self._preview_after_id = None
         self.window = tk.Toplevel(parent)
         self.window.title("Components")
         self.window.geometry("1060x720")
@@ -190,12 +192,50 @@ class ComponentEditorWindow:
 
         text_label = ttk.Label(form, text="Wording *")
         text_label.grid(row=4, column=0, sticky="nw", padx=(0, 12), pady=(10, 4))
+
+        panes = ttk.Panedwindow(form, orient="horizontal")
+        panes.grid(row=4, column=1, sticky="nsew", pady=(10, 4))
+        edit_frame = ttk.LabelFrame(panes, text="Edit wording", padding=4)
+        preview_frame = ttk.LabelFrame(panes, text="Preview", padding=4)
+        edit_frame.columnconfigure(0, weight=1)
+        edit_frame.rowconfigure(0, weight=1)
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+        panes.add(edit_frame, weight=1)
+        panes.add(preview_frame, weight=1)
+
         self.wording = tk.Text(
-            form, wrap="word", undo=True, height=18,
+            edit_frame, wrap="word", undo=True, height=18,
             font="TkDefaultFont", relief="solid", borderwidth=1,
             padx=7, pady=6,
         )
-        self.wording.grid(row=4, column=1, sticky="nsew", pady=(10, 4))
+        self.wording.grid(row=0, column=0, sticky="nsew")
+        edit_scroll = ttk.Scrollbar(
+            edit_frame, orient="vertical", command=self.wording.yview
+        )
+        edit_scroll.grid(row=0, column=1, sticky="ns")
+        self.wording.configure(yscrollcommand=edit_scroll.set)
+        # Tk's modified virtual event covers typing, paste, cut, undo, redo
+        # and programmatic edits. Reset its flag so each later edit can notify.
+        self.wording.bind("<<Modified>>", self._on_wording_modified)
+
+        self.preview = tk.Text(
+            preview_frame, wrap="word", height=18, state="disabled",
+            font="TkDefaultFont", relief="solid", borderwidth=1,
+            padx=7, pady=6, cursor="arrow",
+        )
+        self.preview.grid(row=0, column=0, sticky="nsew")
+        preview_scroll = ttk.Scrollbar(
+            preview_frame, orient="vertical", command=self.preview.yview
+        )
+        preview_scroll.grid(row=0, column=1, sticky="ns")
+        self.preview.configure(yscrollcommand=preview_scroll.set)
+        self._configure_preview_tags()
+        ttk.Label(
+            preview_frame,
+            text="Word decides the final page layout",
+            foreground="#555555",
+        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
 
         note_row = ttk.Frame(form)
         note_row.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 0))
@@ -225,6 +265,83 @@ class ComponentEditorWindow:
         ttk.Button(
             footer, text="Save version", command=self.save_component
         ).pack(side="right", padx=(0, 8))
+
+    def _configure_preview_tags(self):
+        self.preview.tag_configure(
+            "heading_1", font=("TkDefaultFont", 17, "bold"),
+            spacing1=10, spacing3=6,
+        )
+        self.preview.tag_configure(
+            "heading_2", font=("TkDefaultFont", 14, "bold"),
+            spacing1=8, spacing3=5,
+        )
+        self.preview.tag_configure(
+            "heading_3", font=("TkDefaultFont", 12, "bold"),
+            spacing1=6, spacing3=4,
+        )
+        self.preview.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
+        self.preview.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
+        self.preview.tag_configure(
+            "field", background="#fff0c2", foreground="#714d00"
+        )
+        self.preview.tag_configure(
+            "list_marker", foreground="#555555", lmargin1=10
+        )
+        self.preview.tag_configure(
+            "table_header", font=("TkDefaultFont", 9, "bold"),
+            background="#eeeeee",
+        )
+        self.preview.tag_configure("table_cell", font=("TkFixedFont", 9))
+        self.preview.tag_configure(
+            "table_border", foreground="#777777", font=("TkFixedFont", 9)
+        )
+        self.preview.tag_configure(
+            "code", font=("TkFixedFont", 9), background="#f1f1f1"
+        )
+        self.preview.tag_configure(
+            "code_block", font=("TkFixedFont", 9), background="#f4f4f4",
+            lmargin1=8, lmargin2=8,
+        )
+        self.preview.tag_configure("blockquote", foreground="#555555", lmargin1=12)
+        self.preview.tag_configure("link", underline=True, foreground="#245a8d")
+        self.preview.tag_configure("rule", foreground="#888888")
+        self.preview.tag_configure("source_text", foreground="#666666")
+
+    def _on_wording_modified(self, _event=None):
+        if not self.wording.edit_modified():
+            return
+        self.wording.edit_modified(False)
+        self._schedule_preview()
+
+    def _schedule_preview(self, _event=None):
+        """Refresh after a short idle interval so keystrokes are never blocked."""
+        if self._preview_after_id is not None:
+            try:
+                self.window.after_cancel(self._preview_after_id)
+            except tk.TclError:
+                pass
+        try:
+            self._preview_after_id = self.window.after(260, self._update_preview)
+        except tk.TclError:
+            self._preview_after_id = None
+
+    def _update_preview(self):
+        self._preview_after_id = None
+        if not self.window.winfo_exists():
+            return
+        source = self.wording.get("1.0", "end-1c")
+        try:
+            segments = render_markdown_preview(source)
+        except (TypeError, ValueError) as exc:
+            segments = [(f"Preview unavailable: {exc}", ("source_text",))]
+        self.preview.configure(state="normal")
+        self.preview.delete("1.0", "end")
+        if not segments:
+            self.preview.insert("1.0", "Start typing to see a preview.", ("source_text",))
+        else:
+            for text, tags in segments:
+                self.preview.insert("end", text, tags)
+        self.preview.configure(state="disabled")
 
     def _state(self) -> tuple:
         return (
@@ -356,6 +473,7 @@ class ComponentEditorWindow:
         self.status.configure(
             text=f"Editing {component['name']} · version {latest['number']}."
         )
+        self._schedule_preview()
         self.refresh_components(selected_id)
 
     def new_component(self, prompt: bool = True):
@@ -374,6 +492,7 @@ class ComponentEditorWindow:
         self.wording.delete("1.0", "end")
         self.content_notice.configure(text="")
         self.saved_snapshot = self._state()
+        self._schedule_preview()
         selection = self.tree.selection()
         if selection:
             self.suspend_selection = True
@@ -450,6 +569,12 @@ class ComponentEditorWindow:
     def close(self):
         if not self._confirm_pending_changes("closing the Components window"):
             return
+        if self._preview_after_id is not None:
+            try:
+                self.window.after_cancel(self._preview_after_id)
+            except tk.TclError:
+                pass
+            self._preview_after_id = None
         try:
             if self.on_close is not None:
                 self.on_close()
