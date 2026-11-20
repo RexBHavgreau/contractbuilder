@@ -130,8 +130,8 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
-| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | done on branch, needs PR and merge | careful | no open PR touching the docs |
-| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | done on branch, needs PR and merge; `component_editor/` frozen until then | careful | no open PR touching it |
+| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | done in [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47), needs merge | careful | no open PR touching the docs |
+| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | done in [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47), needs merge; `component_editor/` frozen until then | careful | no open PR touching it |
 | [T-057](#t-057-require-green-up-to-date-pull-requests-on-main-github-setting) | Require green, up-to-date pull requests on `main` (GitHub setting) | open | human | Beaux |
 | [T-054](#t-054-one-file-per-task-and-a-generated-board) | One file per task and a generated board | open | careful | T-053, Beaux |
 | [T-055](#t-055-say-which-files-a-task-touches-and-which-tasks-can-run-together) | Say which files a task touches; which tasks can run together | open | any | — |
@@ -1105,7 +1105,7 @@ apply.
 
 ### T-052 Split `component_editor.py` into a package
 
-- **Status:** done on branch `claude/lucid-carson-0pjh6j` (Claude, 2026-11-20); waiting for a pull request, green CI and merge. **`component_editor/` is frozen for other agents until it merges.**
+- **Status:** done (Claude, 2026-11-20, [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47)); waiting for green CI and merge. **`component_editor/` is frozen for other agents until it merges.**
 - **Size:** M
 - **Agent:** careful (one agent; no other pull request may touch the file
   until this merges)
@@ -1144,7 +1144,7 @@ macOS builds pass, and the largest module is well under 800 lines.
 
 ### T-053 One file per progress and decision entry; claiming a task
 
-- **Status:** done on branch `claude/lucid-carson-0pjh6j` (Claude, 2026-11-20); waiting for a pull request, green CI and merge
+- **Status:** done (Claude, 2026-11-20, [PR #47](https://github.com/RexBHavgreau/contractbuilder/pull/47)); waiting for green CI and merge
 - **Size:** M
 - **Agent:** careful
 - **Needs:** no open pull request touches `CLAUDE.md` or `TASKS.md`
