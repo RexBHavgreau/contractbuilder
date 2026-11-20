@@ -907,16 +907,16 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-A Editor window shell and save
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #34](https://github.com/RexBHavgreau/contractbuilder/pull/34))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-E
 
-- [ ] A "Components" window, reached from the main window, separate from the
+- [x] A "Components" window, reached from the main window, separate from the
       template workflow; name, category and tags fields; Save makes a new
       version with an optional note
-- [ ] Unsaved-changes prompt in plain English
-- [ ] The existing template workflow's screen and menus are unchanged
+- [x] Unsaved-changes prompt in plain English
+- [x] The existing template workflow's screen and menus are unchanged
 
 #### T-022-B Preview
 
@@ -925,10 +925,12 @@ save a component, with tables and fields, and see how it will look.
 - **Agent:** careful
 - **Needs:** T-022-A, T-019-C
 
-- [ ] A read-only preview pane using Text widget tags: headings, bold,
+- [x] A read-only preview pane using Text widget tags: headings, bold,
       italic, lists, tables as aligned text, fields highlighted
-- [ ] Updates as the user stops typing (debounced), never blocks typing
-- [ ] A line under it: "Word decides the final page layout"
+- [x] Updates as the user stops typing (debounced), never blocks typing;
+      refresh listens to Tk's modified event so paste, cut, undo and redo
+      also update the preview
+- [x] A line under it: "Word decides the final page layout"
 
 #### T-022-C Formatting toolbar
 
