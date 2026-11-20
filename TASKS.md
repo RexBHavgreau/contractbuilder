@@ -76,9 +76,9 @@ composer. Next free number: **T-035**.
 | [T-028](#t-028-include-third-party-licence-notices) | Third-party licence notices | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella) | open | careful | T-019-A, T-019-B |
 | ↳ [T-020-A](#t-020-a-read-the-package-and-the-body-in-order) | Read the package and body in order | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | — |
-| ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | open | careful | A |
-| ↳ [T-020-C](#t-020-c-lists) | Lists | open | careful | B |
-| ↳ [T-020-D](#t-020-d-tables) | Tables | open | careful | B |
+| ↳ [T-020-B](#t-020-b-paragraphs-headings-and-inline-formatting) | Paragraphs, headings, inline formatting | done (2026-11-19, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28)) | careful | A |
+| ↳ [T-020-C](#t-020-c-lists) | Lists | done (2026-11-19, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28)) | careful | B |
+| ↳ [T-020-D](#t-020-d-tables) | Tables | done (2026-11-19, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28)) | careful | B |
 | ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | done (2026-11-19, [PR #22](https://github.com/RexBHavgreau/contractbuilder/pull/22)) | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
@@ -700,53 +700,53 @@ in the right order, fields intact, and every unsupported structure reported.
 
 #### T-020-B Paragraphs, headings and inline formatting
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-020-A
 
-- [ ] Heading styles to `#`..`###` (map by style id/name and outline level;
+- [x] Heading styles to `#`..`###` (map by style id/name and outline level;
       deeper headings are reported, not dropped)
-- [ ] Bold and italic across split runs (Word splits runs freely; merge
+- [x] Bold and italic across split runs (Word splits runs freely; merge
       neighbours with the same formatting)
-- [ ] Escape Markdown characters in ordinary text so the round trip does not
+- [x] Escape Markdown characters in ordinary text so the round trip does not
       turn a literal `*` or `_` into emphasis
-- [ ] `{{Field}}` and `{{#if}}` text kept literal, even when it is split
+- [x] `{{Field}}` and `{{#if}}` text kept literal, even when it is split
       across runs (reuse `core`'s run-spanning logic where possible)
-- [ ] Underline, strikethrough, highlight, font and colour changes are
+- [x] Underline, strikethrough, highlight, font and colour changes are
       reported as dropped formatting (these are out of scope, T-032)
 
 **Done when:** tests cover split runs and a field split across three runs.
 
 #### T-020-C Lists
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-020-B (T-025 is decided; see it)
 
-- [ ] Read `numbering.xml` to tell bulleted from numbered and find the
+- [x] Read `numbering.xml` to tell bulleted from numbered and find the
       nesting level
-- [ ] Convert lists per T-025: multi-level Word lists become nested ordered
+- [x] Convert lists per T-025: multi-level Word lists become nested ordered
       lists by level, whatever their numbering style; letter and Roman
       styles become decimal, with a warning saying so
-- [ ] Typed numbers that are not Word numbering (such as "1." typed by hand)
+- [x] Typed numbers that are not Word numbering (such as "1." typed by hand)
       are kept as text and flagged as possible list items
 
 **Done when:** tests cover bullets, numbers, nesting and typed numbers.
 
 #### T-020-D Tables
 
-- **Status:** open
+- **Status:** done (2026-11-19, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-020-B
 
-- [ ] Rectangular tables to GFM tables; first row as header
-- [ ] Merged cells (horizontal or vertical), nested tables, and cells with
+- [x] Rectangular tables to GFM tables; first row as header
+- [x] Merged cells (horizontal or vertical), nested tables, and cells with
       more than one paragraph or a list are reported, with the best-effort
       text still included where it is safe
-- [ ] A literal `|` in cell text is escaped
+- [x] A literal `|` in cell text is escaped
 
 **Done when:** tests cover a plain table, a merged-cell table, a cell with
 two paragraphs, and a mixed paragraph-table-paragraph body.
