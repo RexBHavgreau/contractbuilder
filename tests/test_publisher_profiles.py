@@ -167,7 +167,7 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
     assert _user_version(backup_path) == 1
     with sqlite3.connect(backup_path) as backup:
         assert backup.execute(
-            "SELECT value FROM sqlite_master WHERE type = 'table' AND name = 'component_probe'"
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'component_probe'"
         ).fetchone() is None
         assert backup.execute("SELECT COUNT(*) FROM publishers").fetchone()[0] == 2
 
@@ -206,6 +206,10 @@ def test_failed_migration_rolls_back_database_and_keeps_original_backup(
         assert connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'should_roll_back'"
         ).fetchone() is None
+    # Reopen with the old schema version after simulating the failed
+    # migration, rather than immediately retrying the same failing step.
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 1)
+    monkeypatch.setattr(profiles, "_MIGRATIONS", {})
     assert profiles.PublisherProfileStore(path).list_profiles() == before
 
     backup_path = pathlib.Path(str(path) + ".bak-1")
