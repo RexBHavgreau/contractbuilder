@@ -6,7 +6,6 @@ separate follow-on features.
 """
 from __future__ import annotations
 
-import re
 import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -31,12 +30,23 @@ def _escape_plain_segment(text: str) -> str:
 
 
 def _escape_line_marker(line: str) -> str:
-    """Escape only leading hyphen and ordered-list markers, not normal prose."""
-    if re.match(r"^[ \\t]*-(?:[ \\t]|$)", line) or re.match(
-        r"^[ \\t]*-{3,}[ \\t]*$", line
+    """Escape structural list markers at line start, not ordinary punctuation."""
+    indent = len(line) - len(line.lstrip(" \t"))
+    content = line[indent:]
+    if (
+        content.startswith("- ")
+        or content.startswith("-\t")
+        or content == "-"
+        or (content.startswith("---") and not content.strip("- \t"))
     ):
-        return re.sub(r"^([ \\t]*)-", r"\\1\\\\-", line, count=1)
-    return re.sub(r"^([ \\t]*\\d+)\\.", r"\\1\\\\.", line, count=1)
+        return line[:indent] + "\\-" + content[1:]
+
+    digits = 0
+    while digits < len(content) and content[digits].isdigit():
+        digits += 1
+    if digits and content[digits:digits + 2] in (". ", ".\t"):
+        return line[:indent] + content[:digits] + "\\." + content[digits + 1:]
+    return line
 
 
 def plain_text_to_markdown(text: str) -> str:
@@ -58,7 +68,7 @@ def plain_text_to_markdown(text: str) -> str:
         cursor = match.end()
     pieces.append(_escape_plain_segment(normalized[cursor:]))
     escaped = "".join(pieces)
-    escaped = "\\n".join(_escape_line_marker(line) for line in escaped.split("\\n"))
+    escaped = "\n".join(_escape_line_marker(line) for line in escaped.split("\n"))
 
     paragraphs: list[str] = []
     current: list[str] = []
