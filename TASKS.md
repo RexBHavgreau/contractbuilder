@@ -346,32 +346,38 @@ save a component, with tables and fields, and see how it will look.
 
 See PROPOSAL-001.md section 3B.
 
+**Size gate result (CI run #223):** the release executable is 18,055,954 bytes
+(17.22 MiB); the component-enabled measurement build is 18,077,987 bytes
+(17.24 MiB), an increase of 22,033 bytes (0.02 MiB). It leaves 13,379,293
+bytes (12.76 MiB) below the 30 MiB limit. No runtime dependency was added.
+[CI run #223](https://github.com/RexBHavgreau/contractbuilder/actions/runs/44795144032).
+
 **Done when:** a user can choose a shell, add, order, include or omit
 components, review the result, fill the fields once, and create the
 document.
 
 #### T-023-A Library browser
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-E
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] List by category and tag, with search by name and wording; archived
+- [x] List by category and tag, with search by name and wording; archived
       components hidden unless asked for
-- [ ] Open a component in the editor (T-022-A); see its version history
+- [x] Open a component in the editor (T-022-A); see its version history
 
 #### T-023-B Choose a shell
 
-- **Status:** open for the file picker; the checking and remembering are
-  done (2026-11-19, `shell_selection.py`, tests in `tests/test_shell_selection.py`)
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40); the checker and remembering
+  were added 2026-11-19 in `shell_selection.py`)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-026
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] Pick a shell file: the picker dialog waits for the component window
+- [x] Pick a shell file: the picker dialog waits for the component window
       (T-023-A / T-022-A). `shell_selection.choose_shell(path)` is what it
       calls with the file the user picked.
 - [x] Validate it with T-026's checker and show its plain-English findings
@@ -382,25 +388,25 @@ document.
 
 #### T-023-C Build and order an assembly
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-023-A
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] Add components, move up and down, remove, and tick "include" to omit
+- [x] Add components, move up and down, remove, and tick "include" to omit
       an optional component without removing it
-- [ ] A component can be added more than once only if the user chooses
+- [x] A component can be added more than once only if the user chooses
 
 #### T-023-D Review the assembled document
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-023-C, T-022-B
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] One preview of everything in order, fields highlighted
+- [x] One preview of everything in order, fields highlighted
 
 #### T-023-E Fill and generate
 
@@ -432,13 +438,13 @@ component versions are used only after the user reviews and chooses them.
 
 #### T-024-A Save and reopen
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-023-C
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
-- [ ] Save an assembly (name, shell, components, order, included flags) as
+- [x] Save an assembly (name, shell, components, order, included flags) as
       revision 1; reopen it and produce identical Markdown
 
 #### T-024-B List newer versions
