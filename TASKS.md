@@ -88,11 +88,19 @@ Fields:
 
 Open and in-progress work only. Finished tasks leave this table and move to
 "Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
-(after PR #41). Next free number: **T-040**.
+(after PR #41). Next free number: **T-048**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
 | [T-039](#t-039-stop-the-update-restart-error-fix-in-041) | Stop the error shown when the app restarts after a self-update: cause confirmed, fix written; release 0.4.1 | open: needs a pull request, green CI, merge | careful | Beaux |
+| [T-040](#t-040-let-the-components-and-assembly-windows-be-maximized) | Let the Components and assembly windows be maximized | open | any | — |
+| [T-044](#t-044-make-saving-obvious) | Make saving obvious (visible confirmation, unsaved mark) | open | any | — |
+| [T-041](#t-041-make-the-editors-toolbar-wrap) | Make the editor's toolbar wrap | open | careful | — |
+| [T-045](#t-045-formatting-buttons-toggle) | Formatting buttons toggle on and off | open | careful | — |
+| [T-047](#t-047-open-the-windows-in-ci-under-a-virtual-display) | Open the windows in CI under a virtual display | open | careful | — |
+| [T-043](#t-043-field-picker-reusable-and-custom-fields-no-typing) | Field picker: reusable and custom fields (umbrella; A to D) | open | careful | — |
+| [T-046](#t-046-fill-from-the-publisher-profile-with-matching-the-user-controls) | Fill from the publisher profile, with user-defined matching (umbrella; A to C) | open | careful | T-043-A |
+| [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
@@ -111,6 +119,9 @@ the error one more time; the update after that should not) and T-030 (Word).
 T-035 before the next feature lands, since the size comparison is currently
 meaningless and every pull request runs three platform builds. T-029
 (backup) and T-031 (links) are next features; T-036 is tidying.
+
+Usability fixes from Beaux's hand testing (T-040 to T-047) are grouped under
+"Component manager usability"; they ship as 0.5.0 after 0.4.1.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -303,6 +314,356 @@ screenshots may be shared.
       new wording and nothing changes until you tick it
 - [ ] Write down anything confusing in plain words. Anything that stops you
       is a bug task; anything that is only awkward goes in a new task
+
+## Component manager usability (found by Beaux, 2026-11-20)
+
+Beaux used the 0.4.0 windows by hand and listed what got in the way. Each
+item below was checked against the code (what the code does today is stated
+in each task). Rules for all of them: invented test data only; keep logic in
+plain functions that CI can test, because CI opens no window (T-047 changes
+that); say in the task what it adds to the executable and confirm the CI size
+numbers (see Size gate); and finish with a short hand check on Windows. The
+decision in the 2026-11-17 Decision log still holds: **the app carries no
+built-in schemas for kinds of contract**, so "preset" fields below means the
+publisher-profile fields the app already has plus fields the user defines.
+
+Suggested order: T-040, T-044, T-041, T-045 are quick and independent. T-047
+makes the rest easier to prove. T-043 comes before T-046 (they share storage).
+T-042 starts with a decision from Beaux. These ship after 0.4.1 (T-039) as
+0.5.0.
+
+### T-040 Let the Components and assembly windows be maximized
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+- **Size gate:** yes (no new code reaches the executable; say so and confirm)
+
+**Today:** the Components window and the Build assembly window are created
+with `window.transient(parent)` (`component_editor.py`, `assembly_builder.py`).
+On Windows a transient window has no maximize or minimize button, which is
+what Beaux sees. Both are working windows, not pop-up questions.
+
+- [ ] Stop making the two main windows transient; keep them resizable with a
+      sensible minimum size, and keep them from hiding behind the main window
+      (lift on open, one instance at a time as now)
+- [ ] Check the larger dialogs (import review, version history, review
+      updates, table editor) and decide for each: modal and fixed, or
+      resizable and maximizable. Resizable if it holds a long text or a grid
+- [ ] Layout uses the extra room: lists and the wording box grow, buttons stay
+      put
+- [ ] Hand check on Windows: maximize, restore, minimize, and the window
+      returns to the front when "Manage components" is chosen again
+
+**Done when:** both main windows can be maximized and restored on Windows, and
+the layout fills the space.
+
+### T-041 Make the editor's toolbar wrap
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+**Today:** the formatting buttons sit in one row (`pack(side="left")`), so
+anything past the window width is cut off, even when maximized if the row is
+long enough.
+
+- [ ] A wrapping toolbar: when the width changes, buttons flow onto more rows
+      instead of being cut off; related buttons stay together (text style;
+      lists and indent; table, field, import)
+- [ ] The row computation is a plain function (button widths and available
+      width in, rows out) with tests, including a width narrower than the
+      widest button and one wider than all of them
+- [ ] Works at the window's minimum size and when maximized; no horizontal
+      scrolling anywhere
+- [ ] Every button gets a plain-English tooltip or label (it is easy to guess
+      what "B", "I" and "Field" do, harder for "Outdent")
+- [ ] Hand check on Windows at several widths
+
+**Done when:** at every window width, every toolbar button is reachable
+without scrolling.
+
+### T-042 Centering, and other paragraph alignment
+
+- **Status:** open: needs a decision first
+- **Size:** M after the decision
+- **Agent:** human for the decision, then careful
+- **Needs:** Beaux
+- **Size gate:** yes
+
+**Today:** nothing offers centering. Markdown has no centering. Table columns
+can already be left, centered or right aligned (T-019-E). T-025 and T-032 set
+the rule of no new Markdown syntax and no underline, page breaks or signature
+blocks, so this needs a conscious choice. Beaux's wording: "if it can be an
+option, it should be".
+
+Options to decide between (Claude recommends B):
+
+- **A. Not supported.** Say so in the guide; titles and blocks that must be
+  centered belong in the Word shell or a template. Nothing to build.
+- **B. A hidden marker the editor writes.** A button "Center" puts an invisible
+  marker (for example an HTML comment on the line before the paragraph) in the
+  stored text; the user never types it. Other Markdown tools ignore it, so
+  exports degrade to a normal paragraph. The renderer reads it and sets
+  centered alignment; the preview centers; the importer reads centered Word
+  paragraphs back; the toggle removes it. Raw HTML stays switched off for
+  everything else
+- **C. A paragraph style from the shell** (for example "Centered Title") that
+  the user picks by name. Needs a shell contract change (T-026) and more
+  steps for the user
+
+- [ ] Beaux chooses; record it in CLAUDE.md's Decision log
+- [ ] If B or C: renderer (`md_to_word.py`), preview, editor button (a toggle,
+      see T-045), importer (`docx_to_markdown.py`, so imported centered text
+      stays centered; today it is dropped silently with no warning), field
+      protection check, tests, guide text
+- [ ] If A: warn on import when a centered paragraph loses its alignment
+
+**Done when:** the choice is recorded and, if B or C, a centered paragraph
+survives edit, save, preview, import, assembly and the Word output.
+
+### T-043 Field picker: reusable and custom fields, no typing
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-043-A to T-043-D
+- **Agent:** careful
+- **Needs:** —
+
+**Today:** the Field button opens a small dialog with a drop-down of names
+already used in the library plus the publisher-profile names, a format box and
+an options box (`FieldInsertDialog`). A new field means typing its name, the
+list is not grouped, and a field you invent is not remembered anywhere unless
+it is already in some saved component. Beaux wants fields chosen from a list,
+reused without retyping, and new fields added by the user.
+
+#### T-043-A Store field definitions
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+- [ ] A database migration (next schema version, with the usual backup and
+      transaction, as T-021-A did) adds field definitions: name, short
+      description, group, default format and options, optional link to a
+      publisher-profile column (used by T-046), archived flag
+- [ ] `library.py` functions: list, add, edit, archive and restore. Names
+      follow `core`'s field rules and are unique ignoring case and spacing;
+      a clear plain-English error for a bad or duplicate name
+- [ ] Nothing is deleted while any component version uses the name (archive
+      only), matching the rule for components
+- [ ] Tests with a temporary database, including upgrade from the current
+      version and an older app opening the upgraded file
+
+#### T-043-B Built-in publisher fields
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-043-A
+- **Size gate:** yes
+
+- [ ] The picker always offers the publisher-profile fields the app already
+      has (`PROFILE_FIELDS`, plus the combined address) with readable names
+      such as "Publisher name" and "Contact email", each linked to its profile
+      column. No contract-type fields are built in (Decision log, 2026-11-17)
+- [ ] Names used by existing components are included automatically, so the
+      picker is never missing a field the library already uses
+- [ ] Tests
+
+#### T-043-C Picker window
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-A, T-043-B, T-040
+- **Size gate:** yes
+
+- [ ] The Field button opens a searchable list grouped as Publisher, Fields
+      from your library, and Your fields. Double-click or Insert places
+      `{{Name}}` at the cursor, with the field's default format
+- [ ] **New field…** adds a custom field (name, description, group, format,
+      options) and inserts it; **Edit** and **Archive** manage the list
+- [ ] The picker stays open on request so several fields can be inserted in a
+      row; the editor's preview updates
+- [ ] Typing a name still works for a one-off, and a malformed one is still
+      explained (`make_field_placeholder`, as today)
+- [ ] Hand check on Windows
+
+#### T-043-D Use the same fields elsewhere
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-043-C
+- **Size gate:** yes
+
+- [ ] The assembly field form (and the template form) show a field's
+      description where one exists, so staff know what to type
+- [ ] Guide section added; tests
+
+**Done when (T-043):** a user can insert a stored field, add and reuse a custom
+field, and never has to type a name, from the Components window.
+
+### T-044 Make saving obvious
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+- **Size gate:** yes (no new executable content; say so and confirm)
+
+**Today:** after Save version the only sign is a small grey line at the bottom
+of the window ("Saved <name> · version N", `ComponentEditorWindow.save`), easy
+to miss and out of sight when the window is short.
+
+- [ ] A clear confirmation next to the button the moment the save completes
+      (for example the button reads "Saved ✓ version 3" for a few seconds, or
+      a green banner above the wording), and a failed save shows a red message
+      in the same place that stays until dismissed
+- [ ] An "Unsaved changes" mark that appears when the wording or details
+      change and clears on save; the window title shows it too
+- [ ] The component list refreshes and keeps the saved component selected, with
+      its new version number visible
+- [ ] The message text is built by a plain function with tests (saved, saved
+      with note, failed, nothing to save)
+- [ ] Hand check on Windows: nobody can miss that it saved
+
+**Done when:** a user always sees at once whether the save worked.
+
+### T-045 Formatting buttons toggle
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+**Today:** bold and italic wrap the selection in markers every time; pressing
+again adds a second pair. Headings and lists can be added but there is no
+direct way to remove them (Outdent only reduces a level).
+
+- [ ] **Bold and italic toggle** on the selection, and on the word at the
+      cursor: pressing again removes the markers; a mixed selection becomes
+      all bold first; bold plus italic is handled; markers inside a field
+      placeholder or already escaped are left alone
+- [ ] **Heading buttons toggle** back to a normal paragraph (pressing the
+      active heading level, or choosing "Normal text"); **Bullets and
+      Numbering toggle** off on the selected lines, and Numbering/Bullets
+      switch between each other
+- [ ] Buttons show their state for the text at the cursor (pressed or not)
+- [ ] The editing rules are pure functions on Markdown text (text, selection
+      and action in; text and selection out) with tests, including
+      multi-line selections and the cases above
+- [ ] Works in the formatted view and in the raw-text view
+- [ ] Hand check on Windows
+
+**Done when:** every formatting button can undo its own effect.
+
+### T-046 Fill from the publisher profile, with matching the user controls
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-046-A to T-046-C
+- **Agent:** careful
+- **Needs:** T-043-A (shared storage)
+
+**Today:** the template form and the assembly form each have one "Load" button
+for a saved publisher. It fills every field whose name matches a fixed list of
+aliases in `publisher_profiles.py` (`_FIELD_ALIASES`, for example "Publisher
+Name", "Contact Email"), and nothing else; the profile has 13 fixed columns.
+Fields with other names are silently skipped, the user cannot say "my field
+Licensor is the publisher name", there is no way to fill a single field, and a
+profile cannot hold extra details. Beaux's wording: each time publishing
+information is looked for, there should be an option to fill all of it from
+the profile, and it should be more customizable.
+
+#### T-046-A Let users define the matching
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-A
+- **Size gate:** yes
+
+- [ ] A "Field matching" window (Publishers menu) shows each profile column
+      with the field names that currently fill from it (the built-in aliases
+      plus the user's own) and lets the user add or remove names; user entries
+      are stored in the database and take priority over the built-ins
+- [ ] A field defined in the picker (T-043) can be linked to a profile column
+      there, and the same link is used here
+- [ ] `values_for_template` uses the user's matching first; names stay
+      matched ignoring case, spacing and apostrophes as now
+- [ ] Tests, including a custom name beating a built-in one and an unknown
+      name still being skipped without an error
+
+#### T-046-B Fill from the profile wherever it applies
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-046-A
+- **Size gate:** yes
+
+- [ ] In the template form and the assembly form, every field that has a
+      profile column gets a small "From publisher" control that fills just
+      that field from the chosen publisher; the existing button is renamed
+      "Fill all from publisher"
+- [ ] After a fill, say plainly what was filled and which profile details had
+      no matching field, so a missed match is visible
+- [ ] If a publisher is chosen after fields were typed, ask before replacing
+      (as now); an option "Fill automatically when I choose a publisher" is
+      available and off by default
+- [ ] Applies the same way wherever the app asks for publisher information,
+      including any later screen
+- [ ] Tests for the fill rules; hand check on Windows
+
+#### T-046-C Extra details on a publisher (needs a decision)
+
+- **Status:** open: needs Beaux to say whether he wants this
+- **Size:** M
+- **Agent:** careful
+- **Needs:** Beaux, T-046-A
+- **Size gate:** yes
+
+- [ ] Beaux decides whether profiles need details beyond the 13 columns (for
+      example a tax number or a territory)
+- [ ] If yes: a migration adds extra name/value details per publisher, the
+      profile window edits them, and they are available to matching (T-046-A)
+      and the picker (T-043)
+
+**Done when (T-046):** any field can be tied to a publisher detail by the user,
+and the user can fill one field or all of them from the profile wherever
+publisher information is asked for.
+
+### T-047 Open the windows in CI under a virtual display
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes (CI only; say so)
+
+**Today:** CI tests only the logic behind the windows, and Claude's own
+environment has no display, so the toolbar, saving and window behaviour in
+T-040 to T-045 have never been seen running before a user finds them.
+
+- [ ] The Linux test job runs a small set of window tests under a virtual
+      display (`xvfb`): open the Components window; check the toolbar fits at
+      several widths (T-041); type, save and check the confirmation (T-044);
+      press each formatting button twice (T-045); open the field picker
+      (T-043); build an assembly
+- [ ] Tests stub message boxes and file dialogs so nothing blocks, and run
+      quickly; document the pattern in CLAUDE.md "Working on it"
+- [ ] A window test that fails makes the job fail; the other jobs are
+      unchanged
+- [ ] Known limit written down: Linux cannot show Windows-only window
+      behaviour such as the missing maximize button (T-040)
+
+**Done when:** a broken toolbar or save confirmation fails CI before it ships.
 
 ### T-035 Make the size gate complete and periodic
 
