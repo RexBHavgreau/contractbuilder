@@ -1,0 +1,175 @@
+"""Small real-window tests. CI runs this module under xvfb-run on Linux."""
+import os
+from pathlib import Path
+import sys
+import tkinter as tk
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import assembly_builder  # noqa: E402
+import component_editor  # noqa: E402
+from assembly_builder import AssemblyBuilderWindow, shell_file_sha256  # noqa: E402
+from component_editor import ComponentEditorWindow  # noqa: E402
+from docx import Document  # noqa: E402
+from library import ComponentLibrary  # noqa: E402
+
+
+pytestmark = pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="Tk window tests need a display; CI runs this module under xvfb-run.",
+)
+
+
+def _replace_wording(editor, text):
+    editor.wording.configure(state="normal")
+    editor.wording.delete("1.0", "end")
+    editor.wording.insert("1.0", text)
+    editor.editor_markdown_mode = True
+    editor.wording.edit_modified(False)
+    editor._refresh_editor_styling()
+    editor._update_toolbar_state()
+
+
+def test_component_and_assembly_windows_work_under_a_virtual_display(
+    tmp_path, monkeypatch
+):
+    root = tk.Tk()
+    root.geometry("320x120")
+    root.update()
+
+    # Dialogs must never pause CI waiting for a person.
+    monkeypatch.setattr(component_editor.messagebox, "showinfo", lambda *a, **k: None)
+    monkeypatch.setattr(component_editor.messagebox, "showerror", lambda *a, **k: None)
+    monkeypatch.setattr(component_editor.messagebox, "askyesno", lambda *a, **k: True)
+    monkeypatch.setattr(
+        component_editor.filedialog, "askopenfilename", lambda *a, **k: ""
+    )
+    monkeypatch.setattr(assembly_builder.messagebox, "showinfo", lambda *a, **k: None)
+    monkeypatch.setattr(assembly_builder.messagebox, "showerror", lambda *a, **k: None)
+    monkeypatch.setattr(assembly_builder.messagebox, "askyesno", lambda *a, **k: True)
+
+    editor = None
+    builder = None
+    opened_dialog = {}
+    try:
+        library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+        editor = ComponentEditorWindow(root, library)
+        root.update()
+
+        # Resize through the real minimum and normal/maximized-like widths.
+        for width in (820, 1060, 1460):
+            editor.window.geometry(f"{width}x720+0+0")
+            root.update()
+            editor._layout_toolbar(force=True)
+            root.update()
+            assert all(
+                widget.winfo_manager() == "grid"
+                for widget in editor.toolbar_button_widgets.values()
+            )
+            assert all(
+                widget.winfo_rootx() + widget.winfo_width()
+                <= editor.toolbar.winfo_rootx() + editor.toolbar.winfo_width() + 1
+                for widget in editor.toolbar_button_widgets.values()
+            )
+        assert len({
+            int(widget.grid_info()["row"])
+            for widget in editor.toolbar_button_widgets.values()
+        }) > 1
+
+        # Typing and saving must leave a visible confirmation in the window.
+        editor.name_variable.set("Smoke-test clause")
+        editor.wording.delete("1.0", "end")
+        editor.wording.insert("1.0", "Payment is due within thirty days.")
+        root.update()
+        assert editor.save_component()
+        assert editor.status.cget("text").startswith("Saved Smoke-test clause")
+        component_id = editor.current_component_id
+        assert component_id is not None
+
+        # Invoke the actual controls twice: each style should undo itself.
+        _replace_wording(editor, "Alpha beta")
+        editor.wording.tag_add("sel", "1.0", "1.5")
+        editor.bold_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "**Alpha** beta"
+        editor.bold_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "Alpha beta"
+
+        editor.source_view_variable.set(True)
+        editor.toggle_source_view()
+        editor.wording.tag_remove("sel", "1.0", "end")
+        editor.wording.tag_add("sel", "1.6", "1.10")
+        editor.italic_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "Alpha *beta*"
+        editor.italic_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "Alpha beta"
+
+        _replace_wording(editor, "Heading text")
+        editor.wording.mark_set("insert", "1.3")
+        editor.heading_menu.invoke(2)  # Heading 2
+        assert editor.wording.get("1.0", "end-1c") == "## Heading text"
+        editor.heading_menu.invoke(2)
+        assert editor.wording.get("1.0", "end-1c") == "Heading text"
+
+        _replace_wording(editor, "First item\nSecond item")
+        editor.wording.tag_add("sel", "1.0", "2.11")
+        editor.bullet_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "- First item\n- Second item"
+        editor.bullet_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "First item\nSecond item"
+
+        editor.wording.tag_remove("sel", "1.0", "end")
+        editor.wording.tag_add("sel", "1.0", "2.11")
+        editor.numbered_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "1. First item\n1. Second item"
+        editor.numbered_button.invoke()
+        assert editor.wording.get("1.0", "end-1c") == "First item\nSecond item"
+
+        # Open and close the real modal field picker without blocking the test.
+        field_dialog_type = component_editor.FieldInsertDialog
+        def capture_field_dialog(*args, **kwargs):
+            opened_dialog["dialog"] = field_dialog_type(*args, **kwargs)
+            return opened_dialog["dialog"]
+        monkeypatch.setattr(component_editor, "FieldInsertDialog", capture_field_dialog)
+        editor.open_field_dialog()
+        root.update()
+        assert "dialog" in opened_dialog
+        assert opened_dialog["dialog"].window.winfo_exists()
+        opened_dialog["dialog"].window.destroy()
+        root.update()
+
+        # Open the assembly window, add the saved component, and save a revision.
+        builder = AssemblyBuilderWindow(editor.window, library)
+        root.update()
+        builder.library_tree.selection_set(str(component_id))
+        builder._add_selected_component()
+        assert len(builder.items) == 1
+
+        shell_path = tmp_path / "smoke-shell.docx"
+        document = Document()
+        document.add_paragraph("Shell wording is replaced during assembly.")
+        document.save(shell_path)
+        builder.shell_variable.set(str(shell_path))
+        builder.shell_digest = shell_file_sha256(shell_path)
+        builder.name_variable.set("Smoke-test assembly")
+        assert builder.save_assembly()
+        assert builder.assembly_id is not None
+        assert builder.revision_id is not None
+    finally:
+        if opened_dialog.get("dialog") is not None:
+            try:
+                opened_dialog["dialog"].window.destroy()
+            except tk.TclError:
+                pass
+        if builder is not None:
+            try:
+                builder.window.destroy()
+            except tk.TclError:
+                pass
+        if editor is not None:
+            try:
+                editor.window.destroy()
+            except tk.TclError:
+                pass
+        root.destroy()

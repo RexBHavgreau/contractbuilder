@@ -72,6 +72,12 @@ trace.
 - To see the window on a headless Linux box: install `python3-tk`, run under
   `xvfb-run`, drive it from a script, screenshot with ImageMagick `import`.
   Stub `messagebox`/`filedialog` so nothing blocks.
+- Run the real component and assembly window smoke tests with
+  `xvfb-run -a python -m pytest -q tests/test_window_smoke.py`. The tests
+  stub message boxes and file dialogs; CI installs `xvfb` and `xauth` and
+  runs this test module separately so a window failure fails the job. Linux
+  can check layout and interactions, but not Windows-only title-bar chrome
+  such as the maximize button; that still needs a Windows hand check.
 - Releases: raise `APP_VERSION` in `version.py`, add a matching,
   non-empty section to `CHANGES.txt`, and merge to `main`. CI checks that
   the current version has notes, extracts that section for the GitHub release

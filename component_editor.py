@@ -119,8 +119,8 @@ def format_markdown_block(
     level: int = 2,
     previous_text: str = "",
 ) -> str:
-    """Apply a block toolbar operation to Markdown lines without touching prose."""
-    if action not in {"heading", "bullet", "numbered", "indent", "outdent"}:
+    """Toggle or apply a block toolbar operation to Markdown lines."""
+    if action not in {"heading", "normal", "bullet", "numbered", "indent", "outdent"}:
         raise ValueError(f"Unsupported block-format action: {action}")
     lines = str(markdown or "").splitlines()
     if not lines:
@@ -128,6 +128,53 @@ def format_markdown_block(
 
     marker = re.compile(r"^([ \t]*)(?:[-+*]|\d{1,4}\.)[ \t]+(.*)$")
     numbered = re.compile(r"^([ \t]*)(\d{1,4}\.)[ \t]+(.*)$")
+    heading = re.compile(r"^([ \t]*)(#{1,3})[ \t]+(.*)$")
+    nonempty = [line for line in lines if line.strip()]
+
+    if action in {"heading", "normal"}:
+        requested = max(1, min(3, int(level)))
+        same_heading = bool(nonempty) and all(
+            (match := heading.match(line)) is not None
+            and (action == "normal" or len(match.group(2)) == requested)
+            for line in nonempty
+        )
+        result = []
+        for line in lines:
+            if not line.strip():
+                result.append(line)
+                continue
+            match = heading.match(line)
+            indent = re.match(r"^[ \t]*", line).group(0)
+            content = match.group(3) if match else line[len(indent):]
+            if same_heading or action == "normal":
+                result.append(indent + content)
+            else:
+                result.append(indent + "#" * requested + " " + content)
+        return "\n".join(result)
+
+    if action in {"bullet", "numbered"}:
+        already_target = bool(nonempty) and all(
+            (match := marker.match(line)) is not None
+            and (
+                (action == "bullet" and line[match.start():].lstrip().startswith(("-", "+", "*")))
+                or (action == "numbered" and numbered.match(line) is not None)
+            )
+            for line in nonempty
+        )
+        result = []
+        for line in lines:
+            if not line.strip():
+                result.append(line)
+                continue
+            indent = re.match(r"^[ \t]*", line).group(0)
+            match = marker.match(line)
+            content = match.group(2) if match else line[len(indent):]
+            if already_target:
+                result.append(indent + content)
+            else:
+                prefix = "- " if action == "bullet" else "1. "
+                result.append(indent + prefix + content)
+        return "\n".join(result)
 
     if action == "indent":
         first = next((line for line in lines if line.strip()), "")
@@ -151,18 +198,7 @@ def format_markdown_block(
         if not line.strip():
             result.append(line)
             continue
-        match = marker.match(line)
-        if action == "heading":
-            indent = re.match(r"^[ \t]*", line).group(0)
-            content = line[len(indent):]
-            content = re.sub(r"^#{1,3}[ \t]+", "", content)
-            result.append(indent + "#" * max(1, min(3, int(level))) + " " + content)
-        elif action in {"bullet", "numbered"}:
-            indent = re.match(r"^[ \t]*", line).group(0)
-            content = match.group(2) if match else line[len(indent):]
-            prefix = "- " if action == "bullet" else "1. "
-            result.append(indent + prefix + content)
-        elif action == "indent":
+        if action == "indent":
             item = numbered.match(line)
             if item:
                 depth = len(item.group(1).expandtabs(4)) + 4
@@ -177,6 +213,230 @@ def format_markdown_block(
             else:
                 result.append(line)
     return "\n".join(result)
+
+
+def wrap_toolbar_groups(groups, available_width: int, gap: int = 4) -> list[list[tuple[str, int]]]:
+    """Lay out named (widget, requested-width) items without splitting a fitting group."""
+    width = max(1, int(available_width))
+    spacing = max(0, int(gap))
+    rows: list[list[tuple[str, int]]] = []
+    current: list[tuple[str, int]] = []
+    current_width = 0
+
+    def finish_row():
+        nonlocal current, current_width
+        if current:
+            rows.append(current)
+            current = []
+            current_width = 0
+
+    for group in groups:
+        items = [(str(name), max(1, int(item_width))) for name, item_width in group]
+        if not items:
+            continue
+        group_width = sum(item_width for _name, item_width in items) + spacing * (len(items) - 1)
+        if current and current_width + spacing + group_width <= width:
+            current.extend(items)
+            current_width += spacing + group_width
+            continue
+        if current:
+            finish_row()
+        if group_width <= width:
+            current = list(items)
+            current_width = group_width
+            continue
+        # A group wider than the window may split between buttons, never within one.
+        for name, item_width in items:
+            if current and current_width + spacing + item_width > width:
+                finish_row()
+            if current:
+                current_width += spacing + item_width
+            else:
+                current_width = item_width
+            current.append((name, item_width))
+            if item_width > width:
+                finish_row()
+    finish_row()
+    return rows
+
+
+def _protected_markdown_spans(source: str) -> list[tuple[int, int]]:
+    """Ranges that must not be mistaken for user-authored emphasis markers."""
+    spans = [(match.start(), match.end()) for match in core.TOKEN.finditer(source)]
+    spans.extend(
+        (match.start(), match.end())
+        for match in re.finditer(r"\\(?:\\|[\x60*_{}\[\]()#+\-.!|>])", source)
+    )
+    spans.sort()
+    merged: list[tuple[int, int]] = []
+    for start, end in spans:
+        if merged and start < merged[-1][1]:
+            continue
+        merged.append((start, end))
+    return merged
+
+
+def _emphasis_matches(source: str):
+    pattern = re.compile(r"(?<!\\)(\*\*\*|\*\*|\*|___|__|_)(.+?)(?<!\\)\1", re.DOTALL)
+    return pattern.finditer(source)
+
+
+def _strip_emphasis(source: str, action: str) -> str:
+    """Remove one emphasis dimension, preserving the other and literal spans."""
+    protected = _protected_markdown_spans(source)
+    protected_source = source
+    sentinels = []
+    for index, (start, end) in enumerate(reversed(protected)):
+        token = source[start:end]
+        sentinel = f"\ue000{index}\ue001"
+        protected_source = protected_source[:start] + sentinel + protected_source[end:]
+        sentinels.append((sentinel, token))
+
+    if action == "bold":
+        pattern = re.compile(
+            r"(?<!\\)\*\*\*(.+?)(?<!\\)\*\*\*"
+            r"|(?<!\\)\*\*(.+?)(?<!\\)\*\*"
+            r"|(?<!\\)__(.+?)(?<!\\)__",
+            re.DOTALL,
+        )
+        def replace(match):
+            if match.group(1) is not None:
+                return "*" + match.group(1) + "*"
+            return match.group(2) if match.group(2) is not None else match.group(3)
+    elif action == "italic":
+        pattern = re.compile(
+            r"(?<!\\)\*\*\*(.+?)(?<!\\)\*\*\*"
+            r"|(?<!\\)\*([^*\n]+?)(?<!\\)\*"
+            r"|(?<!\\)_([^_\n]+?)(?<!\\)_",
+            re.DOTALL,
+        )
+        def replace(match):
+            if match.group(1) is not None:
+                return "**" + match.group(1) + "**"
+            return match.group(2) if match.group(2) is not None else match.group(3)
+    else:
+        raise ValueError(f"Unsupported inline-format action: {action}")
+
+    changed = pattern.sub(replace, protected_source)
+    for sentinel, token in sentinels:
+        changed = changed.replace(sentinel, token)
+    return changed
+
+
+def toggle_inline_format(
+    markdown: str, start: int, end: int, action: str
+) -> tuple[str, int, int]:
+    """Toggle bold or italic over a selected Markdown source range."""
+    if action not in {"bold", "italic"}:
+        raise ValueError(f"Unsupported inline-format action: {action}")
+    source = str(markdown)
+    start = max(0, min(len(source), int(start)))
+    end = max(start, min(len(source), int(end)))
+    if start == end:
+        return source, start, end
+
+    # A selection wholly inside one field or escaped literal is not editable syntax.
+    if any(left <= start and end <= right for left, right in _protected_markdown_spans(source)):
+        return source, start, end
+
+    for match in _emphasis_matches(source):
+        marker = match.group(1)
+        content_start = match.start() + len(marker)
+        content_end = match.end() - len(marker)
+        selected_content = (start, end) == (content_start, content_end)
+        selected_markup = (start, end) == (match.start(), match.end())
+        if not (selected_content or selected_markup):
+            continue
+        if marker == "***":
+            retained = "*" if action == "bold" else "**"
+        elif action == "bold" and marker in {"**", "__"}:
+            retained = ""
+        elif action == "italic" and marker in {"*", "_"}:
+            retained = ""
+        else:
+            continue
+        content = match.group(2)
+        new_source = source[:match.start()] + retained + content + retained + source[match.end():]
+        new_start = match.start() + len(retained)
+        return new_source, new_start, new_start + len(content)
+
+    selected = source[start:end]
+    normalized = _strip_emphasis(selected, action)
+    marker = "**" if action == "bold" else "*"
+    replacement = marker + normalized + marker
+    result = source[:start] + replacement + source[end:]
+    new_start = start + len(marker)
+    return result, new_start, new_start + len(normalized)
+
+
+def inline_format_active(markdown: str, start: int, end: int, action: str) -> bool:
+    """Whether the cursor or the complete selection is inside the requested style."""
+    source = str(markdown)
+    start = max(0, min(len(source), int(start)))
+    end = max(start, min(len(source), int(end)))
+    protected = _protected_markdown_spans(source)
+    for match in _emphasis_matches(source):
+        marker = match.group(1)
+        is_active = (
+            (action == "bold" and marker in {"***", "**", "__"})
+            or (action == "italic" and marker in {"***", "*", "_"})
+        )
+        if not is_active:
+            continue
+        if any(left < match.end() and right > match.start() for left, right in protected):
+            continue
+        content_start = match.start() + len(marker)
+        content_end = match.end() - len(marker)
+        if (start, end) == (match.start(), match.end()):
+            return True
+        if start == end and content_start <= start <= content_end:
+            return True
+        if start < end and content_start <= start and end <= content_end:
+            return True
+    return False
+
+
+def toggle_markdown_block(
+    markdown: str, start: int, end: int, action: str,
+    level: int = 2, previous_text: str = "",
+) -> tuple[str, int, int]:
+    """Apply a block toggle to the lines touched by a source selection."""
+    source = str(markdown)
+    start = max(0, min(len(source), int(start)))
+    end = max(start, min(len(source), int(end)))
+    block_start = source.rfind("\n", 0, start) + 1
+    if end > start and source[end - 1:end] == "\n":
+        block_end = end - 1
+    else:
+        newline = source.find("\n", end)
+        block_end = len(source) if newline < 0 else newline
+    block = source[block_start:block_end]
+    previous = source[:block_start] if previous_text == "" else previous_text
+    replacement = format_markdown_block(block, action, level, previous)
+    result = source[:block_start] + replacement + source[block_end:]
+    return result, block_start, block_start + len(replacement)
+
+
+def markdown_block_state(markdown: str, start: int, end: int) -> dict:
+    """Describe the heading/list formatting shared by the selected lines."""
+    source = str(markdown)
+    start = max(0, min(len(source), int(start)))
+    end = max(start, min(len(source), int(end)))
+    block_start = source.rfind("\n", 0, start) + 1
+    if end > start and source[end - 1:end] == "\n":
+        block_end = end - 1
+    else:
+        newline = source.find("\n", end)
+        block_end = len(source) if newline < 0 else newline
+    lines = [line for line in source[block_start:block_end].splitlines() if line.strip()]
+    if not lines:
+        return {"heading": None, "bullet": False, "numbered": False}
+    headings = [re.match(r"^[ \t]*(#{1,3})[ \t]+", line) for line in lines]
+    heading_levels = {len(match.group(1)) for match in headings if match}
+    heading = heading_levels.pop() if len(heading_levels) == 1 and all(headings) else None
+    bullets = all(re.match(r"^[ \t]*[-+*][ \t]+", line) for line in lines)
+    numbered = all(re.match(r"^[ \t]*\d{1,4}\.[ \t]+", line) for line in lines)
+    return {"heading": heading, "bullet": bullets, "numbered": numbered}
 
 
 _PROFILE_FIELD_NAMES = {
@@ -1120,41 +1380,86 @@ class ComponentEditorWindow:
 
         toolbar = ttk.Frame(edit_frame)
         toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 5))
-        ttk.Button(toolbar, text="B", width=3, command=lambda: self.apply_format("bold")).pack(side="left", padx=(0, 2))
-        ttk.Button(toolbar, text="I", width=3, command=lambda: self.apply_format("italic")).pack(side="left", padx=(0, 2))
-        heading_button = ttk.Menubutton(toolbar, text="Heading")
-        heading_menu = tk.Menu(heading_button, tearoff=False)
+        self.toolbar = toolbar
+        self._toolbar_layout_after_id = None
+        self._toolbar_last_width = None
+
+        self.bold_variable = tk.BooleanVar(master=self.window, value=False)
+        self.italic_variable = tk.BooleanVar(master=self.window, value=False)
+        self.bullet_variable = tk.BooleanVar(master=self.window, value=False)
+        self.numbered_variable = tk.BooleanVar(master=self.window, value=False)
+
+        self.bold_button = ttk.Checkbutton(
+            toolbar, text="Bold", style="Toolbutton", variable=self.bold_variable,
+            command=lambda: self.apply_format("bold"),
+        )
+        self.italic_button = ttk.Checkbutton(
+            toolbar, text="Italic", style="Toolbutton", variable=self.italic_variable,
+            command=lambda: self.apply_format("italic"),
+        )
+        self.heading_button = ttk.Menubutton(toolbar, text="Heading")
+        self.heading_menu = tk.Menu(self.heading_button, tearoff=False)
+        self.heading_menu.add_command(
+            label="Normal text", command=lambda: self.apply_format("normal")
+        )
         for level in (1, 2, 3):
-            heading_menu.add_command(
+            self.heading_menu.add_command(
                 label=f"Heading {level}",
                 command=lambda selected=level: self.apply_format("heading", selected),
             )
-        heading_button["menu"] = heading_menu
-        heading_button.pack(side="left", padx=(0, 3))
-        for label, action in (
-            ("Bullets", "bullet"),
-            ("Numbering", "numbered"),
-            ("Indent", "indent"),
-            ("Outdent", "outdent"),
-            ("Table", "table"),
-            ("Field", "field"),
-            ("Import Word", "import"),
-        ):
-            command = {
-                "table": self.open_table_editor,
-                "field": self.open_field_dialog,
-                "import": self.open_import_dialog,
-            }.get(action)
-            if command is None:
-                command = lambda selected=action: self.apply_format(selected)
-            ttk.Button(toolbar, text=label, command=command).pack(side="left", padx=(0, 2))
+        self.heading_button["menu"] = self.heading_menu
+
+        self.bullet_button = ttk.Checkbutton(
+            toolbar, text="Bullets", style="Toolbutton", variable=self.bullet_variable,
+            command=lambda: self.apply_format("bullet"),
+        )
+        self.numbered_button = ttk.Checkbutton(
+            toolbar, text="Numbering", style="Toolbutton",
+            variable=self.numbered_variable,
+            command=lambda: self.apply_format("numbered"),
+        )
+        self.indent_button = ttk.Button(
+            toolbar, text="Indent one level", command=lambda: self.apply_format("indent")
+        )
+        self.outdent_button = ttk.Button(
+            toolbar, text="Outdent one level", command=lambda: self.apply_format("outdent")
+        )
+        self.table_button = ttk.Button(
+            toolbar, text="Insert table", command=self.open_table_editor
+        )
+        self.field_button = ttk.Button(
+            toolbar, text="Insert field", command=self.open_field_dialog
+        )
+        self.import_button = ttk.Button(
+            toolbar, text="Import Word", command=self.open_import_dialog
+        )
+
         self.source_view_variable = tk.BooleanVar(master=self.window, value=False)
-        ttk.Checkbutton(
-            toolbar,
-            text="Advanced: show raw text",
-            variable=self.source_view_variable,
+        self.source_view_button = ttk.Checkbutton(
+            toolbar, text="Show raw text", variable=self.source_view_variable,
             command=self.toggle_source_view,
-        ).pack(side="left", padx=(5, 0))
+        )
+        self.toolbar_button_widgets = {
+            "bold": self.bold_button,
+            "italic": self.italic_button,
+            "heading": self.heading_button,
+            "bullet": self.bullet_button,
+            "numbered": self.numbered_button,
+            "indent": self.indent_button,
+            "outdent": self.outdent_button,
+            "table": self.table_button,
+            "field": self.field_button,
+            "import": self.import_button,
+            "source_view": self.source_view_button,
+        }
+        self.toolbar_groups = [
+            ["bold", "italic", "heading"],
+            ["bullet", "numbered", "indent", "outdent"],
+            ["table", "field", "import"],
+            ["source_view"],
+        ]
+        toolbar.bind("<Configure>", self._schedule_toolbar_layout, add="+")
+        self._layout_toolbar(force=True)
 
         self.wording = tk.Text(
             edit_frame, wrap="word", undo=True, height=18,
@@ -1172,6 +1477,11 @@ class ComponentEditorWindow:
         self.wording.bind("<<Modified>>", self._on_wording_modified)
         self.wording.bind("<Control-b>", lambda _event: self.apply_format("bold"))
         self.wording.bind("<Control-i>", lambda _event: self.apply_format("italic"))
+        self.wording.bind("<KeyRelease>", self._update_toolbar_state, add="+")
+        self.wording.bind("<ButtonRelease-1>", self._update_toolbar_state, add="+")
+        self.wording.bind("<B1-Motion>", self._update_toolbar_state, add="+")
+        self.wording.bind("<FocusIn>", self._update_toolbar_state, add="+")
+        self._schedule_toolbar_layout()
 
         self.preview = tk.Text(
             preview_frame, wrap="word", height=18, state="disabled",
@@ -1224,6 +1534,79 @@ class ComponentEditorWindow:
         )
         self.save_button.pack(side="right", padx=(0, 8))
 
+    def _schedule_toolbar_layout(self, _event=None):
+        """Coalesce resize events and reflow the toolbar when its pane changes width."""
+        if self._toolbar_layout_after_id is not None:
+            try:
+                self.window.after_cancel(self._toolbar_layout_after_id)
+            except tk.TclError:
+                pass
+        try:
+            self._toolbar_layout_after_id = self.window.after_idle(self._layout_toolbar)
+        except tk.TclError:
+            self._toolbar_layout_after_id = None
+
+    def _layout_toolbar(self, force: bool = False):
+        """Arrange toolbar controls in rows without hiding or horizontally scrolling them."""
+        self._toolbar_layout_after_id = None
+        if not hasattr(self, "toolbar") or not self.toolbar.winfo_exists():
+            return
+        available = self.toolbar.winfo_width()
+        if available <= 1:
+            available = self.toolbar.winfo_reqwidth()
+        if not force and self._toolbar_last_width == available:
+            return
+        self._toolbar_last_width = available
+        groups = [
+            [
+                (name, self.toolbar_button_widgets[name].winfo_reqwidth())
+                for name in group
+            ]
+            for group in self.toolbar_groups
+        ]
+        rows = wrap_toolbar_groups(groups, available, gap=4)
+        for widget in self.toolbar_button_widgets.values():
+            widget.grid_forget()
+        for row_index, row in enumerate(rows):
+            for column_index, (name, _requested_width) in enumerate(row):
+                self.toolbar_button_widgets[name].grid(
+                    row=row_index, column=column_index, sticky="w",
+                    padx=(0, 4), pady=(0, 2),
+                )
+        for column_index in range(max((len(row) for row in rows), default=0)):
+            self.toolbar.columnconfigure(column_index, weight=0)
+
+    def _update_toolbar_state(self, _event=None):
+        """Keep pressed controls in step with the wording at the cursor or selection."""
+        if not hasattr(self, "wording") or not self.wording.winfo_exists():
+            return
+        try:
+            if not self.editor_markdown_mode:
+                self.bold_variable.set(False)
+                self.italic_variable.set(False)
+                self.bullet_variable.set(False)
+                self.numbered_variable.set(False)
+                self.heading_button.configure(text="Heading")
+                return
+            selected = self.wording.tag_ranges("sel")
+            if selected:
+                start_index, end_index = str(selected[0]), str(selected[1])
+            else:
+                start_index = end_index = self.wording.index("insert")
+            source = self.wording.get("1.0", "end-1c")
+            start = len(self.wording.get("1.0", start_index))
+            end = len(self.wording.get("1.0", end_index))
+            self.bold_variable.set(inline_format_active(source, start, end, "bold"))
+            self.italic_variable.set(inline_format_active(source, start, end, "italic"))
+            state = markdown_block_state(source, start, end)
+            self.bullet_variable.set(state["bullet"])
+            self.numbered_variable.set(state["numbered"])
+            self.heading_button.configure(
+                text=f"Heading {state['heading']}" if state["heading"] else "Heading"
+            )
+        except tk.TclError:
+            return
+
     def _ensure_markdown_mode(self):
         """Convert a new plain-text draft once, then keep Markdown as the source of truth."""
         if self.editor_markdown_mode:
@@ -1270,7 +1653,7 @@ class ComponentEditorWindow:
         self._refresh_editor_styling()
 
     def apply_format(self, action: str, level: int = 2):
-        """Apply a toolbar operation to Markdown without asking the user to type syntax."""
+        """Toggle a Markdown style while preserving the selection and source text."""
         if self.protected_content:
             messagebox.showinfo(
                 "This wording is protected",
@@ -1282,44 +1665,54 @@ class ComponentEditorWindow:
         self._ensure_markdown_mode()
         widget = self.wording
         selected = widget.tag_ranges("sel")
+        source = widget.get("1.0", "end-1c")
+
         if action in {"bold", "italic"}:
             if selected:
-                start, end = str(selected[0]), str(selected[1])
+                start_index, end_index = str(selected[0]), str(selected[1])
             else:
-                start = widget.index("insert wordstart")
-                end = widget.index("insert wordend")
-                if widget.compare(start, "==", end):
+                start_index = widget.index("insert wordstart")
+                end_index = widget.index("insert wordend")
+                if widget.compare(start_index, "==", end_index):
                     marker = "**" if action == "bold" else "*"
                     widget.insert("insert", marker + marker)
                     widget.mark_set("insert", f"insert - {len(marker)} chars")
                     self._refresh_editor_styling()
                     self._schedule_preview()
+                    self._update_toolbar_state()
                     widget.focus_set()
                     return "break"
-            marker = "**" if action == "bold" else "*"
-            value = widget.get(start, end)
-            widget.delete(start, end)
-            widget.insert(start, marker + value + marker)
-            content_start = widget.index(f"{start} + {len(marker)} chars")
-            content_end = widget.index(f"{content_start} + {len(value)} chars")
-            widget.tag_remove("sel", "1.0", "end")
-            widget.tag_add("sel", content_start, content_end)
-            widget.mark_set("insert", content_end)
+            start = len(widget.get("1.0", start_index))
+            end = len(widget.get("1.0", end_index))
+            updated, new_start, new_end = toggle_inline_format(source, start, end, action)
         else:
             if selected:
-                first = widget.index(f"{selected[0]} linestart")
-                last = widget.index(f"{selected[1]} lineend")
+                first_index = widget.index(f"{selected[0]} linestart")
+                last_index = widget.index(f"{selected[1]} lineend")
             else:
-                first = widget.index("insert linestart")
-                last = widget.index("insert lineend")
-            block = widget.get(first, last)
-            previous_text = widget.get("1.0", first)
-            replacement = format_markdown_block(block, action, level, previous_text)
-            widget.delete(first, last)
-            widget.insert(first, replacement)
+                first_index = widget.index("insert linestart")
+                last_index = widget.index("insert lineend")
+            start = len(widget.get("1.0", first_index))
+            end = len(widget.get("1.0", last_index))
+            previous_text = widget.get("1.0", first_index)
+            updated, new_start, new_end = toggle_markdown_block(
+                source, start, end, action, level, previous_text
+            )
 
+        if updated != source:
+            widget.delete("1.0", "end")
+            widget.insert("1.0", updated)
+        widget.tag_remove("sel", "1.0", "end")
+        if new_end > new_start:
+            widget.tag_add(
+                "sel",
+                f"1.0 + {new_start} chars",
+                f"1.0 + {new_end} chars",
+            )
+        widget.mark_set("insert", f"1.0 + {new_end} chars")
         self._refresh_editor_styling()
         self._schedule_preview()
+        self._update_toolbar_state()
         widget.focus_set()
         return "break"
 
@@ -1472,6 +1865,7 @@ class ComponentEditorWindow:
             return
         self.wording.edit_modified(False)
         self._refresh_editor_styling()
+        self._update_toolbar_state()
         source = self.wording.get("1.0", "end-1c")
         if not self.editor_markdown_mode:
             source = plain_text_to_markdown(source)

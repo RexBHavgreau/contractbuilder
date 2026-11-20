@@ -55,6 +55,11 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install --upgrade pip lxml openpyxl pytest python-docx markdown-it-py==3.0.0 mdurl==0.1.2
 
+      - name: Install virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends xvfb xauth
+
       - name: Verify release tag matches application version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -68,6 +73,9 @@ jobs:
           # tests/test_no_private_details.py reads it and skips without it.
           BLOCKED_TERMS: ${{ secrets.BLOCKED_TERMS }}
         run: python -m pytest -q tests
+
+      - name: Exercise Tk windows under a virtual display
+        run: xvfb-run -a python -m pytest -q tests/test_window_smoke.py
 
   build-windows:
     name: Build Windows x64
