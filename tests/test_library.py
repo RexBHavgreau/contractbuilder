@@ -153,8 +153,13 @@ def test_archiving_preserves_pinned_component_wording_and_prevents_deletion(tmp_
         assert connection.execute(
             "SELECT status FROM assemblies WHERE id = ?", (assembly_id,)
         ).fetchone() == ("archived",)
-        with pytest.raises(sqlite3.IntegrityError):
+        # SQLite foreign-key enforcement is connection-local and defaults
+        # off. The explicit guard triggers must still preserve the history.
+        assert connection.execute("PRAGMA foreign_keys").fetchone() == (0,)
+        with pytest.raises(sqlite3.IntegrityError, match="cannot be deleted"):
             connection.execute("DELETE FROM assemblies WHERE id = ?", (assembly_id,))
+        with pytest.raises(sqlite3.IntegrityError, match="cannot be deleted"):
+            connection.execute("DELETE FROM components WHERE id = ?", (component_id,))
 
     assert library.restore_component(component_id) is True
     assert library.get_component(component_id)["status"] == "active"
