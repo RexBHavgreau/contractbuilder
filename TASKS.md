@@ -339,7 +339,8 @@ store of T-043-A. These ship after 0.4.1 (T-039) as 0.5.0.
 
 ### T-040 Let the Components and assembly windows be maximized
 
-- **Status:** open
+- **Status:** ready for review (2026-11-20, `ccr-9076da7d-zvifun`): code and
+  checks done; the CI size numbers and the Windows hand check are still to do
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -350,16 +351,19 @@ with `window.transient(parent)` (`component_editor.py`, `assembly_builder.py`).
 On Windows a transient window has no maximize or minimize button, which is
 what Beaux sees. Both are working windows, not pop-up questions.
 
-- [ ] Stop making the two main windows transient; keep them resizable with a
+- [x] Stop making the two main windows transient; keep them resizable with a
       sensible minimum size, and keep them from hiding behind the main window
-      (lift on open, one instance at a time as now)
-- [ ] Check the larger dialogs (import review, version history, review
-      updates, table editor) and decide for each: modal and fixed, or
-      resizable and maximizable. Resizable if it holds a long text or a grid
-- [ ] Layout uses the extra room: lists and the wording box grow, buttons stay
-      put
+      (lift on open; the assembly builder now opens one instance at a time too)
+- [x] Check the larger dialogs (import review, version history, review
+      updates, table editor, open saved assembly) and decide for each: they
+      stay modal (grab), but are resizable and not transient, so Windows gives
+      them maximize. The small field-insert dialog stays fixed
+- [x] Layout uses the extra room: lists and the wording box grow, buttons stay
+      put. Checked under Xvfb at 1900 px: the formatting toolbar now has two rows,
+      and the text boxes no longer ask for 80 characters each, so the window fits
+      a maximized 1920-pixel screen (at 1400 px it still clips a little)
 - [ ] Hand check on Windows: maximize, restore, minimize, and the window
-      returns to the front when "Manage components" is chosen again
+      returns to the front when "Manage components" is chosen again (human)
 
 **Done when:** both main windows can be maximized and restored on Windows, and
 the layout fills the space.
@@ -562,7 +566,8 @@ field, and never has to type a name, from the Components window.
 
 ### T-044 Make saving obvious
 
-- **Status:** open
+- **Status:** ready for review (2026-11-20, `ccr-9076da7d-zvifun`): code and
+  checks done; the CI size numbers and the Windows hand check are still to do
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -572,17 +577,20 @@ field, and never has to type a name, from the Components window.
 of the window ("Saved <name> · version N", `ComponentEditorWindow.save`), easy
 to miss and out of sight when the window is short.
 
-- [ ] A clear confirmation next to the button the moment the save completes
-      (for example the button reads "Saved ✓ version 3" for a few seconds, or
-      a green banner above the wording), and a failed save shows a red message
-      in the same place that stays until dismissed
-- [ ] An "Unsaved changes" mark that appears when the wording or details
-      change and clears on save; the window title shows it too
-- [ ] The component list refreshes and keeps the saved component selected, with
-      its new version number visible
-- [ ] The message text is built by a plain function with tests (saved, saved
-      with note, failed, nothing to save)
-- [ ] Hand check on Windows: nobody can miss that it saved
+- [x] A clear confirmation next to the button the moment the save completes
+      (a green line above the footer for six seconds), and a failed save shows a
+      red message in the same place that stays until Dismiss is clicked
+- [x] An "Unsaved changes" mark that appears when the wording or details
+      change and clears on save; the window title shows it too. A success message
+      is cleared as soon as the draft changes
+- [x] The component list refreshes and keeps the saved component selected, with
+      its new version number visible (new Version column). Saving an existing
+      component used to raise an error after the database write (an undefined
+      name in `_load_component`); fixed here. Saving with no changes now says
+      nothing was saved instead of adding a duplicate version
+- [x] The message text is built by a plain function with tests (saved, saved
+      with note, failed, nothing to save): `save_feedback_text` in `component_editor.py`
+- [ ] Hand check on Windows: nobody can miss that it saved (human)
 
 **Done when:** a user always sees at once whether the save worked.
 
@@ -985,7 +993,8 @@ wording itself.
 
 ### T-050 Preview shows conditional markers as if they were fields
 
-- **Status:** open
+- **Status:** ready for review (2026-11-20, `ccr-9076da7d-zvifun`): code and
+  tests done; the CI size numbers are still to do
 - **Size:** S
 - **Agent:** any
 - **Needs:** —
@@ -997,12 +1006,14 @@ names ("else", "/if"). The syntax is fine; the preview does not know which
 markers are instructions. The editor's field suggestions already tell them
 apart (`core.classify`).
 
-- [ ] Use `core.classify` to tell fields from `if`, `else` and `/if` markers;
+- [x] Use `core.classify` to tell fields from `if`, `else` and `/if` markers;
       give the markers their own style (a muted tag with plain words such as
       "If Publisher Type is Non-profit", "Otherwise", "End of choice") and keep
-      fields highlighted as now. The same in the assembly preview
-- [ ] A short key under the preview says what the colors mean
-- [ ] Tests on the preview segments for a sentence with an `if`/`else`, a
+      fields highlighted as now. The same in the assembly preview (both use
+      `component_preview.render_markdown_preview`; `marker_label` does the work)
+- [x] A short key under the preview says what the colors mean (`PREVIEW_KEY`,
+      shown under both previews)
+- [x] Tests on the preview segments for a sentence with an `if`/`else`, a
       block form, an optional clause and a field inside the conditional text
 - [ ] T-049-C builds on this for the fuller labelled-alternatives view
 

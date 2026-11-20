@@ -13,7 +13,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import Mapping, Sequence
 
-from component_preview import render_markdown_preview
+from component_preview import PREVIEW_KEY, render_markdown_preview
 from library import ComponentLibrary
 import shell_selection
 
@@ -119,7 +119,7 @@ class AssemblyBuilderWindow:
         self.window.title("Build an assembly")
         self.window.geometry("1180x760")
         self.window.minsize(900, 600)
-        self.window.transient(parent)
+        self.window.lift()
 
         self.assembly_id: int | None = None
         self.revision_id: int | None = None
@@ -282,9 +282,12 @@ class AssemblyBuilderWindow:
         self._configure_preview_tags()
         ttk.Label(
             preview_frame,
-            text="Word decides the final page layout. Fields are highlighted.",
+            text="Word decides the final page layout.",
             foreground="#555555",
         ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        ttk.Label(
+            preview_frame, text=PREVIEW_KEY, foreground="#555555", wraplength=330,
+        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(3, 0))
 
         footer = ttk.Frame(outer)
         footer.grid(row=3, column=0, sticky="ew", pady=(10, 0))
@@ -327,6 +330,10 @@ class AssemblyBuilderWindow:
             "field", background="#fff0c2", foreground="#714d00"
         )
         self.preview.tag_configure("list_marker", foreground="#555555")
+        self.preview.tag_configure(
+            "marker", foreground="#4f4f4f", background="#e6e6e6",
+            font=("TkDefaultFont", 9, "italic"),
+        )
         self.preview.tag_configure(
             "table_header", font=("TkDefaultFont", 9, "bold"),
             background="#eeeeee",
@@ -762,7 +769,7 @@ class AssemblyBuilderWindow:
         dialog.title("Review component updates")
         dialog.geometry("980x650")
         dialog.minsize(760, 480)
-        dialog.transient(self.window)
+        dialog.lift()
         dialog.columnconfigure(0, weight=1)
         dialog.rowconfigure(1, weight=1)
         ttk.Label(
@@ -962,7 +969,7 @@ class AssemblyBuilderWindow:
         dialog.title("Open a saved assembly")
         dialog.geometry("680x420")
         dialog.minsize(500, 300)
-        dialog.transient(self.window)
+        dialog.lift()
         dialog.columnconfigure(0, weight=1)
         dialog.rowconfigure(0, weight=1)
         tree = ttk.Treeview(

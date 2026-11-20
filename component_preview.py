@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Iterable, Sequence
 
-from core import TOKEN
+from core import TOKEN, classify, parse_condition
 from markdown_fields import protect_fields, restore_fields
 from md_parse import create_parser
 
@@ -27,12 +27,47 @@ def _append(segments: list[Segment], text: str, *tags: str) -> None:
         segments.append((text, tag_tuple))
 
 
+PREVIEW_KEY = (
+    "Highlighted text is a field, filled in when the document is made. "
+    "Grey tags are choices in the wording, such as \u201cIf Publisher Type is "
+    "Non-profit\u201d, \u201cOtherwise\u201d and \u201cEnd of choice\u201d. "
+    "They are instructions and are not printed."
+)
+
+
+def marker_label(inner: str) -> tuple[str, str] | None:
+    """Plain words for a conditional marker, or None if the text is a field.
+
+    Returns (visible text, style tag). The raw syntax is never shown for markers.
+    """
+    kind, payload = classify(inner)
+    if kind == "if":
+        name, value, negate = parse_condition(payload)
+        name = name or "this answer"
+        if value is None:
+            words = "is not filled in" if negate else "is filled in"
+            return f"If {name} {words}", "marker_if"
+        words = "is not" if negate else "is"
+        return f"If {name} {words} {value}", "marker_if"
+    if kind == "else":
+        return "Otherwise", "marker_else"
+    if kind == "end":
+        return "End of choice", "marker_end"
+    return None
+
+
 def _field_aware_segments(text: str, styles: Sequence[str] = ()) -> list[Segment]:
     result: list[Segment] = []
     cursor = 0
     for match in TOKEN.finditer(text):
         _append(result, text[cursor:match.start()], *styles)
-        _append(result, match.group(0), *styles, "field")
+        marker = marker_label(match.group(1))
+        if marker is None:
+            _append(result, match.group(0), *styles, "field")
+        else:
+            label, marker_tag = marker
+            # Thin spaces keep a tag from running into the words either side.
+            _append(result, "\u2009" + label + "\u2009", *styles, "marker", marker_tag)
         cursor = match.end()
     _append(result, text[cursor:], *styles)
     return result

@@ -3,7 +3,11 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from component_editor import markdown_to_plain_text, plain_text_to_markdown  # noqa: E402
+from component_editor import (  # noqa: E402
+    markdown_to_plain_text,
+    plain_text_to_markdown,
+    save_feedback_text,
+)
 
 
 def test_plain_text_round_trips_without_interpreting_markdown_punctuation():
@@ -102,6 +106,38 @@ def test_toolbar_formats_lists_and_decimal_outline_levels():
     ) == "    1. Child"
     assert format_markdown_block("1. First item", "indent") == "1. First item"
     assert format_markdown_block("    1. Child", "outdent") == "1. Child"
+
+
+def test_save_feedback_says_what_was_saved():
+    assert save_feedback_text("saved", name="Invented Clause", version=3) == (
+        "Saved Invented Clause · version 3."
+    )
+
+
+def test_save_feedback_includes_the_version_note():
+    text = save_feedback_text("saved", name="Invented Clause", version=4, note="  Tidied wording ")
+    assert text == "Saved Invented Clause · version 4. Version note: Tidied wording"
+
+
+def test_save_feedback_for_nothing_to_save_names_the_current_version():
+    assert save_feedback_text("unchanged", name="Invented Clause", version=2) == (
+        "Nothing to save. Invented Clause is already saved as version 2."
+    )
+
+
+def test_save_feedback_for_a_failed_save_gives_the_reason_or_a_default():
+    assert save_feedback_text("failed", error="Enter a component name.") == (
+        "Not saved. Enter a component name."
+    )
+    assert save_feedback_text("failed", error="   ") == (
+        "Not saved. Something went wrong. Try again."
+    )
+
+
+def test_save_feedback_rejects_an_unknown_outcome():
+    import pytest
+    with pytest.raises(ValueError):
+        save_feedback_text("maybe")
 
 
 def test_toolbar_wrap_keeps_related_controls_together_when_they_fit():
