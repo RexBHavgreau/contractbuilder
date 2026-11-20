@@ -488,6 +488,377 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
 
 
 
+
+class TableEditorDialog:
+    """Grid editor that serializes a table without requiring Markdown pipes."""
+
+    def __init__(self, parent, rows, alignments, has_header, on_save):
+        self.window = tk.Toplevel(parent)
+        self.window.title("Edit table")
+        self.window.geometry("760x520")
+        self.window.minsize(520, 360)
+        self.window.transient(parent)
+        self.on_save = on_save
+        self.alignments = list(alignments or [])
+        self.header_variable = tk.BooleanVar(master=self.window, value=bool(has_header))
+        self.rows = [list(row) for row in rows] or [["", ""], ["", ""]]
+        width = max((len(row) for row in self.rows), default=2)
+        self.rows = [row + [""] * (width - len(row)) for row in self.rows]
+        self.entries = []
+
+        outer = ttk.Frame(self.window, padding=12)
+        outer.pack(fill="both", expand=True)
+        ttk.Label(
+            outer,
+            text="Enter text in the cells. ContractBuilder will create the table for you.",
+            wraplength=700,
+        ).pack(anchor="w", pady=(0, 8))
+        ttk.Checkbutton(
+            outer,
+            text="Use the first row as column headings",
+            variable=self.header_variable,
+        ).pack(anchor="w", pady=(0, 8))
+        self.grid_frame = ttk.Frame(outer)
+        self.grid_frame.pack(fill="both", expand=True)
+        self._draw_grid()
+
+        row_buttons = ttk.Frame(outer)
+        row_buttons.pack(fill="x", pady=(8, 0))
+        for label, command in (
+            ("Add row", self.add_row),
+            ("Remove last row", self.remove_row),
+            ("Add column", self.add_column),
+            ("Remove last column", self.remove_column),
+        ):
+            ttk.Button(row_buttons, text=label, command=command).pack(side="left", padx=(0, 5))
+        footer = ttk.Frame(outer)
+        footer.pack(fill="x", pady=(12, 0))
+        ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
+        ttk.Button(footer, text="Use table", command=self.save).pack(side="right", padx=(0, 8))
+        self.window.grab_set()
+
+    def _values(self):
+        return [[entry.get() for entry in row] for row in self.entries]
+
+    def _draw_grid(self):
+        for child in self.grid_frame.winfo_children():
+            child.destroy()
+        self.entries = []
+        width = max((len(row) for row in self.rows), default=1)
+        for column in range(width):
+            ttk.Label(self.grid_frame, text=f"Column {column + 1}").grid(
+                row=0, column=column, sticky="w", padx=3, pady=(0, 4)
+            )
+            self.grid_frame.columnconfigure(column, weight=1, minsize=90)
+        for row_index, row in enumerate(self.rows, 1):
+            entries = []
+            for column_index in range(width):
+                value = row[column_index] if column_index < len(row) else ""
+                entry = ttk.Entry(self.grid_frame, width=18)
+                entry.insert(0, value)
+                entry.grid(row=row_index, column=column_index, sticky="ew", padx=3, pady=3)
+                entries.append(entry)
+            self.entries.append(entries)
+
+    def _capture(self):
+        self.rows = self._values()
+
+    def add_row(self):
+        self._capture()
+        self.rows.append([""] * max(1, len(self.rows[0]) if self.rows else 1))
+        self._draw_grid()
+
+    def remove_row(self):
+        self._capture()
+        if len(self.rows) > 1:
+            self.rows.pop()
+            self._draw_grid()
+
+    def add_column(self):
+        self._capture()
+        for row in self.rows:
+            row.append("")
+        self.alignments.append(None)
+        self._draw_grid()
+
+    def remove_column(self):
+        self._capture()
+        if self.rows and len(self.rows[0]) > 1:
+            for row in self.rows:
+                row.pop()
+            if self.alignments:
+                self.alignments.pop()
+            self._draw_grid()
+
+    def save(self):
+        try:
+            markdown = build_markdown_table(
+                self._values(),
+                has_header=self.header_variable.get(),
+                alignments=self.alignments,
+            )
+        except ValueError as exc:
+            messagebox.showerror("Could not create table", str(exc), parent=self.window)
+            return
+        self.on_save(markdown)
+        self.window.destroy()
+
+
+class FieldInsertDialog:
+    """Choose a known field and optional format before inserting its placeholder."""
+
+    def __init__(self, parent, field_names, on_insert):
+        self.window = tk.Toplevel(parent)
+        self.window.title("Insert a field")
+        self.window.transient(parent)
+        self.window.resizable(False, False)
+        self.on_insert = on_insert
+        frame = ttk.Frame(self.window, padding=14)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text="Field name").grid(row=0, column=0, sticky="w", pady=4)
+        self.name_variable = tk.StringVar(master=self.window)
+        self.name_entry = ttk.Combobox(
+            frame, textvariable=self.name_variable, values=field_names, width=38
+        )
+        self.name_entry.grid(row=0, column=1, sticky="ew", pady=4)
+        self.name_entry.focus_set()
+
+        ttk.Label(frame, text="Format").grid(row=1, column=0, sticky="w", pady=4)
+        self.format_variable = tk.StringVar(master=self.window, value="Plain text")
+        self.format_values = {label: value for label, value in _FIELD_FORMATS}
+        self.format_entry = ttk.Combobox(
+            frame,
+            textvariable=self.format_variable,
+            values=[label for label, _value in _FIELD_FORMATS],
+            state="readonly",
+            width=38,
+        )
+        self.format_entry.grid(row=1, column=1, sticky="ew", pady=4)
+
+        ttk.Label(frame, text="Options (for choice or singular/plural)").grid(
+            row=2, column=0, sticky="w", pady=4
+        )
+        self.options_variable = tk.StringVar(master=self.window)
+        ttk.Entry(frame, textvariable=self.options_variable, width=40).grid(
+            row=2, column=1, sticky="ew", pady=4
+        )
+        self.status = ttk.Label(frame, text="", foreground="#8a5a00", wraplength=400)
+        self.status.grid(row=3, column=0, columnspan=2, sticky="w", pady=(5, 8))
+        buttons = ttk.Frame(frame)
+        buttons.grid(row=4, column=0, columnspan=2, sticky="ew")
+        ttk.Button(buttons, text="Cancel", command=self.window.destroy).pack(side="right")
+        ttk.Button(buttons, text="Insert field", command=self.insert).pack(
+            side="right", padx=(0, 8)
+        )
+        self.window.grab_set()
+
+    def insert(self):
+        label = self.format_variable.get()
+        format_name = self.format_values.get(label, "")
+        try:
+            placeholder = make_field_placeholder(
+                self.name_variable.get(), format_name, self.options_variable.get()
+            )
+        except ValueError as exc:
+            self.status.configure(text=str(exc))
+            return
+        self.on_insert(placeholder)
+        self.window.destroy()
+
+
+class ImportReviewDialog:
+    """Review a read-only DOCX conversion; save only after an explicit choice."""
+
+    def __init__(self, editor, path):
+        self.editor = editor
+        self.path = path
+        try:
+            imported = import_docx(path)
+        except (DocxImportError, OSError) as exc:
+            messagebox.showerror(
+                "Could not import Word file",
+                f"{exc}\n\nChoose an unencrypted .docx file and try again.",
+                parent=editor.window,
+            )
+            return
+
+        self.window = tk.Toplevel(editor.window)
+        self.window.title("Review Word import")
+        self.window.geometry("1080x720")
+        self.window.minsize(820, 560)
+        self.window.transient(editor.window)
+        outer = ttk.Frame(self.window, padding=12)
+        outer.pack(fill="both", expand=True)
+        name_row = ttk.Frame(outer)
+        name_row.pack(fill="x", pady=(0, 8))
+        ttk.Label(name_row, text="Component name").pack(side="left")
+        self.name_variable = tk.StringVar(master=self.window, value=Path(path).stem)
+        ttk.Entry(name_row, textvariable=self.name_variable).pack(
+            side="left", fill="x", expand=True, padx=(10, 0)
+        )
+
+        warning_frame = ttk.LabelFrame(outer, text="Import warnings — review before saving")
+        warning_frame.pack(fill="x", pady=(0, 8))
+        self.warning_text = tk.Text(warning_frame, height=5, wrap="word", state="normal")
+        warning_scroll = ttk.Scrollbar(
+            warning_frame, orient="vertical", command=self.warning_text.yview
+        )
+        self.warning_text.configure(yscrollcommand=warning_scroll.set)
+        self.warning_text.pack(side="left", fill="both", expand=True)
+        warning_scroll.pack(side="right", fill="y")
+        if imported.warnings:
+            for warning in imported.warnings:
+                self.warning_text.insert(
+                    "end", f"• {warning.location}: {warning.message}\n"
+                )
+        else:
+            self.warning_text.insert(
+                "end", "No unsupported Word structures were found in the document body."
+            )
+        self.warning_text.configure(state="disabled")
+
+        ttk.Label(
+            outer,
+            text="Review the result below. Edit the wording on the left; the preview updates as you type.",
+            wraplength=1000,
+        ).pack(anchor="w", pady=(0, 5))
+        panes = ttk.Panedwindow(outer, orient="horizontal")
+        panes.pack(fill="both", expand=True)
+        edit_frame = ttk.LabelFrame(panes, text="Imported wording", padding=4)
+        preview_frame = ttk.LabelFrame(panes, text="Preview", padding=4)
+        edit_frame.columnconfigure(0, weight=1)
+        edit_frame.rowconfigure(0, weight=1)
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+        panes.add(edit_frame, weight=1)
+        panes.add(preview_frame, weight=1)
+        self.source = tk.Text(edit_frame, wrap="word", undo=True, height=18)
+        self.source.grid(row=0, column=0, sticky="nsew")
+        edit_scroll = ttk.Scrollbar(edit_frame, orient="vertical", command=self.source.yview)
+        edit_scroll.grid(row=0, column=1, sticky="ns")
+        self.source.configure(yscrollcommand=edit_scroll.set)
+        self.source.insert("1.0", imported.markdown)
+        self.preview = tk.Text(
+            preview_frame, wrap="word", height=18, state="disabled",
+            font="TkDefaultFont", padx=7, pady=6,
+        )
+        self.preview.grid(row=0, column=0, sticky="nsew")
+        preview_scroll = ttk.Scrollbar(
+            preview_frame, orient="vertical", command=self.preview.yview
+        )
+        preview_scroll.grid(row=0, column=1, sticky="ns")
+        self.preview.configure(yscrollcommand=preview_scroll.set)
+        self._configure_preview()
+        self.source_view_variable = tk.BooleanVar(master=self.window, value=False)
+        ttk.Checkbutton(
+            outer,
+            text="Advanced: show raw text",
+            variable=self.source_view_variable,
+            command=self._style_source,
+        ).pack(anchor="w", pady=(5, 0))
+        self.source.bind("<<Modified>>", self._source_modified)
+        footer = ttk.Frame(outer)
+        footer.pack(fill="x", pady=(8, 0))
+        ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
+        ttk.Button(footer, text="Save as component", command=self.save).pack(
+            side="right", padx=(0, 8)
+        )
+        self._preview_after_id = None
+        self._style_source()
+        self._update_preview()
+        self.window.protocol("WM_DELETE_WINDOW", self.window.destroy)
+        self.window.grab_set()
+
+    def _configure_preview(self):
+        self.preview.tag_configure("heading_1", font=("TkDefaultFont", 16, "bold"))
+        self.preview.tag_configure("heading_2", font=("TkDefaultFont", 14, "bold"))
+        self.preview.tag_configure("heading_3", font=("TkDefaultFont", 12, "bold"))
+        self.preview.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
+        self.preview.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
+        self.preview.tag_configure("field", background="#fff0c2", foreground="#714d00")
+        self.preview.tag_configure("list_marker", foreground="#555555")
+        self.preview.tag_configure("table_header", font=("TkDefaultFont", 9, "bold"))
+        self.preview.tag_configure("table_cell", font=("TkFixedFont", 9))
+        self.preview.tag_configure("table_border", foreground="#777777")
+        self.preview.tag_configure("code", font=("TkFixedFont", 9))
+        self.preview.tag_configure("code_block", font=("TkFixedFont", 9))
+        self.preview.tag_configure("blockquote", foreground="#555555")
+        self.preview.tag_configure("link", underline=True, foreground="#245a8d")
+        self.preview.tag_configure("rule", foreground="#888888")
+        self.preview.tag_configure("source_text", foreground="#666666")
+
+    def _style_source(self):
+        _style_markdown_widget(self.source, self.source_view_variable.get())
+
+    def _source_modified(self, _event=None):
+        if not self.source.edit_modified():
+            return
+        self.source.edit_modified(False)
+        self._style_source()
+        if self._preview_after_id is not None:
+            try:
+                self.window.after_cancel(self._preview_after_id)
+            except tk.TclError:
+                pass
+        self._preview_after_id = self.window.after(220, self._update_preview)
+
+    def _update_preview(self):
+        self._preview_after_id = None
+        source = self.source.get("1.0", "end-1c")
+        try:
+            segments = render_markdown_preview(source)
+        except (TypeError, ValueError) as exc:
+            segments = [(f"Preview unavailable: {exc}", ("source_text",))]
+        self.preview.configure(state="normal")
+        self.preview.delete("1.0", "end")
+        if not segments:
+            self.preview.insert("1.0", "Start typing to see a preview.", ("source_text",))
+        else:
+            for value, tags in segments:
+                self.preview.insert("end", value, tags)
+        self.preview.configure(state="disabled")
+
+    def save(self):
+        name = self.name_variable.get().strip()
+        markdown = self.source.get("1.0", "end-1c")
+        if not name:
+            messagebox.showerror(
+                "A name is required", "Enter a name for this component.",
+                parent=self.window,
+            )
+            return
+        if not markdown.strip():
+            messagebox.showerror(
+                "No wording to save",
+                "The Word file did not contain any importable body wording.",
+                parent=self.window,
+            )
+            return
+        warning = malformed_field_message(markdown)
+        if warning and not messagebox.askyesno(
+            "Check field placeholder", warning + "\n\nSave the wording anyway?",
+            parent=self.window,
+        ):
+            return
+        try:
+            component_id = self.editor.library.create_component(name, markdown=markdown)
+        except (ValueError, TypeError, OSError, sqlite3.Error) as exc:
+            messagebox.showerror("Could not save component", str(exc), parent=self.window)
+            return
+        self.editor.refresh_components(component_id)
+        self.editor._load_component(component_id)
+        if self._preview_after_id is not None:
+            try:
+                self.window.after_cancel(self._preview_after_id)
+            except tk.TclError:
+                pass
+        self.window.destroy()
+        messagebox.showinfo(
+            "Component saved",
+            f"{name} was saved as a new component. The original Word file was not changed.",
+            parent=self.editor.window,
+        )
+
 class ComponentEditorWindow:
     """Manage saved components and create immutable wording versions."""
 
