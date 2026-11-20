@@ -215,7 +215,9 @@ class ComponentEditorWindow:
         )
         edit_scroll.grid(row=0, column=1, sticky="ns")
         self.wording.configure(yscrollcommand=edit_scroll.set)
-        self.wording.bind("<KeyRelease>", self._schedule_preview)
+        # Tk's modified virtual event covers typing, paste, cut, undo, redo
+        # and programmatic edits. Reset its flag so each later edit can notify.
+        self.wording.bind("<<Modified>>", self._on_wording_modified)
 
         self.preview = tk.Text(
             preview_frame, wrap="word", height=18, state="disabled",
@@ -304,6 +306,12 @@ class ComponentEditorWindow:
         self.preview.tag_configure("link", underline=True, foreground="#245a8d")
         self.preview.tag_configure("rule", foreground="#888888")
         self.preview.tag_configure("source_text", foreground="#666666")
+
+    def _on_wording_modified(self, _event=None):
+        if not self.wording.edit_modified():
+            return
+        self.wording.edit_modified(False)
+        self._schedule_preview()
 
     def _schedule_preview(self, _event=None):
         """Refresh after a short idle interval so keystrokes are never blocked."""
