@@ -49,6 +49,7 @@ trace.
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
+| `library.py` | Tkinter-free storage API for components, search and immutable Markdown versions; shares the publisher SQLite database. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
 | `version.py` | `APP_NAME`, `APP_VERSION`, `GITHUB_REPOSITORY`. The single source of the version. |
@@ -130,6 +131,16 @@ trace.
 ## Decision log
 
 Newest last. Each entry: date, decision, why, consequences. (Some entries from 2026-11-18 sit above the older ones and are not bolded; the order is not strictly chronological.)
+
+- **2026-11-20 — Component wording is versioned data, never an edited row.**
+  `components` holds mutable descriptive metadata; each save inserts a
+  numbered `component_versions` row. SQLite triggers reject updates and
+  deletes, while `BEGIN IMMEDIATE` serializes the next-version allocation
+  across application instances. Tags are JSON-encoded lists so arbitrary
+  Unicode labels round-trip safely; categories and tags are not constrained
+  to a built-in taxonomy. `library.py` contains no UI code or third-party
+  dependency, and CI explicitly imports it in the Windows size probe.
+  Searches include historical wording so an earlier clause remains findable.
 
 - **2026-11-20 — Extend the existing publisher database in place.** The
   existing publisher schema is version 1; `PRAGMA user_version = 0` is
@@ -380,6 +391,7 @@ Newest last.
 
 - **2026-11-20** T-021-A (ChatGPT, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)): added schema-versioned, transactional SQLite upgrades with verified per-version backups, publisher-data preservation, rollback coverage and older-app compatibility. CI run #176 passed all 210 tests and built Windows x64, macOS Intel and macOS Apple Silicon; the component-stack Windows build measured 17,967,571 bytes (17.14 MiB), leaving 12.86 MiB under the 30 MiB limit.
 
+- **2026-11-20** T-021-B (ChatGPT, [PR #30](https://github.com/RexBHavgreau/contractbuilder/pull/30)): added the component and immutable-version tables plus `library.py`, a Tkinter-free, standard-library storage API. Component creation creates version 1; later saves allocate the next number in a write-serialized transaction. SQLite triggers prevent rewriting or deleting saved versions. Tags are stored as a JSON array to preserve arbitrary user-defined labels; categories remain unrestricted text. CI run #183 passed 214 tests, Windows x64 and Intel macOS; the Windows component-stack build measured 17,972,861 bytes (17.14 MiB), with 13,484,419 bytes (12.86 MiB) below the 30 MiB cap. Apple Silicon was still queued when this entry was written.
 - **2026-11-19** T-019-D and T-033 (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): Beaux chose continuous clause numbering across the assembled contract. The composer now remaps all ordered lists across all components to one shared native Word numbering instance, while retaining the shell's multi-level decimal outline and separate bullet-list instances. Regression coverage checks continuity across separate lists, component boundaries, intervening paragraphs and tables. T-019 is complete; real-Word verification remains T-030.
 
 - **2026-11-19** T-002 (Beaux): ran the v0.3.0 build and the 0.3.0 to 0.3.1 self-update on a Windows PC. Everything worked; an error message appeared during install without affecting the app (details: TASKS.md T-034). T-018: Beaux confirmed no other copies of the old history exist; GitHub Support's purge is the only thing outstanding, and a check on 2026-11-19 shows pull requests #1 and #6 still serve the old commits.
