@@ -321,6 +321,12 @@ def test_v2_migration_creates_components_and_immutable_versions(tmp_path, monkey
 
 def test_v3_migration_pins_immutable_assembly_revisions_and_shell_hash(tmp_path, monkeypatch):
     path = tmp_path / "publisher_profiles.sqlite3"
+    # Start from the real v2 schema so this test exercises the v2 -> v3 step,
+    # rather than allowing the current application to create v3 immediately.
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 2)
+    monkeypatch.setattr(
+        profiles, "_MIGRATIONS", {2: profiles._migrate_components_and_versions}
+    )
     library = ComponentLibrary(path)
     component_id = library.create_component(
         "Payment clause", "Payment is due within thirty days."
