@@ -83,11 +83,11 @@ composer. Next free number: **T-035**.
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
-| ↳ [T-021-A](#t-021-a-schema-version-and-safe-upgrade) | Schema version and safe upgrade | claimed (ChatGPT, 2026-11-20) | careful | — |
-| ↳ [T-021-B](#t-021-b-components-and-immutable-versions) | Components and immutable versions | open | careful | T-021-A |
-| ↳ [T-021-C](#t-021-c-assemblies-and-revisions) | Assemblies and revisions | open | careful | T-021-B |
-| ↳ [T-021-D](#t-021-d-archive-instead-of-delete) | Archive instead of delete | open | careful | T-021-B, T-021-C |
-| ↳ [T-021-E](#t-021-e-storage-module-and-tests) | Storage module and tests | open | any | T-021-B, T-021-C, T-021-D |
+| ↳ [T-021-A](#t-021-a-schema-version-and-safe-upgrade) | Schema version and safe upgrade | done (2026-11-20, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)) | careful | — |
+| ↳ [T-021-B](#t-021-b-components-and-immutable-versions) | Components and immutable versions | done (2026-11-20, [PR #30](https://github.com/RexBHavgreau/contractbuilder/pull/30)) | careful | T-021-A |
+| ↳ [T-021-C](#t-021-c-assemblies-and-revisions) | Assemblies and revisions | done (2026-11-20, [PR #31](https://github.com/RexBHavgreau/contractbuilder/pull/31)) | careful | T-021-B |
+| ↳ [T-021-D](#t-021-d-archive-instead-of-delete) | Archive instead of delete | done (2026-11-20, [PR #32](https://github.com/RexBHavgreau/contractbuilder/pull/32)) | careful | T-021-B, T-021-C |
+| ↳ [T-021-E](#t-021-e-storage-module-and-tests) | Storage module and tests | claimed (ChatGPT, 2026-11-20) | any | T-021-B, T-021-C, T-021-D |
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
 | ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
 | [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
@@ -852,31 +852,31 @@ publisher profiles are untouched.
 
 #### T-021-C Assemblies and revisions
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #31](https://github.com/RexBHavgreau/contractbuilder/pull/31))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-B
 
-- [ ] Tables `assemblies`, `assembly_versions` (shell reference included)
+- [x] Tables `assemblies`, `assembly_versions` (shell reference included)
       and `assembly_components` (component_version id, position, included
       flag)
-- [ ] A revision pins component version ids, never "latest"
-- [ ] Shell reference stores a path and a content hash, so a moved or
+- [x] A revision pins component version ids, never "latest"
+- [x] Shell reference stores a path and a content hash, so a moved or
       changed shell is noticed (see T-026)
 
-#### T-021-D Archive instead of delete
+## T-021-D Archive instead of delete
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #32](https://github.com/RexBHavgreau/contractbuilder/pull/32))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-021-B, T-021-C
 
-- [ ] Components and assemblies can be archived and restored; they are never
+- [x] Components and assemblies can be archived and restored; they are never
       hard-deleted while any assembly revision refers to them
-- [ ] Test: an assembly pinned to an archived component's version still
+- [x] Test: an assembly pinned to an archived component's version still
       generates the same Markdown
 
-#### T-021-E Storage module and tests
+## T-021-E Storage module and tests
 
 - **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** S
