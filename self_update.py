@@ -173,6 +173,27 @@ def swap_command(script: Path, target: Path, new_file: Path) -> str:
     return f'cmd.exe /d /s /c ""{script}" "{target}" "{new_file}""'
 
 
+def clean_restart_environment(environ=None) -> dict:
+    """
+    The environment for the process that starts the new version.
+
+    A PyInstaller one-file app unpacks itself into a temporary folder and tells
+    anything it starts where that folder is, through environment variables. A
+    program started from it that is itself a PyInstaller app would otherwise
+    reuse that folder, which is deleted when the old app closes, and fail with
+    "Failed to load Python DLL ... _MEI...". The update restarts the same app,
+    so it must start clean. PYINSTALLER_RESET_ENVIRONMENT=1 asks PyInstaller
+    6.9 and later to ignore the inherited values; removing them covers older
+    versions.
+    """
+    env = dict(os.environ if environ is None else environ)
+    for name in list(env):
+        if name.upper().startswith("_PYI_") or name.upper() == "_MEIPASS2":
+            del env[name]
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
+
+
 def start_swap(target: Path, new_file: Path) -> None:
     """Start the swap script in the background. The caller then closes the app."""
     script = Path(tempfile.gettempdir()) / "word-template-filler-update.cmd"
@@ -181,7 +202,7 @@ def start_swap(target: Path, new_file: Path) -> None:
     if sys.platform == "win32":
         flags = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
     subprocess.Popen(swap_command(script, target, new_file),
-                     creationflags=flags, close_fds=True,
+                     creationflags=flags, close_fds=True, env=clean_restart_environment(),
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

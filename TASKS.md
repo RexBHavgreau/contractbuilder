@@ -88,10 +88,11 @@ Fields:
 
 Open and in-progress work only. Finished tasks leave this table and move to
 "Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
-(after PR #41). Next free number: **T-039**.
+(after PR #41). Next free number: **T-040**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
+| [T-039](#t-039-stop-the-update-restart-error-fix-in-041) | Stop the error shown when the app restarts after a self-update (fix written, needs release 0.4.1) | open | careful | Beaux (merge, release) |
 | [T-037](#t-037-release-040-the-component-builder) | Release 0.4.0 (component builder) | open: merge now (Beaux, 2026-11-20: the self-update can only be tested on a published release); then T-038 | human | — |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
@@ -219,6 +220,49 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Clause numbering** is decided (T-025): nested ordered lists, rendered as
   a decimal outline. Other legal formatting is out of scope (T-032).
 
+### T-039 Stop the update restart error (fix in 0.4.1)
+
+- **Status:** open: fix and tests are on the branch `claude/kind-keller-847k6d`
+  (2026-11-20); needs a pull request, green CI, merge and a 0.4.1 release
+- **Size:** S
+- **Agent:** careful
+- **Needs:** Beaux (merge and release)
+- **Size gate:** yes, but this adds no module or file; confirm the CI size
+  numbers as usual
+
+Beaux saw an error message while the app updated itself (0.3.0 to 0.3.1, and
+again 0.3.1 to 0.4.0); the app ran normally afterwards. He suspected it had
+to do with the new file having the same name as the old one.
+
+**Cause (reproduced 2026-11-20, not yet confirmed against the message he
+saw).** The update restarts the app by running a small script, which starts
+the new `.exe`. A PyInstaller one-file app unpacks itself into a temporary
+`_MEI...` folder and passes that folder's location to anything it starts,
+through environment variables. The script, and the new app it starts,
+inherited those variables, so the new app tried to reuse the old app's
+temporary folder, which is deleted when the old app closes. The result is a
+"Failed to load Python DLL ... _MEI..." message. It is about an app
+restarting itself, which is why it looks tied to the file name, but
+renaming the file would not change it. A test build of a tiny one-file app
+under PyInstaller 6.22.3 (what CI installs) failed exactly this way when it
+started itself with the inherited environment, and started cleanly when
+`PYINSTALLER_RESET_ENVIRONMENT=1` was set.
+
+- [x] `self_update.clean_restart_environment()` removes the inherited
+      `_PYI_*` and `_MEIPASS2` values and sets
+      `PYINSTALLER_RESET_ENVIRONMENT=1`; `start_swap` passes it to the script
+- [x] Tests: the environment is cleaned; `start_swap` passes it
+- [ ] Beaux sends the exact words of the message (or a screenshot). If it
+      says "Failed to load Python DLL" and names a `_MEI` folder, this is the
+      cause. If it says something else (a missing VCRUNTIME file, or the file
+      being in use), T-034 and `fix/windows-vc-runtime` are the lead instead
+- [ ] Release 0.4.1 with the fix. **The fix only helps updates from 0.4.1
+      onward**: the script that restarts the app is written by the version
+      that is closing. So 0.4.0 to 0.4.1 will probably show the message one
+      more time; 0.4.1 to the next version should not. Tell staff the message
+      is harmless: click OK and start the app again from its icon
+- [ ] On the 0.4.1 to next-version update, confirm there is no message
+
 ### T-037 Release 0.4.0 (the component builder)
 
 - **Status:** open: version bump, release notes and user-guide section are
@@ -304,6 +348,8 @@ screenshots may be shared.
       is a bug task; anything that is only awkward goes in a new task
 
 ### T-034 Find out what the install error message said
+
+*Update 2026-11-20: Beaux saw the same message on 0.3.1 to 0.4.0. A likely cause is found and fixed on the branch: see T-039.*
 
 - **Status:** open
 - **Size:** S

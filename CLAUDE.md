@@ -136,6 +136,13 @@ trace.
   it that way. Real contracts also arrive with tracked changes, comments,
   curly quotes, letter-spacing from PDF conversion, and tab-aligned
   signature blocks.
+- **A PyInstaller one-file app that starts a copy of itself must reset its
+  environment.** The app passes the location of its temporary `_MEI` folder to
+  whatever it starts; a restarted copy then reuses a folder that is deleted
+  when the first one closes and fails with "Failed to load Python DLL". Set
+  `PYINSTALLER_RESET_ENVIRONMENT=1` and drop `_PYI_*`/`_MEIPASS2` (see
+  `self_update.clean_restart_environment`, TASKS.md T-039). The restart script
+  is written by the *old* version, so a fix helps only from the version after.
 - A running Windows `.exe` cannot overwrite itself: the swap is done by a
   batch script after exit. `timeout` fails without a console (use `ping`),
   and `cmd /c` needs `/s` and an outer pair of quotes for paths with spaces.
@@ -568,3 +575,5 @@ Newest last.
 - **2026-11-20** Release 0.4.0 prepared (Claude): `main` after PR #41 is green (run 44798337642: tests, Windows and both macOS builds). Windows executable 18,093,944 bytes (17.26 MiB), 12.74 MiB under the 30 MiB cap; v0.3.1 was 17,800,891, so the component builder added about 0.28 MiB. The size job's "added size" figure read -148 bytes and is meaningless (T-035). `version.py`, `CHANGES.txt` and a new USER-GUIDE.txt section are ready on branch `claude/kind-keller-847k6d`; merging it publishes v0.4.0. Not yet done: the hand check of the windows (T-038), a real-Word check of generated documents (T-030), the T-034 install error.
 
 - **2026-11-20** Decision (Beaux): merge 0.4.0 without the hand check, because the automatic update can only be tested against a published release; T-038 is now done on the release itself, and a fault means 0.4.1. First start of 0.4.0 upgrades the publisher database in place and leaves a `.bak-1` backup beside it (PR #29).
+
+- **2026-11-20** Update restart error (Claude): Beaux saw the same message updating 0.3.1 to 0.4.0. Reproduced a matching failure with a test one-file app under PyInstaller 6.22.3: a copy started from the running app with its inherited environment fails to find the old temporary folder; with `PYINSTALLER_RESET_ENVIRONMENT=1` it starts. Added `self_update.clean_restart_environment` and tests; needs release 0.4.1 (TASKS.md T-039). Not yet confirmed against the message text.
