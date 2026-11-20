@@ -819,19 +819,19 @@ publisher profiles are untouched.
 
 #### T-021-A Schema version and safe upgrade
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** —
 
-- [ ] Add `PRAGMA user_version`; a database with no version is version 1
+- [x] Add `PRAGMA user_version`; a database with no version is version 1
       (today's publisher schema)
-- [ ] Upgrade steps run in a transaction, after copying the file to
+- [x] Upgrade steps run in a transaction, after copying the file to
       `publisher_profiles.sqlite3.bak-<version>` once; the backup is kept
       until the upgrade has succeeded and been checked
-- [ ] Test: a database made by the current code upgrades and its publishers
+- [x] Test: a database made by the current code upgrades and its publishers
       are identical; a failed step leaves the original unchanged
-- [ ] Test: an older app opening an upgraded database does not damage it
+- [x] Test: an older app opening an upgraded database does not damage it
       (extra tables are ignored)
 
 #### T-021-B Components and immutable versions
