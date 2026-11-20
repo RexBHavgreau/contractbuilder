@@ -183,9 +183,10 @@ class ComponentEditorWindow:
             ttk.Label(form, text=label).grid(
                 row=row, column=0, sticky="w", padx=(0, 12), pady=4
             )
-            ttk.Entry(form, textvariable=variable).grid(
-                row=row, column=1, sticky="ew", pady=4
-            )
+            entry = ttk.Entry(form, textvariable=variable)
+            entry.grid(row=row, column=1, sticky="ew", pady=4)
+            if variable is self.name_variable:
+                self.name_entry = entry
 
         text_label = ttk.Label(form, text="Wording *")
         text_label.grid(row=4, column=0, sticky="nw", padx=(0, 12), pady=(10, 4))
@@ -384,11 +385,7 @@ class ComponentEditorWindow:
         self.name_entry_focus()
 
     def name_entry_focus(self):
-        for child in self.window.winfo_children():
-            if isinstance(child, ttk.Frame):
-                continue
-        # The window's initial focus remains on the first editable field.
-        self.window.focus_set()
+        self.name_entry.focus_set()
 
     def save_component(self) -> bool:
         name = self.name_variable.get().strip()
