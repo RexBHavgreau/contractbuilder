@@ -204,7 +204,9 @@ def test_assembly_generation_discovers_each_unique_field_once_across_components(
         "Fee": 1,
     })
     assert template.places == 3
-    assert composition.warnings == ()
+    assert [
+        warning.code for warning in composition.warnings
+    ] == ["shell.numbering.decimal_outline"]
 
     filled, report = core.render(template, {
         "Client Name": "Example Client",
