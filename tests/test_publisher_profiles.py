@@ -154,15 +154,9 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
     second_id = store.save_profile(second)
     before = store.list_profiles()
 
-    def add_component_table(connection):
-        connection.execute(
-            "CREATE TABLE component_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)"
-        )
-        connection.execute(
-            "INSERT INTO component_probe (value) VALUES ('migration complete')"
-        )
-
-    upgraded = _upgrade_store_to_v2(monkeypatch, path, add_component_table)
+    upgraded = _upgrade_store_to_v2(
+        monkeypatch, path, profiles._migrate_components_and_versions
+    )
 
     assert _user_version(path) == 2
     assert upgraded.list_profiles() == before
@@ -175,7 +169,7 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
     assert _user_version(backup_path) == 1
     with sqlite3.connect(backup_path) as backup:
         assert backup.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'component_probe'"
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'components'"
         ).fetchone() is None
         assert backup.execute("SELECT COUNT(*) FROM publishers").fetchone()[0] == 2
 
@@ -470,17 +464,14 @@ def test_older_application_can_use_publishers_without_changing_newer_tables(
 ):
     path = tmp_path / "publisher_profiles.sqlite3"
 
-    def add_component_table(connection):
-        connection.execute(
-            "CREATE TABLE components (id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
-        )
+    newer = _upgrade_store_to_v2(
+        monkeypatch, path, profiles._migrate_components_and_versions
+    )
+    newer.save_profile(sample_profile())
+    with sqlite3.connect(path) as connection:
         connection.execute(
             "INSERT INTO components (name) VALUES ('Invented component')"
         )
-
-    newer = _upgrade_store_to_v2(monkeypatch, path, add_component_table)
-    newer.save_profile(sample_profile())
-    with sqlite3.connect(path) as connection:
         component_before = connection.execute(
             "SELECT id, name FROM components"
         ).fetchall()
