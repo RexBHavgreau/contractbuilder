@@ -294,26 +294,36 @@ def _strip_emphasis(source: str, action: str) -> str:
 
     if action == "bold":
         pattern = re.compile(
-            r"(?<!\\)\*\*\*(.+?)(?<!\\)\*\*\*"
-            r"|(?<!\\)\*\*(.+?)(?<!\\)\*\*"
-            r"|(?<!\\)__(.+?)(?<!\\)__",
+            r"(?<!\\)(?<!\*)\*\*\*(.+?)(?<!\\)\*\*\*(?!\*)"
+            r"|(?<!\\)(?<!\*)\*\*(.+?)(?<!\\)\*\*(?!\*)"
+            r"|(?<!\\)(?<!_)___(.+?)(?<!\\)___(?!_)"
+            r"|(?<!\\)(?<!_)__(.+?)(?<!\\)__(?!_)",
             re.DOTALL,
         )
         def replace(match):
             if match.group(1) is not None:
                 return "*" + match.group(1) + "*"
-            return match.group(2) if match.group(2) is not None else match.group(3)
+            if match.group(2) is not None:
+                return match.group(2)
+            if match.group(3) is not None:
+                return "_" + match.group(3) + "_"
+            return match.group(4)
     elif action == "italic":
         pattern = re.compile(
-            r"(?<!\\)\*\*\*(.+?)(?<!\\)\*\*\*"
-            r"|(?<!\\)\*([^*\n]+?)(?<!\\)\*"
-            r"|(?<!\\)_([^_\n]+?)(?<!\\)_",
+            r"(?<!\\)(?<!\*)\*\*\*(.+?)(?<!\\)\*\*\*(?!\*)"
+            r"|(?<!\\)(?<!\*)\*([^*\n]+?)(?<!\\)\*(?!\*)"
+            r"|(?<!\\)(?<!_)___(.+?)(?<!\\)___(?!_)"
+            r"|(?<!\\)(?<!_)_([^_\n]+?)(?<!\\)_(?!_)",
             re.DOTALL,
         )
         def replace(match):
             if match.group(1) is not None:
                 return "**" + match.group(1) + "**"
-            return match.group(2) if match.group(2) is not None else match.group(3)
+            if match.group(2) is not None:
+                return match.group(2)
+            if match.group(3) is not None:
+                return "__" + match.group(3) + "__"
+            return match.group(4)
     else:
         raise ValueError(f"Unsupported inline-format action: {action}")
 
@@ -365,6 +375,10 @@ def toggle_inline_format(
     marker = "**" if action == "bold" else "*"
     replacement = marker + normalized + marker
     result = source[:start] + replacement + source[end:]
+    for match in _emphasis_matches(result):
+        if match.start() == start and match.end() == start + len(replacement):
+            new_start = match.start() + len(match.group(1))
+            return result, new_start, match.end() - len(match.group(1))
     new_start = start + len(marker)
     return result, new_start, new_start + len(normalized)
 

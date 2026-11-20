@@ -157,6 +157,17 @@ def test_inline_format_toggles_and_preserves_the_other_emphasis():
     assert raw_selection == "term"
     assert raw_selection[start:end] == "term"
 
+    raw_italic, start, end = toggle_inline_format(
+        "**term**", 0, len("**term**"), "italic"
+    )
+    assert raw_italic == "***term***"
+    assert raw_italic[start:end] == "term"
+    bold_only, start, end = toggle_inline_format(
+        raw_italic, start, end, "italic"
+    )
+    assert bold_only == "**term**"
+    assert bold_only[start:end] == "term"
+
     mixed = "**already bold** and plain"
     normalized, start, end = toggle_inline_format(mixed, 0, len(mixed), "bold")
     assert normalized == "**already bold and plain**"
