@@ -41,7 +41,16 @@ trace.
 
 | File | Role |
 | --- | --- |
-| `simple_app.py` | The packaged app: choose a template, fill in its fields, create the document. Publisher profiles, update checks and installs. |
+| `simple_app.py` | The packaged app's entry point and main window (`WordTemplateFiller`): choose a template, fill in its fields, create the document. Keeps its name; build scripts start from it. Re-exports the widgets, dialogs and windows it uses (T-056). |
+| `ui_widgets.py` | `resource_path`, `ScrollableFrame` and `FieldInput`, shared by the main window and the assembly field window. |
+| `publisher_dialog.py` | The publisher profile window (create, edit, delete). |
+| `assembly_document_window.py` | The field-entry window for a contract assembled from components. |
+| `update_dialogs.py` | `UpdateDialogsMixin`: update check, install and update settings for the main window. |
+| `help_windows.py` | `HelpWindowsMixin`: the Help menu windows. |
+| `assembly_builder.py` | The Build assembly window. Re-exports the helpers below. |
+| `assembly_helpers.py` | Pure, Tkinter-free assembly helpers (composition, diff lines, version updates, shell fingerprint). |
+| `assembly_review_dialog.py` | The Review updates window of the assembly builder (`review_updates(builder)`). |
+| `assembly_open_dialog.py` | The Open saved assembly window and `load_revision(builder, revision)`. |
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |

@@ -1255,7 +1255,7 @@ are never claimed together.
 
 ### T-056 Split `assembly_builder.py` and `simple_app.py`
 
-- **Status:** open
+- **Status:** done on the branch (Claude, 2026-11-20); pull request not yet opened, so the CI run and size numbers are pending
 - **Size:** M
 - **Agent:** careful (one agent at a time; a file is frozen while its split is
   open)
@@ -1265,23 +1265,38 @@ are never claimed together.
 - **Size gate:** yes (confirm numbers; `simple_app.py` stays the build's entry
   point and keeps its name)
 
-`simple_app.py` (1,390 lines) holds the main window, the publisher profile
+Before: `simple_app.py` (1,390 lines) held the main window, the publisher profile
 window, update dialogs and the assembly field window; `assembly_builder.py`
 (1,075) holds the composition helpers, the builder window, the open-saved and
 review-updates dialogs. T-046 and T-048 both change them.
 
-- [ ] Split by concern, as in T-052: for example `publisher_window.py`,
+- [x] Split by concern, as in T-052: for example `publisher_window.py`,
       `assembly_field_window.py`, `update_dialogs.py`, `assembly_open_dialog.py`,
       `assembly_review_dialog.py`, with pure helpers in modules that import
       no Tkinter. `simple_app.py` keeps the application class and the entry
       point and re-exports what tests import
-- [ ] No behaviour change; every test and the window tests pass; the Windows
+- [x] No behaviour change; every test and the window tests pass; the Windows
       build still starts and updates itself (the restart environment of
       `self_update.py` is unchanged)
-- [ ] **Sequence:** do this before T-048 and T-046-B/D start, since they all
+- [x] **Sequence:** do this before T-048 and T-046-B/D start, since they all
       edit these files; T-048's new code goes in `start_screen.py`
 
+**Result (2026-11-20):** `simple_app.py` 1,390 to 479 lines; `assembly_builder.py`
+1,082 to 673. New modules: `ui_widgets.py` (132), `publisher_dialog.py` (235),
+`assembly_document_window.py` (301), `update_dialogs.py` (211, a mixin),
+`help_windows.py` (87, a mixin), `assembly_helpers.py` (99, pure),
+`assembly_review_dialog.py` (198), `assembly_open_dialog.py` (147). Checked:
+every moved class, method and function is identical to the original after
+parsing (the three dialog methods differ only by `self` being renamed
+`builder`), 0 differences; the whole test suite passes under Xvfb, window
+tests included; a local PyInstaller one-file build of the new code starts and
+is 10,176 bytes (0.05 percent) larger than a build of `main` (Linux sizes). Not
+checked: the Windows build and size job (needs the pull request's CI run).
+`simple_app.py` still imports `threading` only because a test patches
+`simple_app.threading.Thread`.
+
 **Done when:** no module over about 800 lines and nothing visible has changed.
+
 
 ### T-057 Require green, up-to-date pull requests on `main` (GitHub setting)
 
