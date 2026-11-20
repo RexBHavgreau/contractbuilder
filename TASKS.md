@@ -852,7 +852,7 @@ publisher profiles are untouched.
 
 #### T-021-C Assemblies and revisions
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-B
