@@ -83,7 +83,11 @@ composer. Next free number: **T-035**.
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
-| ↳ T-021-A to T-021-E | Schema version and backup; components and versions; assemblies; archive; storage module | open | careful | in order |
+| ↳ [T-021-A](#t-021-a-schema-version-and-safe-upgrade) | Schema version and safe upgrade | claimed (ChatGPT, 2026-11-20) | careful | — |
+| ↳ [T-021-B](#t-021-b-components-and-immutable-versions) | Components and immutable versions | open | careful | T-021-A |
+| ↳ [T-021-C](#t-021-c-assemblies-and-revisions) | Assemblies and revisions | open | careful | T-021-B |
+| ↳ [T-021-D](#t-021-d-archive-instead-of-delete) | Archive instead of delete | open | careful | T-021-B, T-021-C |
+| ↳ [T-021-E](#t-021-e-storage-module-and-tests) | Storage module and tests | open | any | T-021-B, T-021-C, T-021-D |
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
 | ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
 | [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
@@ -807,15 +811,15 @@ warning, and the warning text is plain English.
 See PROPOSAL-001.md section 9. **Choice made here:** extend the existing
 `publisher_profiles.sqlite3` with new tables; do not rename or move it. No
 user data migration is then needed. Add a schema version
-(`PRAGMA user_version`) so later changes are safe. Beaux to confirm when
-claiming the task.
+(`PRAGMA user_version`) so later changes are safe. Beaux confirmed this
+direction on 2026-11-20 when T-021-A was claimed.
 
 **Done when:** the new tables exist, are tested, and an existing user's
 publisher profiles are untouched.
 
 #### T-021-A Schema version and safe upgrade
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** S
 - **Agent:** careful
 - **Needs:** —
