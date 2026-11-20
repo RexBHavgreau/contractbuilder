@@ -6,6 +6,7 @@ separate follow-on features.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -18,20 +19,32 @@ from component_preview import render_markdown_preview
 _MARKDOWN_SPECIAL = frozenset(
     ("\\", chr(96), "*", "_", "{", "}", "[", "]", "(", ")", ">", "#", "+", "-", ".", "!", "|")
 )
+# Hyphens and periods are ordinary punctuation except in a list marker at the
+# beginning of a line. Keep them in _MARKDOWN_SPECIAL for decoding older saves.
+_PLAIN_TEXT_SPECIAL = _MARKDOWN_SPECIAL - {"-", "."}
 
 
 def _escape_plain_segment(text: str) -> str:
     """Escape Markdown punctuation without touching field placeholders."""
-    return "".join(("\\" + character) if character in _MARKDOWN_SPECIAL else character
+    return "".join(("\\" + character) if character in _PLAIN_TEXT_SPECIAL else character
                    for character in text)
+
+
+def _escape_line_marker(line: str) -> str:
+    """Escape only leading hyphen and ordered-list markers, not normal prose."""
+    if re.match(r"^[ \\t]*-(?:[ \\t]|$)", line) or re.match(
+        r"^[ \\t]*-{3,}[ \\t]*$", line
+    ):
+        return re.sub(r"^([ \\t]*)-", r"\\1\\\\-", line, count=1)
+    return re.sub(r"^([ \\t]*\\d+)\\.", r"\\1\\\\.", line, count=1)
 
 
 def plain_text_to_markdown(text: str) -> str:
     """Convert plain text to safe Markdown paragraphs and hard line breaks.
 
     Complete ContractBuilder fields are preserved byte-for-byte. All other
-    Markdown punctuation is escaped, so typing an asterisk or leading number
-    does not unexpectedly create formatting or a list.
+    Markdown syntax is escaped, while ordinary hyphens and periods remain
+    readable. Leading list markers are escaped so they do not create lists.
     """
     if not isinstance(text, str):
         raise TypeError("Component text must be a string.")
@@ -45,6 +58,7 @@ def plain_text_to_markdown(text: str) -> str:
         cursor = match.end()
     pieces.append(_escape_plain_segment(normalized[cursor:]))
     escaped = "".join(pieces)
+    escaped = "\\n".join(_escape_line_marker(line) for line in escaped.split("\\n"))
 
     paragraphs: list[str] = []
     current: list[str] = []
