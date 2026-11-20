@@ -873,6 +873,8 @@ class ComponentEditorWindow:
         self.saved_snapshot = None
         self.suspend_selection = False
         self._preview_after_id = None
+        self.editor_markdown_mode = False
+        self.source_view_variable = None
         self.window = tk.Toplevel(parent)
         self.window.title("Components")
         self.window.geometry("1060x720")
@@ -974,26 +976,66 @@ class ComponentEditorWindow:
         edit_frame = ttk.LabelFrame(panes, text="Edit wording", padding=4)
         preview_frame = ttk.LabelFrame(panes, text="Preview", padding=4)
         edit_frame.columnconfigure(0, weight=1)
-        edit_frame.rowconfigure(0, weight=1)
+        edit_frame.rowconfigure(1, weight=1)
         preview_frame.columnconfigure(0, weight=1)
         preview_frame.rowconfigure(0, weight=1)
         panes.add(edit_frame, weight=1)
         panes.add(preview_frame, weight=1)
+
+        toolbar = ttk.Frame(edit_frame)
+        toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 5))
+        ttk.Button(toolbar, text="B", width=3, command=lambda: self.apply_format("bold")).pack(side="left", padx=(0, 2))
+        ttk.Button(toolbar, text="I", width=3, command=lambda: self.apply_format("italic")).pack(side="left", padx=(0, 2))
+        heading_button = ttk.Menubutton(toolbar, text="Heading")
+        heading_menu = tk.Menu(heading_button, tearoff=False)
+        for level in (1, 2, 3):
+            heading_menu.add_command(
+                label=f"Heading {level}",
+                command=lambda selected=level: self.apply_format("heading", selected),
+            )
+        heading_button["menu"] = heading_menu
+        heading_button.pack(side="left", padx=(0, 3))
+        for label, action in (
+            ("Bullets", "bullet"),
+            ("Numbering", "numbered"),
+            ("Indent", "indent"),
+            ("Outdent", "outdent"),
+            ("Table", "table"),
+            ("Field", "field"),
+            ("Import Word", "import"),
+        ):
+            command = {
+                "table": self.open_table_editor,
+                "field": self.open_field_dialog,
+                "import": self.open_import_dialog,
+            }.get(action)
+            if command is None:
+                command = lambda selected=action: self.apply_format(selected)
+            ttk.Button(toolbar, text=label, command=command).pack(side="left", padx=(0, 2))
+        self.source_view_variable = tk.BooleanVar(master=self.window, value=False)
+        ttk.Checkbutton(
+            toolbar,
+            text="Advanced: show raw text",
+            variable=self.source_view_variable,
+            command=self.toggle_source_view,
+        ).pack(side="left", padx=(5, 0))
 
         self.wording = tk.Text(
             edit_frame, wrap="word", undo=True, height=18,
             font="TkDefaultFont", relief="solid", borderwidth=1,
             padx=7, pady=6,
         )
-        self.wording.grid(row=0, column=0, sticky="nsew")
+        self.wording.grid(row=1, column=0, sticky="nsew")
         edit_scroll = ttk.Scrollbar(
             edit_frame, orient="vertical", command=self.wording.yview
         )
-        edit_scroll.grid(row=0, column=1, sticky="ns")
+        edit_scroll.grid(row=1, column=1, sticky="ns")
         self.wording.configure(yscrollcommand=edit_scroll.set)
         # Tk's modified virtual event covers typing, paste, cut, undo, redo
         # and programmatic edits. Reset its flag so each later edit can notify.
         self.wording.bind("<<Modified>>", self._on_wording_modified)
+        self.wording.bind("<Control-b>", lambda _event: self.apply_format("bold"))
+        self.wording.bind("<Control-i>", lambda _event: self.apply_format("italic"))
 
         self.preview = tk.Text(
             preview_frame, wrap="word", height=18, state="disabled",
@@ -1041,6 +1083,239 @@ class ComponentEditorWindow:
         ttk.Button(
             footer, text="Save version", command=self.save_component
         ).pack(side="right", padx=(0, 8))
+
+    def _ensure_markdown_mode(self):
+        """Convert a new plain-text draft once, then keep Markdown as the source of truth."""
+        if self.editor_markdown_mode:
+            return
+        plain = self.wording.get("1.0", "end-1c")
+        insert_offset = len(self.wording.get("1.0", "insert"))
+        selection = self.wording.tag_ranges("sel")
+        selection_offsets = None
+        if selection:
+            selection_offsets = (
+                len(self.wording.get("1.0", str(selection[0]))),
+                len(self.wording.get("1.0", str(selection[1]))),
+            )
+
+        def mapped(offset):
+            sentinel = "\ue000"
+            return max(0, len(plain_text_to_markdown(plain[:offset] + sentinel)) - 1)
+
+        encoded = plain_text_to_markdown(plain)
+        self.wording.delete("1.0", "end")
+        self.wording.insert("1.0", encoded)
+        self.editor_markdown_mode = True
+        self.wording.mark_set("insert", f"1.0 + {mapped(insert_offset)} chars")
+        if selection_offsets is not None:
+            start, end = selection_offsets
+            self.wording.tag_add(
+                "sel",
+                f"1.0 + {mapped(start)} chars",
+                f"1.0 + {mapped(end)} chars",
+            )
+        self.wording.edit_modified(False)
+        self._refresh_editor_styling()
+
+    def _refresh_editor_styling(self):
+        if self.editor_markdown_mode:
+            _style_markdown_widget(self.wording, self.source_view_variable.get())
+        else:
+            for tag in ("syntax", "heading_1", "heading_2", "heading_3", "bold", "italic", "field"):
+                self.wording.tag_remove(tag, "1.0", "end")
+
+    def toggle_source_view(self):
+        if self.source_view_variable.get():
+            self._ensure_markdown_mode()
+        self._refresh_editor_styling()
+
+    def apply_format(self, action: str, level: int = 2):
+        """Apply a toolbar operation to Markdown without asking the user to type syntax."""
+        if self.protected_content:
+            messagebox.showinfo(
+                "This wording is protected",
+                "This component contains formatting the editor cannot safely change. "
+                "Create a new component or import a simpler version to edit it.",
+                parent=self.window,
+            )
+            return "break"
+        self._ensure_markdown_mode()
+        widget = self.wording
+        selected = widget.tag_ranges("sel")
+        if action in {"bold", "italic"}:
+            if selected:
+                start, end = str(selected[0]), str(selected[1])
+            else:
+                start = widget.index("insert wordstart")
+                end = widget.index("insert wordend")
+                if widget.compare(start, "==", end):
+                    marker = "**" if action == "bold" else "*"
+                    widget.insert("insert", marker + marker)
+                    widget.mark_set("insert", f"insert - {len(marker)} chars")
+                    self._refresh_editor_styling()
+                    self._schedule_preview()
+                    widget.focus_set()
+                    return "break"
+            marker = "**" if action == "bold" else "*"
+            value = widget.get(start, end)
+            widget.delete(start, end)
+            widget.insert(start, marker + value + marker)
+            content_start = widget.index(f"{start} + {len(marker)} chars")
+            content_end = widget.index(f"{content_start} + {len(value)} chars")
+            widget.tag_remove("sel", "1.0", "end")
+            widget.tag_add("sel", content_start, content_end)
+            widget.mark_set("insert", content_end)
+        else:
+            if selected:
+                first = widget.index(f"{selected[0]} linestart")
+                last = widget.index(f"{selected[1]} lineend")
+            else:
+                first = widget.index("insert linestart")
+                last = widget.index("insert lineend")
+            block = widget.get(first, last)
+            lines = block.splitlines()
+            if not lines:
+                return "break"
+
+            def remove_marker(line):
+                return re.sub(r"^([ \t]*)(?:[-+*]|\d{1,4}\.)[ \t]+", r"\1", line)
+
+            transformed = []
+            for line in lines:
+                if not line.strip():
+                    transformed.append(line)
+                    continue
+                indent = re.match(r"^[ \t]*", line).group(0)
+                content = line[len(indent):]
+                if action == "heading":
+                    content = re.sub(r"^#{1,3}[ \t]+", "", content)
+                    content = "#" * max(1, min(3, int(level))) + " " + content
+                elif action == "bullet":
+                    transformed.append(indent + "- " + remove_marker(content))
+                    continue
+                elif action == "numbered":
+                    transformed.append(indent + "1. " + remove_marker(content))
+                    continue
+                elif action in {"indent", "outdent"}:
+                    match = re.match(r"^(\d{1,4}\.)[ \t]+(.*)$", content)
+                    if match:
+                        if action == "indent":
+                            indent += "    "
+                        else:
+                            indent = indent[4:] if indent.startswith("    ") else ""
+                        transformed.append(indent + "1. " + match.group(2))
+                        continue
+                    transformed.append(line)
+                    continue
+                transformed.append(indent + content)
+            replacement = "\n".join(transformed)
+            widget.delete(first, last)
+            widget.insert(first, replacement)
+            widget.mark_set("insert", widget.index(f"{first} + {len(replacement)} chars"))
+        self._refresh_editor_styling()
+        self._schedule_preview()
+        widget.focus_set()
+        return "break"
+
+    def _available_field_names(self):
+        names = set(_PROFILE_FIELD_NAMES.values())
+        try:
+            for component in self.library.list_components():
+                for version in self.library.list_component_versions(component["id"]):
+                    for match in core.TOKEN.finditer(version["markdown"]):
+                        kind, argument = core.classify(match.group(1))
+                        if kind == "field":
+                            name, _format_name, _options = core.parse_field(argument)
+                            if name:
+                                names.add(name)
+        except (OSError, sqlite3.Error):
+            pass
+        return sorted(names, key=str.casefold)
+
+    def open_field_dialog(self):
+        if self.protected_content:
+            messagebox.showinfo(
+                "This wording is protected",
+                "Create a new component to insert fields into wording that can be edited safely.",
+                parent=self.window,
+            )
+            return
+        self._ensure_markdown_mode()
+
+        def insert(value):
+            selected = self.wording.tag_ranges("sel")
+            start, end = (str(selected[0]), str(selected[1])) if selected else (
+                self.wording.index("insert"), self.wording.index("insert")
+            )
+            self.wording.delete(start, end)
+            self.wording.insert(start, value)
+            self.wording.mark_set("insert", f"{start} + {len(value)} chars")
+            self._refresh_editor_styling()
+            self._schedule_preview()
+            self.wording.focus_set()
+
+        FieldInsertDialog(self.window, self._available_field_names(), insert)
+
+    def open_table_editor(self):
+        if self.protected_content:
+            messagebox.showinfo(
+                "This wording is protected",
+                "Create a new component or import a simpler Word file before editing this table.",
+                parent=self.window,
+            )
+            return
+        self._ensure_markdown_mode()
+        source = self.wording.get("1.0", "end-1c")
+        cursor = len(self.wording.get("1.0", "insert"))
+        block = find_markdown_table(source, cursor)
+        if block:
+            rows = block["rows"]
+            alignments = block["alignments"]
+            has_header = block["has_header"]
+        else:
+            rows = [["", ""], ["", ""]]
+            alignments = [None, None]
+            has_header = True
+
+        def save_table(markdown):
+            current = self.wording.get("1.0", "end-1c")
+            if block:
+                start, end = block["start"], block["end"]
+                before, after = current[:start], current[end:]
+                replacement = markdown
+                if before and not before.endswith("\n\n"):
+                    replacement = "\n\n" + replacement if not before.endswith("\n") else "\n" + replacement
+                if after and not after.startswith("\n"):
+                    replacement += "\n\n"
+                self.wording.delete(f"1.0 + {start} chars", f"1.0 + {end} chars")
+                self.wording.insert(f"1.0 + {start} chars", replacement)
+            else:
+                selected = self.wording.tag_ranges("sel")
+                if selected:
+                    start_index, end_index = str(selected[0]), str(selected[1])
+                else:
+                    start_index = end_index = self.wording.index("insert")
+                before = self.wording.get("1.0", start_index)
+                after = self.wording.get(end_index, "end-1c")
+                prefix = "" if not before.strip() or before.endswith("\n\n") else "\n\n"
+                suffix = "" if not after.strip() or after.startswith("\n\n") else "\n\n"
+                insertion = prefix + markdown + suffix
+                self.wording.delete(start_index, end_index)
+                self.wording.insert(start_index, insertion)
+            self._refresh_editor_styling()
+            self._schedule_preview()
+            self.wording.focus_set()
+
+        TableEditorDialog(self.window, rows, alignments, has_header, save_table)
+
+    def open_import_dialog(self):
+        path = filedialog.askopenfilename(
+            parent=self.window,
+            title="Import from a Word file",
+            filetypes=(("Word documents", "*.docx"), ("All files", "*.*")),
+        )
+        if path:
+            ImportReviewDialog(self, path)
 
     def _configure_preview_tags(self):
         self.preview.tag_configure(
