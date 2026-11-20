@@ -49,6 +49,7 @@ trace.
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
+| `component_editor.py` | Tkinter component editor: Markdown-backed formatted view, toolbar, table and field dialogs, and reviewed DOCX import. |
 | `component_preview.py` | Renders Markdown into styled text segments for the editor's read-only preview; uses the existing parser and field helpers. |
 | `library.py` | Tkinter-free component/assembly persistence, immutable versions, revision pinning, archive/restore and newer-version review; shares the publisher SQLite database. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
@@ -57,7 +58,7 @@ trace.
 | `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see TASKS.md. |
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
 | `build-mac.command` | Local macOS build. |
-| `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases, and side-by-side Windows package-size measurement with and without T-019 modules. |
+| `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases, and side-by-side Windows package-size measurement with and without the component-builder modules, including the DOCX importer. |
 | `scripts/check_executable_size.py` | Measures the built Windows executable and enforces the 30 MiB release limit. |
 | `tests/` | `python -m pytest tests` |
 | `USER-GUIDE.txt` | Shown from Help and bundled into the app. |
@@ -426,6 +427,8 @@ runs.
   a meaningful comparison without altering an existing contract recipe.
 
 - **2026-11-20 — SQLite schema upgrades are versioned and recoverable (T-021-A).** Keep `publisher_profiles.sqlite3` as the shared database. Its existing publisher layout is schema version 1; an existing database whose `PRAGMA user_version` is still zero is treated as that v1 layout, not as an empty database. Each later schema change is an ordered migration run inside one SQLite transaction. Before the first attempt to leave a version, create one verified snapshot named `<database filename>.bak-<old version>` with SQLite's backup API (so committed WAL data is included); never replace that backup. Keep it for recovery after success. A failed migration rolls back the schema changes and version marker. An older app may continue using the publisher table in a newer database, but must leave the newer schema version and unknown tables untouched.
+
+- **2026-11-20 — The component editor stores Markdown, not a second rich-text format.** The Tk text widget keeps Markdown as the source of truth. Its default presentation elides syntax markers and applies simple heading/emphasis tags; “Advanced: show raw text” reveals the stored source. Toolbar actions write standard Markdown, and numbered-list indenting requires a preceding list item so a top-level item cannot accidentally become a code block. The preview computes decimal outline numbers from list nesting. The table grid uses GFM's first row as its heading row and preserves literal pipes separately from pipes inside {{field | format}} tokens. Field suggestions combine names already used in library versions with PROFILE_FIELDS; insertion and validation use core's own field parser. DOCX import calls the read-only importer, displays the draft and warnings before saving, and creates a component only after the user chooses “Save as component”. T-020-F's invented DOCX–Markdown–DOCX round-trip test is included as the prerequisite for this import dialog.
 
 ## Progress log
 
