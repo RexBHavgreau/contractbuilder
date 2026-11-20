@@ -130,8 +130,8 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
-| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | open: first | careful | no open PR touching the docs |
-| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | open | careful | no open PR touching it |
+| [T-053](#t-053-one-file-per-progress-and-decision-entry-claiming-a-task) | One file per progress and decision entry; claim a task with its own tiny pull request | done on branch, needs PR and merge | careful | no open PR touching the docs |
+| [T-052](#t-052-split-component_editorpy-into-a-package) | Split `component_editor.py` into a package | done on branch, needs PR and merge; `component_editor/` frozen until then | careful | no open PR touching it |
 | [T-057](#t-057-require-green-up-to-date-pull-requests-on-main-github-setting) | Require green, up-to-date pull requests on `main` (GitHub setting) | open | human | Beaux |
 | [T-054](#t-054-one-file-per-task-and-a-generated-board) | One file per task and a generated board | open | careful | T-053, Beaux |
 | [T-055](#t-055-say-which-files-a-task-touches-and-which-tasks-can-run-together) | Say which files a task touches; which tasks can run together | open | any | — |
@@ -1105,7 +1105,7 @@ apply.
 
 ### T-052 Split `component_editor.py` into a package
 
-- **Status:** open
+- **Status:** done on branch `claude/lucid-carson-0pjh6j` (Claude, 2026-11-20); waiting for a pull request, green CI and merge. **`component_editor/` is frozen for other agents until it merges.**
 - **Size:** M
 - **Agent:** careful (one agent; no other pull request may touch the file
   until this merges)
@@ -1119,24 +1119,24 @@ formatting, toggles, toolbar wrapping), table helpers, field helpers, then
 line `ComponentEditorWindow`. Eight open tasks touch it (T-041 to T-045,
 T-049, T-050, T-051).
 
-- [ ] Make `component_editor/` a package with one module per concern, for
+- [x] Make `component_editor/` a package with one module per concern, for
       example `text_rules.py` (pure Markdown rules), `tables.py` (pure table
       helpers) and `table_dialog.py`, `fields.py` (pure placeholder helpers)
       and `field_dialog.py` (the future picker and creator of T-043 lands
       here), `import_dialog.py`, `toolbar.py` (the wrapping layout and
       builder), `history_dialog.py`, and `window.py` (the main window, kept
       as small as possible)
-- [ ] **No behaviour change.** `from component_editor import ...` keeps
+- [x] **No behaviour change.** `from component_editor import ...` keeps
       working for every name the app and the tests use (re-exports in
       `__init__.py`); the existing tests pass unchanged, and the window tests
       of T-047 pass
-- [ ] Pure modules import no Tkinter, so CI can test them without a display
-- [ ] A short "where things live" table in CLAUDE.md's Layout, and the rule
+- [x] Pure modules import no Tkinter, so CI can test them without a display
+- [x] A short "where things live" table in CLAUDE.md's Layout, and the rule
       from T-055: a new window or dialog is a new module
-- [ ] PyInstaller still finds every submodule (the import inside
+- [x] PyInstaller still finds every submodule (the import inside
       `simple_app.py` pulls in the package; check the Windows build) and the
       size numbers are unchanged within a few kilobytes
-- [ ] Announce in the task status that the file is frozen for other agents
+- [x] Announce in the task status that the file is frozen for other agents
       until the merge, and keep the pull request open for hours, not days
 
 **Done when:** the package replaces the file, all tests and the Windows and
@@ -1144,7 +1144,7 @@ macOS builds pass, and the largest module is well under 800 lines.
 
 ### T-053 One file per progress and decision entry; claiming a task
 
-- **Status:** open
+- **Status:** done on branch `claude/lucid-carson-0pjh6j` (Claude, 2026-11-20); waiting for a pull request, green CI and merge
 - **Size:** M
 - **Agent:** careful
 - **Needs:** no open pull request touches `CLAUDE.md` or `TASKS.md`
@@ -1156,28 +1156,29 @@ Appending to the end of a shared file is the largest source of conflicts: any
 two pull requests that add an entry collide, even when they have nothing else
 in common.
 
-- [ ] `progress/` and `decisions/` hold one Markdown file per entry, named
+- [x] `progress/` and `decisions/` hold one Markdown file per entry, named
       `YYYY-MM-DD-T-NNN[-sub]-short-title.md`, with a small header (date,
       task, author, pull request, CI run, size numbers) and the existing
       wording. A script moves all existing entries out of `CLAUDE.md`
       without changing their text, and a check compares the old and new text
       so nothing is lost
-- [ ] `CLAUDE.md` keeps the standing rules, layout, pitfalls and a short
+- [x] `CLAUDE.md` keeps the standing rules, layout, pitfalls and a short
       summary of the decisions that steer day-to-day work, plus a pointer
       to the two folders and `scripts/show_log.py progress|decisions` which
       prints them in order. It is edited rarely, by a decision task, not by
       every pull request
-- [ ] `TASKS.md` "When done" and the Size gate text say: add a file under
+- [x] `TASKS.md` "When done" and the Size gate text say: add a file under
       `progress/` (and `decisions/` if a choice was made); do not edit
       `CLAUDE.md`
-- [ ] A test fails when a progress file lacks its header fields (task, pull
+- [x] A test fails when a progress file lacks its header fields (task, pull
       request, CI run, size numbers) so the size gate stays visible
-- [ ] **Claiming:** claiming a task is its own one-line pull request that
+- [x] **Claiming:** claiming a task is its own one-line pull request that
       changes only that task's status, merged within minutes and before work
       starts (after T-054 it touches only that task's file). Two agents can
       then never take the same task. Written into "How to use this file"
-- [ ] Guard: a pull request whose branch is behind `main` must merge `main`
-      first (see T-057)
+- [x] Guard: a pull request whose branch is behind `main` must merge `main`
+      first (see T-057). Written as a rule in "CI before merge"; GitHub
+      enforces it only once Beaux sets T-057
 
 **Done when:** a pull request that finishes a task adds new files and edits
 no shared document except its own task's status.
