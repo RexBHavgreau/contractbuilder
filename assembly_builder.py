@@ -501,9 +501,12 @@ class AssemblyBuilderWindow:
         )
 
     def _has_content(self):
+        # A remembered or newly chosen shell alone is not an assembly draft.
+        # Do not ask users to save an empty recipe when they are only opening
+        # an existing assembly.
         return bool(
-            self.name_variable.get().strip()
-            or self.shell_digest
+            self.assembly_id is not None
+            or self.name_variable.get().strip()
             or self.items
         )
 
