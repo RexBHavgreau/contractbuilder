@@ -187,3 +187,129 @@ def test_component_creation_and_version_saving_validate_inputs(tmp_path):
         library.create_component("Valid name", markdown=None)
     with pytest.raises(ValueError, match="no longer exists"):
         library.save_component_version(999999, "Some wording")
+
+def test_assembly_revision_pins_ordered_versions_and_shell_identity(tmp_path):
+    library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+    payment_id = library.create_component("Payment", "Due within thirty days.")
+    payment_v1 = library.list_component_versions(payment_id)[0]
+    payment_v2 = library.save_component_version(payment_id, "Due within fifteen days.")
+    governing_id = library.create_component("Governing law", "Texas law applies.")
+    governing_v1 = library.list_component_versions(governing_id)[0]
+
+    assembly_id = library.create_assembly(
+        "Consulting agreement", description="Base form for consulting work"
+    )
+    revision = library.save_assembly_revision(
+        assembly_id,
+        "C:/Contracts/Consulting Shell.docx",
+        "A" * 64,
+        [
+            {"component_version_id": payment_v1["id"], "included": True},
+            {"component_version_id": governing_v1["id"], "included": False},
+        ],
+        note="Initial assembly",
+    )
+
+    assert revision["number"] == 1
+    assert revision["finalized"] is True
+    assert revision["shell_path"] == "C:/Contracts/Consulting Shell.docx"
+    assert revision["shell_sha256"] == "a" * 64
+    assert revision["assembly_name"] == "Consulting agreement"
+    assert revision["note"] == "Initial assembly"
+    assert [
+        (
+            item["position"],
+            item["component_version_id"],
+            item["component_version_number"],
+            item["included"],
+            item["markdown"],
+        )
+        for item in revision["components"]
+    ] == [
+        (0, payment_v1["id"], 1, True, "Due within thirty days."),
+        (1, governing_v1["id"], 1, False, "Texas law applies."),
+    ]
+    assert library.get_assembly_revision(revision["id"]) == revision
+    assert library.get_assembly(assembly_id)["description"] == "Base form for consulting work"
+    assert library.list_assemblies() == [library.get_assembly(assembly_id)]
+    assert library.list_assembly_revisions(assembly_id)[0]["id"] == revision["id"]
+
+    # A new component version is not retroactively substituted into a saved
+    # assembly revision; the saved membership still points at v1.
+    assert payment_v2["number"] == 2
+    reread = library.get_assembly_revision(revision["id"])
+    assert reread["components"][0]["component_version_id"] == payment_v1["id"]
+    assert reread["components"][0]["markdown"] == "Due within thirty days."
+
+
+def test_assembly_revision_lists_newer_versions_without_applying_them(tmp_path):
+    library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+    component_id = library.create_component("Termination", "Thirty days' notice.")
+    pinned = library.list_component_versions(component_id)[0]
+    assembly_id = library.create_assembly("Notice agreement")
+    revision = library.save_assembly_revision(
+        assembly_id,
+        "/contracts/notice.docx",
+        "c" * 64,
+        [pinned["id"]],
+    )
+
+    second = library.save_component_version(component_id, "Forty-five days' notice.")
+    third = library.save_component_version(component_id, "Sixty days' notice.")
+    newer = library.list_newer_versions_for_revision(revision["id"])
+
+    assert len(newer) == 1
+    assert newer[0]["component_version_id"] == pinned["id"]
+    assert newer[0]["pinned_number"] == 1
+    assert newer[0]["component_name"] == "Termination"
+    assert [item["number"] for item in newer[0]["newer_versions"]] == [2, 3]
+    assert [item["markdown"] for item in newer[0]["newer_versions"]] == [
+        "Forty-five days' notice.",
+        "Sixty days' notice.",
+    ]
+    assert library.get_assembly_revision(revision["id"])["components"][0]["markdown"] == (
+        "Thirty days' notice."
+    )
+    assert second["number"] == 2 and third["number"] == 3
+
+
+def test_assembly_revision_validation_is_atomic_and_respects_archive_state(tmp_path):
+    library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+    component_id = library.create_component("Payment", "Payment is due.")
+    version_id = library.list_component_versions(component_id)[0]["id"]
+    assembly_id = library.create_assembly("Payment agreement")
+
+    with pytest.raises(ValueError, match="assembly name"):
+        library.create_assembly(" ")
+    with pytest.raises(ValueError, match="SHA-256"):
+        library.save_assembly_revision(assembly_id, "shell.docx", "not-a-hash", [version_id])
+    with pytest.raises(ValueError, match="at least one component"):
+        library.save_assembly_revision(assembly_id, "shell.docx", "d" * 64, [])
+    with pytest.raises(ValueError, match="Include at least one"):
+        library.save_assembly_revision(
+            assembly_id,
+            "shell.docx",
+            "d" * 64,
+            [{"component_version_id": version_id, "included": False}],
+        )
+    with pytest.raises(ValueError, match="no longer exists"):
+        library.save_assembly_revision(404, "shell.docx", "d" * 64, [version_id])
+    with pytest.raises(ValueError, match="no longer exists"):
+        library.save_assembly_revision(assembly_id, "shell.docx", "d" * 64, [999999])
+
+    assert library.archive_component(component_id)
+    with pytest.raises(ValueError, match="archived component"):
+        library.save_assembly_revision(assembly_id, "shell.docx", "d" * 64, [version_id])
+    assert library.restore_component(component_id)
+
+    assert library.archive_assembly(assembly_id)
+    with pytest.raises(ValueError, match="archived assembly"):
+        library.save_assembly_revision(assembly_id, "shell.docx", "d" * 64, [version_id])
+    assert library.restore_assembly(assembly_id)
+
+    # Failed attempts did not leave partial or unfinalized revision records.
+    assert library.list_assembly_revisions(assembly_id) == []
+    assert library.get_assembly_revision(999999) is None
+    with pytest.raises(ValueError, match="revision no longer exists"):
+        library.list_newer_versions_for_revision(999999)
+
