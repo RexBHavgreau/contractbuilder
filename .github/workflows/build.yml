@@ -74,6 +74,11 @@ jobs:
           BLOCKED_TERMS: ${{ secrets.BLOCKED_TERMS }}
         run: python -m pytest -q tests
 
+      - name: Warn about open tasks that share a file
+        # Warning only (T-055): claimed tasks that overlap show here and the run stays green.
+        continue-on-error: true
+        run: python scripts/overlaps.py
+
       - name: Exercise Tk windows under a virtual display
         run: xvfb-run -a python -m pytest -q tests/test_window_smoke.py
 

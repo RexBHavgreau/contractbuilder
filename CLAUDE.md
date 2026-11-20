@@ -111,6 +111,9 @@ trace.
   states its size effect in its design, and confirms the CI size numbers
   (release build and component-enabled build) before it is called done. See
   TASKS.md "Size gate"; the weekly check is T-035.
+- **Touches.** Each open task in TASKS.md names the files it will change.
+  `python scripts/overlaps.py` lists tasks that share one; two claimed tasks
+  never share a file (T-055). A new window or dialog goes in a new module.
 - Work on a branch and open a pull request into `main`. Keep commits small
   and say why, not only what.
 
