@@ -88,7 +88,7 @@ Fields:
 
 Open and in-progress work only. Finished tasks leave this table and move to
 "Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
-(after PR #41). Next free number: **T-048**.
+(after PR #41). Next free number: **T-050**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
@@ -100,6 +100,8 @@ Open and in-progress work only. Finished tasks leave this table and move to
 | [T-047](#t-047-open-the-windows-in-ci-under-a-virtual-display) | Open the windows in CI under a virtual display | open | careful | — |
 | [T-043](#t-043-field-picker-reusable-and-custom-fields-no-typing) | Field picker: reusable and custom fields (umbrella; A to D) | open | careful | — |
 | [T-046](#t-046-fill-from-the-publisher-profile-with-matching-the-user-controls) | Fill from the publisher profile, with user-defined matching (umbrella; A to C) | open | careful | T-043-A |
+| [T-048](#t-048-start-screen-build-contract-from) | Start screen: "Build contract from" Existing assembly / New assembly / Word file (umbrella; A to C) | open | careful | T-040 for A |
+| [T-049](#t-049-conditional-and-singularplural-wording-without-typing-the-syntax) | Conditional and singular/plural wording without typing the syntax (umbrella; A to D) | open | careful | T-043-C |
 | [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
@@ -329,8 +331,9 @@ publisher-profile fields the app already has plus fields the user defines.
 
 Suggested order: T-040, T-044, T-041, T-045 are quick and independent. T-047
 makes the rest easier to prove. T-043 comes before T-046 (they share storage).
-T-042 starts with a decision from Beaux. These ship after 0.4.1 (T-039) as
-0.5.0.
+T-042 starts with a decision from Beaux. T-048 (the start screen) can go
+anytime after T-040. T-049 and the publisher type in T-046-C need the field
+store of T-043-A. These ship after 0.4.1 (T-039) as 0.5.0.
 
 ### T-040 Let the Components and assembly windows be maximized
 
@@ -449,8 +452,12 @@ reused without retyping, and new fields added by the user.
 
 - [ ] A database migration (next schema version, with the usual backup and
       transaction, as T-021-A did) adds field definitions: name, short
-      description, group, default format and options, optional link to a
-      publisher-profile column (used by T-046), archived flag
+      description, group, default format and options, **allowed values**
+      (for a field that is a choice, such as Publisher type: Non-profit, Sole
+      proprietor), optional link to a publisher-profile column or detail
+      (used by T-046), archived flag. Allowed values matter because the form
+      rejects a value that is not one of a choice's options (`core.py`
+      compares ignoring case and spacing, so "Non-profit" and "nonprofit" differ)
 - [ ] `library.py` functions: list, add, edit, archive and restore. Names
       follow `core`'s field rules and are unique ignoring case and spacing;
       a clear plain-English error for a bad or duplicate name
@@ -505,6 +512,30 @@ reused without retyping, and new fields added by the user.
 - [ ] The assembly field form (and the template form) show a field's
       description where one exists, so staff know what to type
 - [ ] Guide section added; tests
+
+#### T-043-E Optional starter set of fields (needs Beaux)
+
+- **Status:** open: needs Beaux's decision
+- **Size:** S
+- **Agent:** human for the decision, then any
+- **Needs:** Beaux, T-043-A
+- **Size gate:** yes (a small text list; confirm it)
+
+Beaux (2026-11-20): standardized fields make automatic filling and conditional
+wording work, "which is another reason that building a standardized field set
+is a good idea". The 2026-11-17 decision says the app carries no built-in
+schemas for kinds of contract. These fit together if the standard set is
+**the user's own**, kept in the field definitions of T-043-A, and any set the
+app ships is only an optional, editable starting list, never a fixed schema.
+
+- [ ] Beaux decides: (1) no shipped set, users define their own; or (2) an
+      optional starter list that is copied into the user's definitions on
+      first use and can be edited or archived (Claude suggests names such as
+      Works (a list), Publisher type (a choice), Territory, Term; Beaux
+      supplies the real list, with invented examples only in the repository)
+- [ ] If (2): "Add the starter fields" in the picker, never re-adding ones the
+      user archived; tests
+- [ ] Record the decision in CLAUDE.md
 
 **Done when (T-043):** a user can insert a stored field, add and reuse a custom
 field, and never has to type a name, from the Components window.
@@ -621,23 +652,43 @@ the profile, and it should be more customizable.
       including any later screen
 - [ ] Tests for the fill rules; hand check on Windows
 
-#### T-046-C Extra details on a publisher (needs a decision)
+#### T-046-C Extra publisher details, starting with Publisher type
 
-- **Status:** open: needs Beaux to say whether he wants this
+- **Status:** open
 - **Size:** M
 - **Agent:** careful
-- **Needs:** Beaux, T-046-A
+- **Needs:** T-043-A, T-046-A
 - **Size gate:** yes
 
-- [ ] Beaux decides whether profiles need details beyond the 13 columns (for
-      example a tax number or a territory)
-- [ ] If yes: a migration adds extra name/value details per publisher, the
-      profile window edits them, and they are available to matching (T-046-A)
-      and the picker (T-043)
+Beaux (2026-11-20) wants some wording to depend on the publisher, for example
+non-profit organizations versus sole proprietors, with the choice stored in the
+publisher profile and filled in automatically. Today the profile has 13 fixed
+columns and no type, so this cannot be filled automatically.
+
+- [ ] A migration adds extra details per publisher (name, value), shown and
+      edited in the publisher profile window. A detail that has allowed
+      values (T-043-A) is edited with a drop-down, so the stored value can
+      never differ from what the wording tests for
+- [ ] "Publisher type" is the first such detail, with values the user sets
+      (for example Non-profit, Sole proprietor, Company)
+- [ ] Details join the matching of T-046-A, so a condition such as
+      `{{#if Publisher Type = Sole proprietor}}` is filled from the chosen
+      publisher in the template form and the assembly form, with the
+      "From publisher" controls of T-046-B
+- [ ] A profile with no value for a detail leaves the field for the user to
+      choose, and the form says why
+- [ ] Tests, including a stored value that is not among the field's allowed
+      values being caught when saving the profile, and the end-to-end case:
+      two publishers of different types produce different wording from the
+      same assembly
+
+**Done when:** choosing a publisher selects the right alternative wording
+without the user answering a question.
 
 **Done when (T-046):** any field can be tied to a publisher detail by the user,
-and the user can fill one field or all of them from the profile wherever
-publisher information is asked for.
+including a publisher type that selects alternative wording, and the user can
+fill one field or all of them from the profile wherever publisher information
+is asked for.
 
 ### T-047 Open the windows in CI under a virtual display
 
@@ -664,6 +715,171 @@ T-040 to T-045 have never been seen running before a user finds them.
       behaviour such as the missing maximize button (T-040)
 
 **Done when:** a broken toolbar or save confirmation fails CI before it ships.
+
+### T-048 Start screen: "Build contract from"
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-048-A to T-048-C
+- **Agent:** careful
+- **Needs:** —
+
+**Today:** the main window opens on "Choose a template" with a Browse button
+for a Word file. Starting from a saved assembly means Components > Manage
+components > Build assembly > Open saved; a new assembly starts the same way.
+Two of the three ways to start a contract are buried. Beaux wants three clear
+choices up front.
+
+#### T-048-A The three choices
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-040
+- **Size gate:** yes
+
+- [ ] The top of the main window gets a **Build contract from:** row with three
+      buttons, each with one plain line under it: **Existing contract
+      assembly** (pick a saved recipe), **New contract assembly** (open the
+      builder), **Word file** (a `.docx` or `.dotx`, as the Browse button does
+      now; the file dialog lists both types)
+- [ ] The existing template row and its Browse button become the Word file
+      path rather than a fourth thing on the screen; the Components and
+      Publishers menus stay for managing the library and profiles
+- [ ] Keyboard use works (Tab, Enter, access keys) and the buttons sit well on
+      a small screen; first-run help text updated
+- [ ] Hand check on Windows
+
+#### T-048-B Open an existing assembly straight to the fields
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-048-A
+- **Size gate:** yes
+
+- [ ] **Existing contract assembly** opens a list of saved assemblies (name,
+      latest revision, date, and a mark where newer component wording is
+      available), searchable; Enter or double-click opens it
+- [ ] The latest revision opens by default; an "Earlier revisions" choice
+      shows the others. Choosing one goes directly to the field form
+      (`create_assembly_document` with the pinned component versions), with
+      the publisher controls available, without opening the builder
+- [ ] From the field form, "Edit this assembly…" opens the builder with it
+      loaded, and "Review updates…" is offered when newer wording exists
+- [ ] If the shell file moved or changed since the revision was saved, say so
+      in plain English and let the user pick it again instead of failing
+- [ ] Tests for the list and the open path; hand check on Windows
+
+#### T-048-C Recent and last-used
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-048-B
+- **Size gate:** yes
+
+- [ ] Under the three buttons, a short "Recent" list of the last few
+      assemblies and Word files used, one click to reopen; remembered per
+      user in the existing settings file; a missing file is shown as such and
+      removable
+- [ ] Guide section "Starting a contract"; tests
+
+**Done when (T-048):** all three ways of starting a contract are visible on the
+first screen and each leads to a filled-in form in one or two steps.
+
+### T-049 Conditional and singular/plural wording without typing the syntax
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-049-A to T-049-D
+- **Agent:** careful
+- **Needs:** T-043-C (field picker)
+
+**Today:** the engine already does both, and they work inside components
+(tested in T-019-G), but a user has to type the markers by hand:
+
+- Alternative wording: `{{#if Publisher Type = Non-profit}} ... {{else}} ...
+  {{/if}}` (also `!=`, `not`, and a bare field for an optional clause). The
+  form turns the values used in conditions into a drop-down list. The opening
+  and closing markers must be on their own lines for whole paragraphs.
+- Singular or plural: a field typed one item per line, and
+  `{{Works | plural: work, works}}` writes "work" for one line and "works" for
+  more; the same field can also be shown as a list ("A, B, and C"). The Field
+  dialog has the format and options boxes for this, but nothing says that the
+  field should be a list or that the count comes from its lines.
+
+So the same component can already serve one work or several. What is missing is
+a way to build these without knowing the syntax, and the matching of the
+publisher type to the profile (T-046-C).
+
+#### T-049-A Choice wording dialog
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-C
+- **Size gate:** yes
+
+- [ ] An editor button **Choice wording…**: choose the field (from the picker,
+      or one with allowed values), then for each value type the wording that
+      applies. The editor writes one `{{#if Field = Value}}` block per value
+      on their own lines, so any number of alternatives works (the engine has
+      an `else` but no `else if`)
+- [ ] **Optional clause…**: a yes/no field and the clause it controls;
+      **Only if blank** is available too
+- [ ] The text is built by a plain function and checked by opening the result
+      with `core.Template`, so a malformed block can never be inserted; tests
+      for two, three and four alternatives, nesting inside a list item, and a
+      field used in more than one component
+- [ ] Editing an existing block reopens it in the dialog
+
+#### T-049-B Singular/plural helper
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-043-C
+- **Size gate:** yes
+
+- [ ] In the Field picker, **Singular/plural word…**: choose a list field
+      (such as Works), type the singular and plural words, and the editor
+      inserts `{{Works | plural: work, works}}`; wording with commas uses the
+      slash form automatically
+- [ ] The form shows a list field as a multi-line box labelled "one per line",
+      and the preview shows both forms side by side so the author can see it
+- [ ] Tests, including capital letters and a field used both as a list and as
+      a count in the same component
+
+#### T-049-C Show the alternatives in the preview
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-049-A
+- **Size gate:** yes
+
+- [ ] The editor and assembly previews show conditional blocks as labelled
+      alternatives (for example a tinted "If Publisher type is Non-profit"
+      band) instead of raw markers, and warn in plain English when a closing
+      marker is missing or not on its own line
+- [ ] A control to preview the assembly "as" a chosen value, so the author can
+      check each alternative reads well; tests
+
+#### T-049-D Guide and examples
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-049-A, T-049-B
+- **Size gate:** no executable change (say so)
+
+- [ ] USER-GUIDE.txt: how to build choice wording and singular/plural wording
+      from the buttons, with the publisher-type and works examples using
+      invented names, and the rule that choice values must match the allowed
+      values exactly
+
+**Done when (T-049):** an author can write one clause that changes with the
+publisher type and with the number of works, using only buttons and typing the
+wording itself.
 
 ### T-035 Make the size gate complete and periodic
 
