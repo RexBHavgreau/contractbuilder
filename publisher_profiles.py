@@ -349,6 +349,20 @@ def _migrate_assemblies_and_revisions(connection: sqlite3.Connection) -> None:
     )
     connection.execute(
         """
+        CREATE TRIGGER assembly_versions_finalize_requires_included_component
+        BEFORE UPDATE OF finalized ON assembly_versions
+        WHEN OLD.finalized = 0 AND NEW.finalized = 1
+             AND NOT EXISTS (
+                 SELECT 1 FROM assembly_components
+                 WHERE assembly_version_id = NEW.id AND included = 1
+             )
+        BEGIN
+            SELECT RAISE(ABORT, 'an assembly revision must include a component before finalization');
+        END
+        """
+    )
+    connection.execute(
+        """
         CREATE TRIGGER assembly_versions_immutable_delete
         BEFORE DELETE ON assembly_versions
         BEGIN
@@ -517,6 +531,7 @@ def _verify_assembly_schema(connection: sqlite3.Connection) -> None:
     }
     required_triggers = {
         "assembly_versions_finalize_only",
+        "assembly_versions_finalize_requires_included_component",
         "assembly_versions_immutable_delete",
         "assembly_components_no_late_insert",
         "assembly_components_immutable_update",
