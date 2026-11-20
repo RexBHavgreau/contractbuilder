@@ -207,6 +207,7 @@ _FIELD_FORMATS = (
     ("Whole dollars", "money-whole"),
     ("Number", "number"),
     ("Number in words", "number-words"),
+    ("List", "list"),
     ("Choice", "choice"),
     ("Singular or plural", "plural"),
 )
@@ -389,9 +390,10 @@ def build_markdown_table(
 
 
 def malformed_field_message(markdown: str) -> str | None:
-    """Return a plain-English warning for an unmatched {{ or }} marker."""
+    """Return a plain-English warning for broken or incomplete field placeholders."""
     source = str(markdown or "")
-    valid = [(match.start(), match.end()) for match in core.TOKEN.finditer(source)]
+    matches = list(core.TOKEN.finditer(source))
+    valid = [(match.start(), match.end()) for match in matches]
     for match in re.finditer(r"\{\{|\}\}", source):
         if not any(start <= match.start() and match.end() <= end for start, end in valid):
             line = source.count("\n", 0, match.start()) + 1
@@ -399,6 +401,18 @@ def malformed_field_message(markdown: str) -> str | None:
                 f"Check the field placeholder on line {line}: its double braces do not "
                 "match. A field should look like {{Field Name}}."
             )
+    for match in matches:
+        kind, argument = core.classify(match.group(1))
+        if kind != "field":
+            continue
+        name, format_name, options = core.parse_field(argument)
+        line = source.count("\n", 0, match.start()) + 1
+        if not name:
+            return f"Check the field placeholder on line {line}: add a field name between the braces."
+        if format_name == "choice" and not options:
+            return f"Check the field on line {line}: a choice field needs at least one option after 'choice:'."
+        if format_name == "plural" and len(options) != 2:
+            return f"Check the field on line {line}: a singular-or-plural field needs exactly two wordings after 'plural:'."
     return None
 
 
