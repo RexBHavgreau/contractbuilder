@@ -87,6 +87,11 @@ trace.
   `tests/test_no_private_details.py`, which checks every file against a
   private list held in the GitHub secret `BLOCKED_TERMS`. If it fails, it
   names the file and line; replace the detail, do not just reword around it.
+- **Size gate.** The Windows executable must stay at or below 31,457,280
+  bytes (30 MiB). Every task that adds code, a dependency or a bundled file
+  states its size effect in its design, and confirms the CI size numbers
+  (release build and component-enabled build) before it is called done. See
+  TASKS.md "Size gate"; the weekly check is T-035.
 - Work on a branch and open a pull request into `main`. Keep commits small
   and say why, not only what.
 
@@ -129,26 +134,85 @@ trace.
 
 ## Decision log
 
-Newest last. Each entry: date, decision, why, consequences. (Some entries from 2026-11-18 sit above the older ones and are not bolded; the order is not strictly chronological.)
+Newest last. Each entry: date, decision, why, consequences.
 
-- **2026-11-18 — Public update checks do not require a token.** The per-user token field remains optional for users who frequently hit GitHub's unauthenticated API limit. A 404 without a token means no release is published yet or the repository has moved; it does not prompt users to configure credentials.
+- **2026-10-05 — Desktop app in Python + Tkinter, built with PyInstaller.**
+  Same shape as the department's existing CBM Article Converter, so it is
+  familiar to build and run. Plain-text guides beside it.
 
+- **2026-10-05 — Templates are plain Word documents with `{{Field}}`
+  placeholders; the engine edits the document's XML in place with lxml.**
+  Keeps all Word formatting, numbering, tables, headers and footers; never
+  rebuilds the document. The template file is never written to.
 
-- **2026-11-18 — Explain first-run warnings for unsigned downloads.** The user guide tells staff how to approve the first launch in Windows SmartScreen and macOS Gatekeeper, and the README points to it before opening a download. The in-app Windows updater should not add the browser's internet-download mark, but that warning behavior remains unconfirmed until T-002 tests it on a real PC.
+- **2026-10-05 (Builds 2–3) — Lessons from two real MOUs built into the
+  engine:** quote-insensitive and whole-word matching, accept tracked
+  changes and strip comments when making a template, `list`/`plural`/
+  `money-whole` formats, blank-line collapsing, template warnings.
 
+- **2026-10-05 (Build 4, not merged) — Built-in "field sets" for publishing
+  agreements** (parties, works, rights, territory…). Superseded by the
+  2026-11-17 decision below; the work remains in git history at commit
+  `80cbe34` (`4becc60` before the 2026-11-18 history rewrite) if any of it is
+  wanted later.
 
-- **2026-11-18 — Enforce the Windows executable size budget against the built file.** CI runs `scripts/check_executable_size.py` on the packaged release executable and fails above 31,457,280 bytes (30 MiB). The script accepts a smaller `--max-bytes` value so tests can prove the failure path without constructing a large executable.
+- **2026-11-17 — Renamed Word Template Filler, with a focused single-document
+  window (`simple_app.py`).** (Made with ChatGPT.) The earlier window lives in
+  `advanced_app.py`, not packaged.
 
+- **2026-11-17 — Publisher profiles in a local per-user SQLite database.**
+  Reusable publisher details; nothing leaves the computer.
 
-- **2026-11-18 — Word shell contract and validation.** Shells are DOCX packages
-whose body wording is ignored; they supply document styles, numbering,
-table formatting, headers, footers and final section properties. The checker
-requires the canonical style IDs documented in `SHELL-CONTRACT.md`, a
-three-level decimal outline, bullet numbering and final `w:sectPr`. Missing
-styles and numbering are warnings with explicit fallbacks; an unreadable
-package, missing body or missing final section properties stops generation.
-The checker is read-only. Downstream composition and assembly tasks must run
-it before using a shell, surface warnings and apply the returned style map.
+- **2026-11-17 — GitHub Actions builds Windows and macOS; `version.py` is the
+  one version number.**
+
+- **2026-11-17 — DECISION (Beaux): the contract builder bases its build on a
+  template with fields built by the user.** The template the user writes
+  defines what the form asks for; the app does not carry built-in schemas
+  for kinds of contract. Consequences: Build 4 field sets are not merged;
+  improvements go into helping users build fields in their templates
+  (documentation, checks, tools), not into hard-coded contract types.
+
+- **2026-11-17 — The Windows build tests each Python from a script file and
+  logs in UTF-8; the build server runs the same test.** Fixes the build
+  failing on every PC with Windows PowerShell 5.1.
+
+- **2026-11-17 — The Windows app installs its own updates** after the user
+  agrees: download beside the `.exe`, verify size and GitHub's SHA-256
+  digest, swap after exit, reopen. Falls back to Downloads if the folder is
+  read-only. Private repository → per-user read-only token in Help > Update
+  settings. (The open question this raised was settled the same day: the
+  repository was made public, below.)
+
+- **2026-11-17 — Releases publish themselves when `main` gets a new
+  `APP_VERSION`.** Removes the hand-made tag that went wrong for v0.2.0.
+
+- **2026-11-17 — DECISION (Beaux): the repository is public** (TASKS.md
+  T-001, option 1 of three). Colleagues' copies find and install updates
+  with no setup. Consequences: the update token becomes optional (wording:
+  T-010); unsigned checks meet GitHub's hourly limit (T-012); everything in
+  the repository and its history is public (T-013, T-016).
+
+- **2026-11-17 — DECISION (Beaux): the app is not code-signed** (T-009):
+  "too expensive to be worth it." Consequences: Windows SmartScreen and
+  macOS Gatekeeper warn the first time each person runs a downloaded copy;
+  the user guide must say what to click (T-011).
+
+- **2026-11-17 — DECISION (Beaux): no sample templates in the repository.**
+  `examples/` was deleted. Tests build their own sample in a temporary
+  folder (`tests/sample.py`; tidy-up is T-014).
+
+- **2026-11-18 — Bundle third-party licence notices as a readable Help item.**
+  The exact MIT notices for markdown-it-py 3.0.0 and mdurl 0.1.2 travel in
+  `THIRD-PARTY-LICENSES.txt`, included in Windows and macOS packages. Help
+  opens the notice file directly; tests ensure the pinned parser dependencies
+  remain represented.
+
+- **2026-11-18 — Markdown file import/export preserves source text.** Read UTF-8
+  with optional BOM support and write UTF-8 without a BOM. The importer reports
+  raw HTML, images and footnotes as unsupported warnings, but retains the
+  original Markdown rather than silently deleting content. This file utility
+  is separate from the later DOCX importer.
 
 - **2026-11-18 — T-019-C paragraph renderer and unsupported-content handling.**
 `md_to_word.render_markdown(source, shell_path)` checks the shell before
@@ -160,67 +224,22 @@ Unsupported inline constructs keep readable text where possible and return
 warnings; unsupported block constructs are omitted with an explicit warning.
 The list and table tasks extend this renderer with native Word numbering and tables.
 
-- **2026-11-18 — Markdown file import/export preserves source text.** Read UTF-8
-  with optional BOM support and write UTF-8 without a BOM. The importer reports
-  raw HTML, images and footnotes as unsupported warnings, but retains the
-  original Markdown rather than silently deleting content. This file utility
-  is separate from the later DOCX importer.
+- **2026-11-18 — Word shell contract and validation.** Shells are DOCX packages
+whose body wording is ignored; they supply document styles, numbering,
+table formatting, headers, footers and final section properties. The checker
+requires the canonical style IDs documented in `SHELL-CONTRACT.md`, a
+three-level decimal outline, bullet numbering and final `w:sectPr`. Missing
+styles and numbering are warnings with explicit fallbacks; an unreadable
+package, missing body or missing final section properties stops generation.
+The checker is read-only. Downstream composition and assembly tasks must run
+it before using a shell, surface warnings and apply the returned style map.
 
-- **2026-11-18 — Bundle third-party licence notices as a readable Help item.**
-  The exact MIT notices for markdown-it-py 3.0.0 and mdurl 0.1.2 travel in
-  `THIRD-PARTY-LICENSES.txt`, included in Windows and macOS packages. Help
-  opens the notice file directly; tests ensure the pinned parser dependencies
-  remain represented.
+- **2026-11-18 — Enforce the Windows executable size budget against the built file.** CI runs `scripts/check_executable_size.py` on the packaged release executable and fails above 31,457,280 bytes (30 MiB). The script accepts a smaller `--max-bytes` value so tests can prove the failure path without constructing a large executable.
 
-- **2026-10-05 — Desktop app in Python + Tkinter, built with PyInstaller.**
-  Same shape as the department's existing CBM Article Converter, so it is
-  familiar to build and run. Plain-text guides beside it.
-- **2026-10-05 — Templates are plain Word documents with `{{Field}}`
-  placeholders; the engine edits the document's XML in place with lxml.**
-  Keeps all Word formatting, numbering, tables, headers and footers; never
-  rebuilds the document. The template file is never written to.
-- **2026-10-05 (Builds 2–3) — Lessons from two real MOUs built into the
-  engine:** quote-insensitive and whole-word matching, accept tracked
-  changes and strip comments when making a template, `list`/`plural`/
-  `money-whole` formats, blank-line collapsing, template warnings.
-- **2026-10-05 (Build 4, not merged) — Built-in "field sets" for publishing
-  agreements** (parties, works, rights, territory…). Superseded by the
-  2026-11-17 decision below; the work remains in git history at commit
-  `80cbe34` (`4becc60` before the 2026-11-18 history rewrite) if any of it is
-  wanted later.
-- **2026-11-17 — Renamed Word Template Filler, with a focused single-document
-  window (`simple_app.py`).** (Made with ChatGPT.) The earlier window lives in
-  `advanced_app.py`, not packaged.
-- **2026-11-17 — Publisher profiles in a local per-user SQLite database.**
-  Reusable publisher details; nothing leaves the computer.
-- **2026-11-17 — GitHub Actions builds Windows and macOS; `version.py` is the
-  one version number.**
-- **2026-11-17 — DECISION (Beaux): the contract builder bases its build on a
-  template with fields built by the user.** The template the user writes
-  defines what the form asks for; the app does not carry built-in schemas
-  for kinds of contract. Consequences: Build 4 field sets are not merged;
-  improvements go into helping users build fields in their templates
-  (documentation, checks, tools), not into hard-coded contract types.
-- **2026-11-17 — The Windows build tests each Python from a script file and
-  logs in UTF-8; the build server runs the same test.** Fixes the build
-  failing on every PC with Windows PowerShell 5.1.
-- **2026-11-17 — The Windows app installs its own updates** after the user
-  agrees: download beside the `.exe`, verify size and GitHub's SHA-256
-  digest, swap after exit, reopen. Falls back to Downloads if the folder is
-  read-only. Private repository → per-user read-only token in Help > Update
-  settings. (The open question this raised was settled the same day: the
-  repository was made public, below.)
-- **2026-11-17 — Releases publish themselves when `main` gets a new
-  `APP_VERSION`.** Removes the hand-made tag that went wrong for v0.2.0.
-- **2026-11-17 — DECISION (Beaux): the repository is public** (TASKS.md
-  T-001, option 1 of three). Colleagues' copies find and install updates
-  with no setup. Consequences: the update token becomes optional (wording:
-  T-010); unsigned checks meet GitHub's hourly limit (T-012); everything in
-  the repository and its history is public (T-013, T-016).
-- **2026-11-17 — DECISION (Beaux): the app is not code-signed** (T-009):
-  "too expensive to be worth it." Consequences: Windows SmartScreen and
-  macOS Gatekeeper warn the first time each person runs a downloaded copy;
-  the user guide must say what to click (T-011).
+- **2026-11-18 — Explain first-run warnings for unsigned downloads.** The user guide tells staff how to approve the first launch in Windows SmartScreen and macOS Gatekeeper, and the README points to it before opening a download. The in-app Windows updater should not add the browser's internet-download mark, but that warning behavior is still unconfirmed: T-002 ran on a real PC (2026-11-19) without recording it; see TASKS.md T-034.
+
+- **2026-11-18 — Public update checks do not require a token.** The per-user token field remains optional for users who frequently hit GitHub's unauthenticated API limit. A 404 without a token means no release is published yet or the repository has moved; it does not prompt users to configure credentials.
+
 - **2026-11-18 — COLLABORATIVE DECISION (Beaux and ChatGPT, T-008):
   add a component-based contract-building workflow without replacing Word
   templates.** The complete agreed proposal is in
@@ -247,6 +266,7 @@ The list and table tasks extend this renderer with native Word numbering and tab
   measure actual packaged output rather than relying on source or wheel
   sizes. T-019 proves Markdown-to-Word conversion and field filling; T-020
   handles DOCX-to-Markdown import before the editor and library are built.
+
 - **2026-11-18 — DECISION (Beaux): details of real contracts are removed
   permanently, "even if that means rewriting history"** (TASKS.md T-016).
   Every branch and tag was rewritten with `git filter-repo`: each real detail
@@ -257,6 +277,7 @@ The list and table tasks extend this renderer with native Word numbering and tab
   force-push, GitHub Support's purge of pull-request copies and the
   `BLOCKED_TERMS` secret are Beaux's (T-018), because this session may push
   only its own branch. A test keeps such details out from now on.
+
 - **2026-11-18 — DECISION (Beaux, T-025): clause numbering uses standard
   nested ordered Markdown lists, rendered as a decimal outline; no new
   Markdown syntax.** Position in the nesting decides the number (1., 1.1,
@@ -270,9 +291,6 @@ The list and table tasks extend this renderer with native Word numbering and tab
   T-032). Signature blocks belong in the Word shell or a template. Italic
   is `_text_`; Markdown has no underline, and imported underline is dropped
   with a warning.
-- **2026-11-17 — DECISION (Beaux): no sample templates in the repository.**
-  `examples/` was deleted. Tests build their own sample in a temporary
-  folder (`tests/sample.py`; tidy-up is T-014).
 
 - **2026-11-18 — Sample generator output paths are explicit and safe.** Running `python tests/sample.py` writes `Sample Services Agreement.docx` in the current working directory; an optional positional path selects another destination. This avoids recreating the deleted `examples/` directory and makes the script safe to run from any folder.
 
@@ -309,7 +327,7 @@ The list and table tasks extend this renderer with native Word numbering and tab
 
 - **2026-11-19 — The last usable shell is remembered; a shell with errors never is.** `shell_selection.choose_shell` runs the T-026 checker on the file the user picked. A shell with warnings is remembered, because the user has read them and may continue; a shell with errors is reported and does not replace the remembered one. The path is stored in `shell-settings.json` in the per-user app folder, beside the update settings, and a missing, moved or damaged file means nothing is remembered rather than an error. If the settings cannot be written, the shell still works for this session and the user is told it was not remembered. Consequence: the picker dialog belongs to the component window (T-023-A/T-022-A), which calls this function; it is not in `simple_app.py` yet. Checker messages now name the Word style as users see it ("Heading 1", "Normal Table") rather than its internal ID; the IDs remain in finding codes and `style_fallbacks`.
 
-**2026-11-19 — T-019-D/E native list and table rendering.** Lists use real Word
+- **2026-11-19 — T-019-D/E native list and table rendering.** Lists use real Word
 numbering. Each independent list gets a new numbering instance; ordered
 sub-lists share the shell's multi-level decimal definition, and their level
 determines the outline number. If a shell has only one bullet level, nested
@@ -324,7 +342,7 @@ references before insertion. It creates a numbering part, relationship and
 content-type override when a shell lacks numbering. The shell is never
 modified; only its document body wording is replaced in the new output.
 
-**2026-11-19 — T-019-F/G shell composition and field-engine hand-off.**
+- **2026-11-19 — T-019-F/G shell composition and field-engine hand-off.**
 `docx_compose.compose_document(shell_path, components, output_path)` renders
 each component independently, replaces only the shell body, and retains the
 final section properties and all other shell package parts. It preserves
@@ -340,7 +358,7 @@ lists and tables; block conditionals can cross component boundaries, and
 inline conditionals work inside table cells. The tests cover both values of
 each condition and the existing `money-words` and `date-formal` formats.
 
-**2026-11-19 — T-019-H measured Windows package size with the component
+- **2026-11-19 — T-019-H measured Windows package size with the component
 stack included.** GitHub Actions run #166 built the same `simple_app.py`
 entry point twice with the same one-file/windowed PyInstaller configuration.
 The ordinary build was 17,801,283 bytes (16.98 MiB). The comparison build
@@ -367,36 +385,17 @@ runs.
 
 Newest last.
 
-- **2026-11-19** T-019-D and T-033 (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): Beaux chose continuous clause numbering across the assembled contract. The composer now remaps all ordered lists across all components to one shared native Word numbering instance, while retaining the shell's multi-level decimal outline and separate bullet-list instances. Regression coverage checks continuity across separate lists, component boundaries, intervening paragraphs and tables. T-019 is complete; real-Word verification remains T-030.
-
-- **2026-11-19** T-002 (Beaux): ran the v0.3.0 build and the 0.3.0 to 0.3.1 self-update on a Windows PC. Everything worked; an error message appeared during install without affecting the app (details: TASKS.md T-034). T-018: Beaux confirmed no other copies of the old history exist; GitHub Support's purge is the only thing outstanding, and a check on 2026-11-19 shows pull requests #1 and #6 still serve the old commits.
-
-- **2026-11-18** T-019-C (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added `md_to_word.py` to render paragraphs, headings 1–3, hard line breaks, bold, italic and combined emphasis as WordprocessingML. Field placeholders are restored before rendering, shell style fallbacks are applied, and unsupported Markdown is surfaced as warnings. Added XML-level tests for each supported construct and fallback/error behavior.
-
-- **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. The v0.3.1 release was published with the Windows `.exe` and both macOS zips (checked 2026-11-19); real-Windows self-update validation remains T-002.
-
-- **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
-
-- **2026-11-18** T-020-G and T-028 (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added UTF-8 Markdown
-  file import/export with BOM support and non-destructive warnings for raw
-  HTML, images and footnotes; added bundled MIT notices for markdown-it-py
-  and mdurl, displayed through Help and included in Windows/macOS builds.
-
-- **2026-11-18** T-012, T-017 and T-019-B (ChatGPT, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)): rate-limited update responses now have a clear message; automatic checks run no more than once a day, while manual checks remain available; versioned plain-English notes are published and shown in the update prompt; and the table-enabled, raw-HTML-disabled Markdown parser is installed and tested. GitHub Actions run 87 passed all 103 tests and built Windows x64, macOS Intel and macOS Apple Silicon.
-
-- **2026-11-18** T-026 (ChatGPT, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)): defined the DOCX shell contract,
-  added a read-only checker with explicit style fallbacks and numbering/
-  section checks, and added an invented shell fixture with tests. See
-  `SHELL-CONTRACT.md`. Downstream renderer and assembly tasks must call the
-  checker before generation.
-
 - **2026-10-05** Build 1: TMAI Contract Builder — template engine, form,
   previews, highlights, saved answers, spreadsheet batches, template maker.
+
 - **2026-10-05** Builds 2–3: real-MOU fixes (see decision log). Merged as PR #1.
+
 - **2026-10-05** Build 4: publishing field sets — on branch, not merged.
+
 - **2026-11-17** v0.1.0–v0.2.0 (ChatGPT): Word Template Filler, focused
   window, publisher profiles, update check, CI builds. v0.2.0's release was
   published with no files because its tag disagreed with `version.py`.
+
 - **2026-11-17** v0.3.0 (Claude): local Windows build fixed (PowerShell 5.1
   quoting and UTF-16 log); Windows self-update with verification; update
   token setting; release on version bump; CLAUDE.md and TASKS.md added.
@@ -411,6 +410,25 @@ Newest last.
 - **2026-11-17** Beaux: v0.2.0's empty release deleted, its tag kept (T-003);
   repository made public (T-001); code signing declined (T-009); `examples/`
   deleted.
+
+- **2026-11-18** T-026 (ChatGPT, [PR #18](https://github.com/RexBHavgreau/contractbuilder/pull/18)): defined the DOCX shell contract,
+  added a read-only checker with explicit style fallbacks and numbering/
+  section checks, and added an invented shell fixture with tests. See
+  `SHELL-CONTRACT.md`. Downstream renderer and assembly tasks must call the
+  checker before generation.
+
+- **2026-11-18** T-012, T-017 and T-019-B (ChatGPT, [PR #15](https://github.com/RexBHavgreau/contractbuilder/pull/15)): rate-limited update responses now have a clear message; automatic checks run no more than once a day, while manual checks remain available; versioned plain-English notes are published and shown in the update prompt; and the table-enabled, raw-HTML-disabled Markdown parser is installed and tested. GitHub Actions run 87 passed all 103 tests and built Windows x64, macOS Intel and macOS Apple Silicon.
+
+- **2026-11-18** T-020-G and T-028 (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added UTF-8 Markdown
+  file import/export with BOM support and non-destructive warnings for raw
+  HTML, images and footnotes; added bundled MIT notices for markdown-it-py
+  and mdurl, displayed through Help and included in Windows/macOS builds.
+
+- **2026-11-18** T-020-A (ChatGPT, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)): added a read-only DOCX importer that walks body paragraphs and tables in source order, returns a Markdown draft with located warnings, and gives a plain-English error for invalid packages. Tests use invented documents and verify the source file is unchanged.
+
+- **2026-11-18** T-015 (ChatGPT, [PR #17](https://github.com/RexBHavgreau/contractbuilder/pull/17)): raised `APP_VERSION` to 0.3.1. The matching `CHANGES.txt` release notes were already present; merging this PR should trigger the configured release workflow. The v0.3.1 release was published with the Windows `.exe` and both macOS zips (checked 2026-11-19); real-Windows self-update validation remains T-002.
+
+- **2026-11-18** T-019-C (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added `md_to_word.py` to render paragraphs, headings 1–3, hard line breaks, bold, italic and combined emphasis as WordprocessingML. Field placeholders are restored before rendering, shell style fallbacks are applied, and unsupported Markdown is surfaced as warnings. Added XML-level tests for each supported construct and fallback/error behavior.
 
 - **2026-11-18** Task review (Claude): v0.3.0 confirmed published by CI on its
   own, with the Windows `.exe` and both macOS builds, each with a SHA-256
@@ -431,6 +449,7 @@ Newest last.
   Full architecture and implementation plan: [PROPOSAL-001.md](PROPOSAL-001.md).
   T-019 covers Markdown-to-Word composition; T-020 covers DOCX import.
   Spreadsheet batch creation from `advanced_app.py` is not being carried forward.
+
 - **2026-11-18** History rewrite (Claude, T-013 and T-016): searched all ten
   branches, three tags, every commit message and the inside of every Word and
   Excel file for 51 details recorded from the memoranda; 22 were present.
@@ -447,7 +466,6 @@ Newest last.
   passes (run 67); no forks. Still open: the old commits remain fetchable
   through pull requests #1 to #9 until GitHub Support purges them.
 
-
 - **2026-11-18** T-014 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): corrected the sample generator's description and output path, added an optional command-line destination, ignored generated sample files and the old `examples/` directory, and added CLI regression tests for both output modes. The full Python test job passed in CI.
 
 - **2026-11-18** T-027 (ChatGPT, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14)): added a tested executable-size checker and a Windows CI step that measures the packaged `.exe`, logs its size and remaining headroom, and fails above 30 MiB. Tests verify the normal limit, an intentionally tiny failing limit, and the exact boundary.
@@ -458,6 +476,10 @@ Newest last.
 
 - **2026-11-18** T-019-A (ChatGPT, [PR #19](https://github.com/RexBHavgreau/contractbuilder/pull/19)): added per-component Markdown field protection using collision-free alphanumeric placeholders, with token-tree restoration. Tests demonstrate that unprotected table pipes split cells and paired double asterisks corrupt field names, preserve conditional markers in paragraphs, lists and table cells, guard component boundaries and placeholder collisions, and prove that the existing core engine fills fields in paragraphs, list items and table cells without a core.py change. GitHub Actions test job passed all 143 tests.
 
+- **2026-11-19** T-002 (Beaux): ran the v0.3.0 build and the 0.3.0 to 0.3.1 self-update on a Windows PC. Everything worked; an error message appeared during install without affecting the app (details: TASKS.md T-034). T-018: Beaux confirmed no other copies of the old history exist; GitHub Support's purge is the only thing outstanding, and a check on 2026-11-19 shows pull requests #1 and #6 still serve the old commits.
+
+- **2026-11-19** T-019-D and T-033 (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): Beaux chose continuous clause numbering across the assembled contract. The composer now remaps all ordered lists across all components to one shared native Word numbering instance, while retaining the shell's multi-level decimal outline and separate bullet-list instances. Regression coverage checks continuity across separate lists, component boundaries, intervening paragraphs and tables. T-019 is complete; real-Word verification remains T-030.
+
 - **2026-11-19** T-023-B (Claude): added `shell_selection.py`, which checks a picked shell with the T-026 checker, turns the findings into plain-English lines, and remembers the last shell that can be used in a per-user settings file. Checker messages now show Word's visible style names instead of style IDs. Added `tests/test_shell_selection.py` (17 tests, invented shells only). The file picker itself is not built yet; it belongs to the component window. Full suite: 167 passed, 1 skipped; `test_updates.py::test_successful_update_check_time_limits_only_automatic_checks` fails only because this sandbox's Python has no `tkinter` (it also fails on the untouched branch).
 
 - **2026-11-19** T-020-E (ChatGPT): DOCX import now reports unsupported body structures and package-level content with plain-English locations. Tracked changes are explicitly reported and read in Word's accepted view (insertions/move-to retained; deletions/move-from excluded). Added invented fixtures for drawings, equations, fields, content controls, notes, comments, page/section breaks, headers and footers; import remains read-only. Full suite: 173 passed.
@@ -465,6 +487,7 @@ Newest last.
 - **2026-11-19** T-019-D and T-019-E (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added native Word numbering for ordered and bulleted lists, independent list restart instances, three-level decimal outlines, unnumbered continuation paragraphs, nested bullet indentation, and native GFM tables with header rows, shell table styles, alignment, inline emphasis, protected fields and empty cells. The renderer returns numbering definitions/instances for the composer to merge; the shell remains read-only.
 
 - **2026-11-19** T-019-F and T-019-G (ChatGPT, [PR #25](https://github.com/RexBHavgreau/contractbuilder/pull/25)): added `docx_compose.py` to assemble ordered Markdown components into a new DOCX while preserving shell styles, headers, footers, page setup, relationships and final section properties. Numbering IDs are merged and remapped across components, including a generated numbering part when the shell lacks one. End-to-end tests prove field discovery and filling in paragraphs, lists and tables, conditional blocks across components and inside cells, and existing money/date formats. The shell remains byte-for-byte unchanged. CI run #160: 194 tests passed; Windows x64, macOS Intel and macOS Apple Silicon builds passed.
+
 - **2026-11-19** T-019-H (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): added a Windows CI comparison build that forces the T-019 modules into the same `simple_app.py` executable, then measures the actual files and checks both against 30 MiB. CI run #166 measured 17,801,283 bytes without the component stack and 17,962,926 bytes with it: a 161,643-byte (0.15 MiB) increase. The component-enabled build remains at 17.13 MiB with 12.87 MiB of headroom. The project remains open at the umbrella level because T-019-D has one separate numbering-continuity item reopened pending Beaux's T-033 decision.
 
 - **2026-11-19** T-020-B, T-020-C and T-020-D (ChatGPT, [PR #28](https://github.com/RexBHavgreau/contractbuilder/pull/28)): expanded the read-only DOCX importer to map Word heading styles and outline levels, preserve split-run bold and italic, escape literal Markdown punctuation, and keep split component fields intact. It now reads style-level and package numbering to import bullets and nested lists, converts letter/Roman numbering to decimal with a warning, and flags typed list markers. Rectangular tables become GFM tables; merged cells, nested tables, multi-paragraph cells and lists in cells produce located warnings while retaining best-effort text. Added fixtures for the supported subset and edge cases; the focused importer suite passes all 21 tests locally. GitHub Actions run #172 passed the full test job and Windows x64, macOS Intel and macOS Apple Silicon builds. No runtime dependency was added.
