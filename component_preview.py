@@ -6,7 +6,6 @@ pages, use a browser engine, or introduce another runtime dependency.
 """
 from __future__ import annotations
 
-import re
 from typing import Iterable, Sequence
 
 from core import TOKEN
@@ -247,7 +246,8 @@ def render_markdown_preview(markdown: str) -> list[Segment]:
             if result and not _segments_text(result).endswith("\n"):
                 newline()
             for line in getattr(token, "content", "").splitlines():
-                _append(result, line, "code_block")
+                for value, tags in _field_aware_segments(line, ("code_block",)):
+                    _append(result, value, *tags)
                 _append(result, "\n")
             newline(blank=True)
         elif kind == "hr":
