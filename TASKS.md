@@ -103,10 +103,8 @@ Suggested order: the update and release group (T-010 to T-015, T-017) is
 done. T-002 passed (2026-11-19) apart from an install error message that
 Beaux will describe in T-034. For the component
 builder: Beaux decides T-033 (numbering continuity), which gates the last
-item of T-019-D. Meanwhile, T-020-B to T-020-D (importer) are done. T-021-A (schema
-versioning) is done in [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29);
-T-021-B is next after that PR merges. T-019-H was measured in CI run #166.
-T-019-D still waits on
+item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
+and T-019-H (measured in CI run #166) are done. T-019-D still waits on
 Beaux's T-033 numbering decision; after that decision, T-019-D and T-030's
 real-Word numbering check remain before T-019 can be closed. Then T-020-F
 (round trip), T-022, T-023, T-024; T-029 and T-031 last.
@@ -909,28 +907,30 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-A Editor window shell and save
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #34](https://github.com/RexBHavgreau/contractbuilder/pull/34))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-E
 
-- [ ] A "Components" window, reached from the main window, separate from the
+- [x] A "Components" window, reached from the main window, separate from the
       template workflow; name, category and tags fields; Save makes a new
       version with an optional note
-- [ ] Unsaved-changes prompt in plain English
-- [ ] The existing template workflow's screen and menus are unchanged
+- [x] Unsaved-changes prompt in plain English
+- [x] The existing template workflow's screen and menus are unchanged
 
 #### T-022-B Preview
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-022-A, T-019-C
 
-- [ ] A read-only preview pane using Text widget tags: headings, bold,
+- [x] A read-only preview pane using Text widget tags: headings, bold,
       italic, lists, tables as aligned text, fields highlighted
-- [ ] Updates as the user stops typing (debounced), never blocks typing
-- [ ] A line under it: "Word decides the final page layout"
+- [x] Updates as the user stops typing (debounced), never blocks typing;
+      refresh listens to Tk's modified event so paste, cut, undo and redo
+      also update the preview
+- [x] A line under it: "Word decides the final page layout"
 
 #### T-022-C Formatting toolbar
 
