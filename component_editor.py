@@ -870,8 +870,6 @@ class ComponentEditorWindow:
         self.current_component_id: int | None = None
         self.loaded_markdown: str | None = None
         self.loaded_plain_text = ""
-        self.editor_markdown_mode = False
-        self.source_view_variable.set(False)
         self.protected_content = False
         self.saved_snapshot = None
         self.suspend_selection = False
@@ -1549,6 +1547,8 @@ class ComponentEditorWindow:
         self.current_component_id = None
         self.loaded_markdown = None
         self.loaded_plain_text = ""
+        self.editor_markdown_mode = False
+        self.source_view_variable.set(False)
         self.protected_content = False
         self.name_variable.set("")
         self.category_variable.set("")
