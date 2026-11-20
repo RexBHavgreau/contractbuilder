@@ -6,6 +6,7 @@ separate follow-on features.
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -869,6 +870,8 @@ class ComponentEditorWindow:
         self.current_component_id: int | None = None
         self.loaded_markdown: str | None = None
         self.loaded_plain_text = ""
+        self.editor_markdown_mode = False
+        self.source_view_variable.set(False)
         self.protected_content = False
         self.saved_snapshot = None
         self.suspend_selection = False
@@ -1362,6 +1365,15 @@ class ComponentEditorWindow:
         if not self.wording.edit_modified():
             return
         self.wording.edit_modified(False)
+        self._refresh_editor_styling()
+        source = self.wording.get("1.0", "end-1c")
+        if not self.editor_markdown_mode:
+            source = plain_text_to_markdown(source)
+        warning = malformed_field_message(source)
+        if warning:
+            self.content_notice.configure(text=warning)
+        elif not self.protected_content:
+            self.content_notice.configure(text="")
         self._schedule_preview()
 
     def _schedule_preview(self, _event=None):
@@ -1380,7 +1392,13 @@ class ComponentEditorWindow:
         self._preview_after_id = None
         if not self.window.winfo_exists():
             return
-        source = self.wording.get("1.0", "end-1c")
+        raw = self.wording.get("1.0", "end-1c")
+        source = raw if self.editor_markdown_mode else plain_text_to_markdown(raw)
+        warning = malformed_field_message(source)
+        if warning:
+            self.content_notice.configure(text=warning)
+        elif not self.protected_content:
+            self.content_notice.configure(text="")
         try:
             segments = render_markdown_preview(source)
         except (TypeError, ValueError) as exc:
@@ -1494,13 +1512,10 @@ class ComponentEditorWindow:
         latest = versions[0]
         self.current_component_id = component_id
         self.loaded_markdown = latest["markdown"]
-        self.loaded_plain_text = markdown_to_plain_text(self.loaded_markdown)
-        # This editor owns a reversible plain-text encoding. Other Markdown
-        # constructs are displayed for reference but may not be round-tripped
-        # by the first editor step.
-        self.protected_content = (
-            plain_text_to_markdown(self.loaded_plain_text) != self.loaded_markdown
-        )
+        self.loaded_plain_text = self.loaded_markdown
+        self.editor_markdown_mode = True
+        self.source_view_variable.set(False)
+        self.protected_content = not _markdown_is_editable(self.loaded_markdown)
         self.name_variable.set(component["name"])
         self.category_variable.set(component["category"])
         self.tags_variable.set(", ".join(component["tags"]))
@@ -1508,18 +1523,19 @@ class ComponentEditorWindow:
         self.note_variable.set("")
         self.wording.configure(state="normal")
         self.wording.delete("1.0", "end")
-        self.wording.insert("1.0", self.loaded_plain_text)
+        self.wording.insert("1.0", self.loaded_markdown)
+        self.wording.edit_modified(False)
         if self.protected_content:
             self.wording.configure(state="disabled")
             self.content_notice.configure(
                 text=(
-                    "This component contains formatting that this first editor "
-                    "cannot safely change yet. Its wording is protected; create "
-                    "a new component or wait for the formatting tools."
+                    "This component includes content without safe editing controls. "
+                    "Its wording is protected; create a new component or use the original Word file."
                 )
             )
         else:
             self.content_notice.configure(text="")
+        self._refresh_editor_styling()
         self.saved_snapshot = self._state()
         self.status.configure(
             text=f"Editing {component['name']} · version {latest['number']}."
@@ -1541,7 +1557,9 @@ class ComponentEditorWindow:
         self.note_variable.set("")
         self.wording.configure(state="normal")
         self.wording.delete("1.0", "end")
+        self.wording.edit_modified(False)
         self.content_notice.configure(text="")
+        self._refresh_editor_styling()
         self.saved_snapshot = self._state()
         self._schedule_preview()
         selection = self.tree.selection()
@@ -1576,24 +1594,24 @@ class ComponentEditorWindow:
         if self.protected_content and body == self.loaded_plain_text:
             markdown = self.loaded_markdown or ""
         else:
-            if (
-                self.current_component_id is not None
-                and self.loaded_markdown is not None
-                and body != self.loaded_plain_text
-                and self.protected_content
-            ):
+            if self.protected_content:
                 proceed = messagebox.askyesno(
                     "Replace existing formatting?",
                     (
-                        "This component contains formatting that the plain-text "
-                        "editor cannot preserve. Saving these text changes will "
-                        "replace that formatting. Continue?"
+                        "This component includes content the editor cannot preserve. "
+                        "Saving these changes will replace that content. Continue?"
                     ),
                     parent=self.window,
                 )
                 if not proceed:
                     return False
-            markdown = plain_text_to_markdown(body)
+            markdown = body if self.editor_markdown_mode else plain_text_to_markdown(body)
+        warning = malformed_field_message(markdown)
+        if warning and not messagebox.askyesno(
+            "Check field placeholder", warning + "\n\nSave the wording anyway?",
+            parent=self.window,
+        ):
+            return False
 
         tags = [item.strip() for item in self.tags_variable.get().split(",") if item.strip()]
         try:
