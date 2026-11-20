@@ -192,6 +192,7 @@ jobs:
             "--hidden-import", "md_to_word",
             "--hidden-import", "docx_compose",
             "--hidden-import", "library",
+            "--hidden-import", "component_editor",
             "simple_app.py"
           )
           python @arguments
