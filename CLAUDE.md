@@ -52,7 +52,7 @@ trace.
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
-| `component_editor.py` | Tkinter component editor: Markdown-backed formatted view, toolbar, table and field dialogs, and reviewed DOCX import. |
+| `component_editor/` | The Components window, one module per concern (T-052); `from component_editor import ...` still works. Pure, Tkinter-free rules: `text_rules.py` (escaping, formatting, toggles), `tables.py`, `fields.py` (placeholders, known field names), `toolbar_layout.py`, `save_feedback.py`. Widgets: `styling.py` (formatted view), `toolbar.py`, `wording_actions.py` and `library_list.py` (mixins of the window), `window.py`, and one module per dialog: `table_dialog.py`, `field_dialog.py`, `import_dialog.py`, `history_dialog.py`. **A new window or dialog is a new module**, never more lines in an existing one. |
 | `component_preview.py` | Renders Markdown into styled text segments for the editor's read-only preview; uses the existing parser and field helpers. |
 | `library.py` | Tkinter-free component/assembly persistence, immutable versions, revision pinning, archive/restore and newer-version review; shares the publisher SQLite database. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
