@@ -92,11 +92,9 @@ Open and in-progress work only. Finished tasks leave this table and move to
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-039](#t-039-stop-the-update-restart-error-fix-in-041) | Stop the error shown when the app restarts after a self-update (fix written, needs release 0.4.1) | open | careful | Beaux (merge, release) |
-| [T-037](#t-037-release-040-the-component-builder) | Release 0.4.0 (component builder) | open: merge now (Beaux, 2026-11-20: the self-update can only be tested on a published release); then T-038 | human | — |
+| [T-039](#t-039-stop-the-update-restart-error-fix-in-041) | Stop the error shown when the app restarts after a self-update: cause confirmed, fix written; release 0.4.1 | open: needs a pull request, green CI, merge | careful | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
-| [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said (see unmerged `fix/windows-vc-runtime`) | open | human | Beaux |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
 | [T-036](#t-036-housekeeping-stale-branches-and-legacy-code) | Housekeeping: stale branches and legacy code | open, needs decisions | human | Beaux |
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | — |
@@ -106,13 +104,13 @@ Open and in-progress work only. Finished tasks leave this table and move to
 pull requests #1 to #9. Details under T-018. Nobody needs to do anything until
 Support replies.
 
-**Suggested order:** merge the 0.4.0 branch (T-037; open a pull request so CI
-runs on it first, then merge once it is green). Then T-038 on a PC that has
-0.3.1: it tests the self-update and the new windows in one go. T-030 (Word)
-and the T-034 answers at the same time. If T-038 finds a fault, the fix ships
-as 0.4.1. T-035 before the next feature lands, since the size comparison is
-currently meaningless and every pull request runs three platform builds.
-T-029 (backup) and T-031 (links) are next features; T-036 is tidying.
+**Suggested order:** T-039 first: open a pull request from the branch (it
+carries the restart fix and the 0.4.1 bump), wait for green CI, merge to
+publish 0.4.1. Then T-038 on a PC with 0.4.0 (the update to 0.4.1 will show
+the error one more time; the update after that should not) and T-030 (Word).
+T-035 before the next feature lands, since the size comparison is currently
+meaningless and every pull request runs three platform builds. T-029
+(backup) and T-031 (links) are next features; T-036 is tidying.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -124,6 +122,8 @@ T-009, T-013, T-016 (below the open tasks).
 ---
 
 ## Open tasks
+
+
 
 
 
@@ -223,7 +223,8 @@ Where a task here differs from or narrows the proposal, it says so:
 ### T-039 Stop the update restart error (fix in 0.4.1)
 
 - **Status:** open: fix and tests are on the branch `claude/kind-keller-847k6d`
-  (2026-11-20); needs a pull request, green CI, merge and a 0.4.1 release
+  (2026-11-20), with the 0.4.1 version bump and release notes in a separate
+  commit; needs a pull request, green CI and a merge (which publishes 0.4.1)
 - **Size:** S
 - **Agent:** careful
 - **Needs:** Beaux (merge and release)
@@ -234,8 +235,9 @@ Beaux saw an error message while the app updated itself (0.3.0 to 0.3.1, and
 again 0.3.1 to 0.4.0); the app ran normally afterwards. He suspected it had
 to do with the new file having the same name as the old one.
 
-**Cause (reproduced 2026-11-20, not yet confirmed against the message he
-saw).** The update restarts the app by running a small script, which starts
+**Cause (reproduced 2026-11-20 and confirmed against the message Beaux
+sent: "Failed to load Python DLL" naming a `_MEI` folder and
+`python311.dll`).** The update restarts the app by running a small script, which starts
 the new `.exe`. A PyInstaller one-file app unpacks itself into a temporary
 `_MEI...` folder and passes that folder's location to anything it starts,
 through environment variables. The script, and the new app it starts,
@@ -252,58 +254,13 @@ started itself with the inherited environment, and started cleanly when
       `_PYI_*` and `_MEIPASS2` values and sets
       `PYINSTALLER_RESET_ENVIRONMENT=1`; `start_swap` passes it to the script
 - [x] Tests: the environment is cleaned; `start_swap` passes it
-- [ ] Beaux sends the exact words of the message (or a screenshot). If it
-      says "Failed to load Python DLL" and names a `_MEI` folder, this is the
-      cause. If it says something else (a missing VCRUNTIME file, or the file
-      being in use), T-034 and `fix/windows-vc-runtime` are the lead instead
+- [x] Beaux sent the message; it matches the cause above (T-034)
 - [ ] Release 0.4.1 with the fix. **The fix only helps updates from 0.4.1
       onward**: the script that restarts the app is written by the version
       that is closing. So 0.4.0 to 0.4.1 will probably show the message one
       more time; 0.4.1 to the next version should not. Tell staff the message
       is harmless: click OK and start the app again from its icon
 - [ ] On the 0.4.1 to next-version update, confirm there is no message
-
-### T-037 Release 0.4.0 (the component builder)
-
-- **Status:** open: version bump, release notes and user-guide section are
-  on the branch `claude/kind-keller-847k6d`; **merging it to `main` publishes
-  the release** (CI tags `v0.4.0` and attaches the Windows `.exe` and both
-  macOS zips). Beaux decided on 2026-11-20 to merge before the hand check,
-  because the automatic update can only be tested against a published
-  release. The hand check (T-038) therefore follows the release
-- **Size:** S
-- **Agent:** human (the decision to publish)
-- **Needs:** Beaux
-- **Size gate:** yes. Windows `.exe` on `main` before this release:
-  18,093,944 bytes (17.26 MiB), headroom 12.74 MiB; v0.3.1 was 17,800,891, so
-  the component builder added about 293,000 bytes (0.28 MiB)
-
-What 0.4.0 adds for staff: the **Components** menu (write reusable wording
-with a toolbar, table editor, field inserter and live preview; import a Word
-file; keep every saved version), and **Build an assembly** (choose a Word
-shell, pick and order components, tick optional ones, preview, save the
-recipe, fill the fields once, create the Word document; review newer wording
-before adopting it). The Word-template workflow is unchanged.
-
-- [x] `version.py` raised to `0.4.0`; `CHANGES.txt` has a `## 0.4.0` section
-      (CI refuses a release without it)
-- [x] `USER-GUIDE.txt` gains "COMPONENTS AND ASSEMBLED CONTRACTS" and the
-      shell section no longer says the workflow is "not available yet"
-- [ ] Open a pull request from the branch to `main`; wait for a green CI run
-      at its latest commit (CI before merge)
-- [ ] Merge; confirm the `v0.4.0` release has the Windows `.exe` with a
-      digest and both macOS zips
-- [ ] On a PC with 0.3.1 installed: Help > Check for updates offers 0.4.0,
-      installs it and reopens as 0.4.0 (second real self-update test); this is
-      T-038
-- [ ] If a fault is found: fix as 0.4.1; do not edit the 0.4.0 release
-- [ ] Progress log entry with the CI run number and the two size numbers
-
-Known gaps to tell staff or accept: real-Word display of generated documents
-is T-030 (not done); the install error from T-034 is unexplained; there is
-no library backup yet (T-029), so tell staff the component library lives in
-the same per-user file as publisher profiles and should be copied if the PC
-is replaced.
 
 ### T-038 Try the component builder by hand on Windows
 
@@ -346,37 +303,6 @@ screenshots may be shared.
       new wording and nothing changes until you tick it
 - [ ] Write down anything confusing in plain words. Anything that stops you
       is a bug task; anything that is only awkward goes in a new task
-
-### T-034 Find out what the install error message said
-
-*Update 2026-11-20: Beaux saw the same message on 0.3.1 to 0.4.0. A likely cause is found and fixed on the branch: see T-039.*
-
-- **Status:** open
-- **Size:** S
-- **Agent:** human
-- **Needs:** Beaux
-
-During T-002 (2026-11-19) Beaux saw an error message while installing. The
-app ran normally afterwards, so it is not urgent, but the message could be
-from the Windows build, the self-update swap, or SmartScreen, and staff will
-see it too.
-
-- [ ] **Unmerged branch to look at first:** `fix/windows-vc-runtime` (Beaux,
-      2026-11-19 07:15, one commit, "Bundle the Python MSVC runtime in
-      Windows builds", changes `build-windows.ps1` only). It was made the
-      morning of the T-002 test and is not merged or mentioned anywhere. If
-      the message was about a missing runtime DLL (for example
-      VCRUNTIME140), that branch may be the fix. Decide: merge, or delete
-      it. Check any change with the size gate, since it adds files
-- [ ] Beaux records exactly what it said (a screenshot or the words), which
-      step it came at (running the downloaded `.exe`, the update, or
-      `build-windows.bat`), and whether it appears every time
-- [ ] If it came during the self-update, attach `build-log.txt`, or look for
-      a `.exe.new` or batch file left beside the app
-- [ ] Also answer: did SmartScreen warn after the 0.3.0 app updated itself
-      to 0.3.1? (settles T-011's unconfirmed sentence)
-- [ ] An agent then opens a fix task, or closes this as harmless with the
-      reason written down
 
 ### T-035 Make the size gate complete and periodic
 
@@ -474,7 +400,9 @@ project easier to read and the Actions and branch lists shorter.
 - [ ] **Look at two unmerged branches:** `task/t-019-d-e-lists-tables-final`
       holds one commit (`940da90`, a size-measurement step) that appears to
       duplicate what PR #27 already put in `main`; delete it if so.
-      `fix/windows-vc-runtime` is T-034's
+      `fix/windows-vc-runtime` bundles the Windows runtime DLLs. T-034 showed the
+      error was not a missing runtime, so it is not needed for that; delete it
+      or keep it for its own sake
 - [ ] **Decide about the legacy window.** `advanced_app.py` (not packaged) and
       the spreadsheet and saved-answer code in `core.py` (`blank_sheet`,
       `read_sheet`, `batch`, `save_answers`, `load_answers`, `templates_in`,
@@ -559,7 +487,81 @@ opens it.
 
 ---
 
+---
+
+---
+
 ## Done tasks (kept until a month after they were done)
+
+### T-037 Release 0.4.0 (the component builder)
+
+- **Status:** done (2026-11-20, Beaux): merged in PR #42; CI on `main` green; v0.4.0 published with the Windows `.exe` (18,095,285 bytes) and both macOS zips, each with a SHA-256 digest. The hand check continues under T-038 and the restart error under T-039
+- **Size:** S
+- **Agent:** human (the decision to publish)
+- **Needs:** Beaux
+- **Size gate:** yes. Windows `.exe` on `main` before this release:
+  18,093,944 bytes (17.26 MiB), headroom 12.74 MiB; v0.3.1 was 17,800,891, so
+  the component builder added about 293,000 bytes (0.28 MiB)
+
+What 0.4.0 adds for staff: the **Components** menu (write reusable wording
+with a toolbar, table editor, field inserter and live preview; import a Word
+file; keep every saved version), and **Build an assembly** (choose a Word
+shell, pick and order components, tick optional ones, preview, save the
+recipe, fill the fields once, create the Word document; review newer wording
+before adopting it). The Word-template workflow is unchanged.
+
+- [x] `version.py` raised to `0.4.0`; `CHANGES.txt` has a `## 0.4.0` section
+      (CI refuses a release without it)
+- [x] `USER-GUIDE.txt` gains "COMPONENTS AND ASSEMBLED CONTRACTS" and the
+      shell section no longer says the workflow is "not available yet"
+- [x] Open a pull request from the branch to `main`; wait for a green CI run
+      at its latest commit (CI before merge)
+- [x] Merge; confirm the `v0.4.0` release has the Windows `.exe` with a
+      digest and both macOS zips
+- [x] On a PC with 0.3.1 installed: the update was offered, downloaded and
+      installed (Beaux, 2026-11-20), with the restart error of T-039; the
+      rest of the hand check is T-038
+- [ ] If a fault is found: fix as 0.4.1; do not edit the 0.4.0 release
+- [ ] Progress log entry with the CI run number and the two size numbers
+
+Known gaps to tell staff or accept: real-Word display of generated documents
+is T-030 (not done); the install error from T-034 is unexplained; there is
+no library backup yet (T-029), so tell staff the component library lives in
+the same per-user file as publisher profiles and should be copied if the PC
+is replaced.
+
+### T-034 Find out what the install error message said
+
+*Resolved 2026-11-20: Beaux sent a screenshot of the message ("Failed to load Python DLL", a path under `AppData\Local\Temp\_MEI...`, `python311.dll`, "The specified module could not be found"). It is the inherited-temporary-folder problem described in T-039, not a missing Windows runtime, so `fix/windows-vc-runtime` is not the fix (T-036 asks Beaux whether to delete it). Left open from T-034's list: whether SmartScreen warned after the self-update, now in T-038.*
+
+- **Status:** done (2026-11-20): the message was "Failed to load Python DLL ... \_MEI...\python311.dll ... The specified module could not be found", on both updates; cause and fix are T-039
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+During T-002 (2026-11-19) Beaux saw an error message while installing. The
+app ran normally afterwards, so it is not urgent, but the message could be
+from the Windows build, the self-update swap, or SmartScreen, and staff will
+see it too.
+
+- [ ] **Unmerged branch to look at first:** `fix/windows-vc-runtime` (Beaux,
+      2026-11-19 07:15, one commit, "Bundle the Python MSVC runtime in
+      Windows builds", changes `build-windows.ps1` only). It was made the
+      morning of the T-002 test and is not merged or mentioned anywhere. If
+      the message was about a missing runtime DLL (for example
+      VCRUNTIME140), that branch may be the fix. Decide: merge, or delete
+      it. Check any change with the size gate, since it adds files
+- [ ] Beaux records exactly what it said (a screenshot or the words), which
+      step it came at (running the downloaded `.exe`, the update, or
+      `build-windows.bat`), and whether it appears every time
+- [ ] If it came during the self-update, attach `build-log.txt`, or look for
+      a `.exe.new` or batch file left beside the app
+- [ ] Also answer: did SmartScreen warn after the 0.3.0 app updated itself
+      to 0.3.1? (settles T-011's unconfirmed sentence)
+- [ ] An agent then opens a fix task, or closes this as harmless with the
+      reason written down
+
+
 ### T-020 Import Word content as Markdown
 
 - **Status:** done (2026-11-20; A to G, last in [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
