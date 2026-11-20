@@ -92,8 +92,8 @@ Open and in-progress work only. Finished tasks leave this table and move to
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-037](#t-037-release-040-the-component-builder) | Release 0.4.0 (component builder) | open: docs and version are ready on the branch; waiting for the manual check | human | T-038 |
-| [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the component builder by hand on Windows | open | human | Beaux |
+| [T-037](#t-037-release-040-the-component-builder) | Release 0.4.0 (component builder) | open: merge now (Beaux, 2026-11-20: the self-update can only be tested on a published release); then T-038 | human | — |
+| [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
 | [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said (see unmerged `fix/windows-vc-runtime`) | open | human | Beaux |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
@@ -105,13 +105,13 @@ Open and in-progress work only. Finished tasks leave this table and move to
 pull requests #1 to #9. Details under T-018. Nobody needs to do anything until
 Support replies.
 
-**Suggested order:** T-038 (an hour, on a real PC) and T-030 (Word) first,
-because they test what staff will actually receive; then merge the branch
-that carries the 0.4.0 version bump (T-037), which publishes the release.
-T-034 can be answered at the same time. T-035 before the next feature lands,
-since the size comparison is currently meaningless and every pull request
-runs three platform builds. T-029 (backup) and T-031 (links) are next features;
-T-036 is tidying.
+**Suggested order:** merge the 0.4.0 branch (T-037; open a pull request so CI
+runs on it first, then merge once it is green). Then T-038 on a PC that has
+0.3.1: it tests the self-update and the new windows in one go. T-030 (Word)
+and the T-034 answers at the same time. If T-038 finds a fault, the fix ships
+as 0.4.1. T-035 before the next feature lands, since the size comparison is
+currently meaningless and every pull request runs three platform builds.
+T-029 (backup) and T-031 (links) are next features; T-036 is tidying.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -224,10 +224,12 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Status:** open: version bump, release notes and user-guide section are
   on the branch `claude/kind-keller-847k6d`; **merging it to `main` publishes
   the release** (CI tags `v0.4.0` and attaches the Windows `.exe` and both
-  macOS zips). Do T-038 first
+  macOS zips). Beaux decided on 2026-11-20 to merge before the hand check,
+  because the automatic update can only be tested against a published
+  release. The hand check (T-038) therefore follows the release
 - **Size:** S
 - **Agent:** human (the decision to publish)
-- **Needs:** T-038, Beaux
+- **Needs:** Beaux
 - **Size gate:** yes. Windows `.exe` on `main` before this release:
   18,093,944 bytes (17.26 MiB), headroom 12.74 MiB; v0.3.1 was 17,800,891, so
   the component builder added about 293,000 bytes (0.28 MiB)
@@ -243,12 +245,14 @@ before adopting it). The Word-template workflow is unchanged.
       (CI refuses a release without it)
 - [x] `USER-GUIDE.txt` gains "COMPONENTS AND ASSEMBLED CONTRACTS" and the
       shell section no longer says the workflow is "not available yet"
-- [ ] T-038 passed on a real Windows PC using the `build-windows-x64`
-      artifact from the latest green `main` run (kept 14 days)
+- [ ] Open a pull request from the branch to `main`; wait for a green CI run
+      at its latest commit (CI before merge)
 - [ ] Merge; confirm the `v0.4.0` release has the Windows `.exe` with a
       digest and both macOS zips
 - [ ] On a PC with 0.3.1 installed: Help > Check for updates offers 0.4.0,
-      installs it and reopens as 0.4.0 (second real self-update test)
+      installs it and reopens as 0.4.0 (second real self-update test); this is
+      T-038
+- [ ] If a fault is found: fix as 0.4.1; do not edit the 0.4.0 release
 - [ ] Progress log entry with the CI run number and the two size numbers
 
 Known gaps to tell staff or accept: real-Word display of generated documents
@@ -266,10 +270,18 @@ is replaced.
 
 The editor and assembly windows are Tkinter dialogs. CI exercises their
 logic but opens no window, and Claude's environment has no display, so no
-one has looked at them yet. Use the Windows `.exe` from the latest green run
-of `main` (Actions > the run > Artifacts > `build-windows-x64`). Use invented
-wording only; the repository is public and screenshots may be shared.
+one has looked at them yet. Do this on the published 0.4.0, starting from a
+PC that has 0.3.1 and real publisher profiles, so the update itself is the
+first step. Use invented wording only; the repository is public and
+screenshots may be shared.
 
+- [ ] **Update:** Help > Check for updates offers 0.4.0; install it; the app
+      reopens as 0.4.0 (title bar). Note whether SmartScreen warned (T-011,
+      T-034) and any error message, with its words
+- [ ] **Existing data:** the first start of 0.4.0 upgrades the publisher
+      database in place. Publisher profiles are all still there, and a file
+      ending `.bak-1` sits beside `publisher_profiles.sqlite3` in the user
+      data folder (`%LOCALAPPDATA%` on Windows). Keep it for now
 - [ ] Components > Manage components: make a component with a heading, a
       bold word, a numbered list with an indented sub-item, a table (use the
       Table button) and a field (use the Field button, with a format such as
