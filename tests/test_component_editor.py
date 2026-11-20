@@ -14,7 +14,7 @@ def test_plain_text_round_trips_without_interpreting_markdown_punctuation():
         + chr(96) + "literal text" + chr(96) + "."
     )
     markdown = plain_text_to_markdown(plain)
-    assert r"\# A heading-like line with \*literal emphasis\* and \[brackets]." in markdown
+    assert r"\# A heading-like line with \*literal emphasis\* and \[brackets\]." in markdown
     assert "{{Fee | money-words}}" in markdown
     assert r"\|" in markdown
     assert markdown_to_plain_text(markdown) == plain
