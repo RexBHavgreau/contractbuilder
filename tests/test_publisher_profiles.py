@@ -158,8 +158,9 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
 
     assert _user_version(path) == 2
     assert upgraded.list_profiles() == before
-    assert upgraded.get_profile(first_id) == before[0]
-    assert upgraded.get_profile(second_id) == before[1]
+    before_by_id = {row["id"]: row for row in before}
+    assert upgraded.get_profile(first_id) == before_by_id[first_id]
+    assert upgraded.get_profile(second_id) == before_by_id[second_id]
 
     backup_path = pathlib.Path(str(path) + ".bak-1")
     assert backup_path.is_file()
