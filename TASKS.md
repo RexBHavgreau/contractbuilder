@@ -87,36 +87,31 @@ Fields:
 ## Board
 
 Open and in-progress work only. Finished tasks leave this table and move to
-"Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20.
-Next free number: **T-037**.
+"Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
+(after PR #41). Next free number: **T-039**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella; A and B merged, C to G in progress) | claimed (ChatGPT, 2026-11-20) | careful | — |
-| ↳ T-022-C to T-022-G | Toolbar; table editor; insert field; source toggle; import review | claimed (ChatGPT, 2026-11-20) | careful | see task |
-| [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella; T-020-F in progress) | claimed (ChatGPT, 2026-11-20) | careful | — |
-| ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | claimed (ChatGPT, 2026-11-20) | careful | — |
-| [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate cover every module and run weekly | open | careful | — |
+| [T-037](#t-037-release-040-the-component-builder) | Release 0.4.0 (component builder) | open: merge now (Beaux, 2026-11-20: the self-update can only be tested on a published release); then T-038 | human | — |
+| [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
+| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
 | [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said (see unmerged `fix/windows-vc-runtime`) | open | human | Beaux |
+| [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
 | [T-036](#t-036-housekeeping-stale-branches-and-legacy-code) | Housekeeping: stale branches and legacy code | open, needs decisions | human | Beaux |
-| [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-022-A |
-| ↳ T-023-A to T-023-E | Browser; choose shell (checking and remembering done, picker waits for the window); order components; review; fill and generate | open | careful | see task |
-| [T-024](#t-024-saved-assembly-revisions-and-deliberate-updates) | Saved revisions and deliberate updates (umbrella) | open | careful | T-023-C |
-| ↳ T-024-A to T-024-D | Save and reopen; list newer; review and choose; reproducibility tests | open | careful | see task |
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | — |
-| [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word (numbering now continues across components, T-033) | open, ready | human | — |
 | [T-031](#t-031-hyperlinks-in-components-optional) | Hyperlinks in components (optional) | open | careful | — |
 
 **Waiting, not a task:** GitHub Support's purge of the old commits behind
 pull requests #1 to #9. Details under T-018. Nobody needs to do anything until
 Support replies.
 
-**Suggested order:** T-022-C onward continues the editor. T-035 before the next
-module lands, because the size comparison build lists modules by hand, and
-fold in the CI-cost change (macOS builds only on `main`, Windows only when
-code changes, cancel superseded runs). T-034 and T-036 are Beaux's, quick.
-Then T-023, T-024; T-029 and T-031 last. T-030 (real Word) can be done now.
-T-020-F any time.
+**Suggested order:** merge the 0.4.0 branch (T-037; open a pull request so CI
+runs on it first, then merge once it is green). Then T-038 on a PC that has
+0.3.1: it tests the self-update and the new windows in one go. T-030 (Word)
+and the T-034 answers at the same time. If T-038 finds a fault, the fix ships
+as 0.4.1. T-035 before the next feature lands, since the size comparison is
+currently meaningless and every pull request runs three platform builds.
+T-029 (backup) and T-031 (links) are next features; T-036 is tidying.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -128,6 +123,7 @@ T-009, T-013, T-016 (below the open tasks).
 ---
 
 ## Open tasks
+
 
 
 ## T-018 Push the cleaned history and finish the clean-up
@@ -223,269 +219,89 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Clause numbering** is decided (T-025): nested ordered lists, rendered as
   a decimal outline. Other legal formatting is out of scope (T-032).
 
-### T-020 Import Word content as Markdown
+### T-037 Release 0.4.0 (the component builder)
 
-- **Status:** open (umbrella; 6 of 7 subtasks done: only T-020-F remains)
-- **Size:** umbrella of T-020-A to T-020-G
-- **Agent:** careful
-- **Needs:** T-019-A (the field-protection method), T-019-B
-
-See PROPOSAL-001.md section 6. A new, isolated `docx_import.py` using
-zipfile and lxml. Import is content conversion, never layout; the source
-file is never changed.
-
-**Done when:** a DOCX of supported mixed content becomes reviewable Markdown
-in the right order, fields intact, and every unsupported structure reported.
-
-#### T-020-F Round trip: DOCX, Markdown, DOCX
-
-- **Status:** claimed (ChatGPT, 2026-11-20; acceptance test on T-022 branch)
+- **Status:** open: version bump, release notes and user-guide section are
+  on the branch `claude/kind-keller-847k6d`; **merging it to `main` publishes
+  the release** (CI tags `v0.4.0` and attaches the Windows `.exe` and both
+  macOS zips). Beaux decided on 2026-11-20 to merge before the hand check,
+  because the automatic update can only be tested against a published
+  release. The hand check (T-038) therefore follows the release
 - **Size:** S
-- **Agent:** careful
-- **Needs:** T-020-C, T-020-D, T-019-F
+- **Agent:** human (the decision to publish)
+- **Needs:** Beaux
+- **Size gate:** yes. Windows `.exe` on `main` before this release:
+  18,093,944 bytes (17.26 MiB), headroom 12.74 MiB; v0.3.1 was 17,800,891, so
+  the component builder added about 293,000 bytes (0.28 MiB)
 
-- [ ] Test: import an invented DOCX, compose it into a shell, and check the
-      text, order, tables and lists match the source
-- [ ] Test: a second import of the composed output gives the same Markdown
-      (stable round trip for the supported subset)
+What 0.4.0 adds for staff: the **Components** menu (write reusable wording
+with a toolbar, table editor, field inserter and live preview; import a Word
+file; keep every saved version), and **Build an assembly** (choose a Word
+shell, pick and order components, tick optional ones, preview, save the
+recipe, fill the fields once, create the Word document; review newer wording
+before adopting it). The Word-template workflow is unchanged.
 
-**Done when:** both round-trip tests pass.
+- [x] `version.py` raised to `0.4.0`; `CHANGES.txt` has a `## 0.4.0` section
+      (CI refuses a release without it)
+- [x] `USER-GUIDE.txt` gains "COMPONENTS AND ASSEMBLED CONTRACTS" and the
+      shell section no longer says the workflow is "not available yet"
+- [ ] Open a pull request from the branch to `main`; wait for a green CI run
+      at its latest commit (CI before merge)
+- [ ] Merge; confirm the `v0.4.0` release has the Windows `.exe` with a
+      digest and both macOS zips
+- [ ] On a PC with 0.3.1 installed: Help > Check for updates offers 0.4.0,
+      installs it and reopens as 0.4.0 (second real self-update test); this is
+      T-038
+- [ ] If a fault is found: fix as 0.4.1; do not edit the 0.4.0 release
+- [ ] Progress log entry with the CI run number and the two size numbers
 
-### T-022 In-app component editor
+Known gaps to tell staff or accept: real-Word display of generated documents
+is T-030 (not done); the install error from T-034 is unexplained; there is
+no library backup yet (T-029), so tell staff the component library lives in
+the same per-user file as publisher profiles and should be copied if the PC
+is replaced.
 
-- **Status:** claimed (ChatGPT, 2026-11-20; A and B merged in [PR #34](https://github.com/RexBHavgreau/contractbuilder/pull/34) and [PR #36](https://github.com/RexBHavgreau/contractbuilder/pull/36); C to G in progress on `chatgpt/t-022-c-g-editor-tools`)
-- **Size:** umbrella of T-022-A to T-022-G
-- **Agent:** careful
-- **Needs:** T-021-E, T-019-A
+### T-038 Try the component builder by hand on Windows
 
-See PROPOSAL-001.md section 5. This was the largest, riskiest item, so it is
-now small steps. **Choice made here:** the editor remains Markdown-backed. The Tkinter Text widget uses elided syntax and basic text tags for a formatted editing surface, with an optional raw-source view; the separate preview shows structure only, not Word pagination or final layout.
-
-**Done when:** a user who does not know Markdown can create, import, edit and
-save a component, with tables and fields, and see how it will look.
-
-#### T-022-C Formatting toolbar
-
-- **Status:** claimed (ChatGPT, 2026-11-20)
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-022-B
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [ ] Buttons for heading, bold, italic, bulleted list, numbered list,
-      indent and outdent; they wrap, prefix or re-indent the selection and
-      write Markdown the user need not see. Indent and outdent move a
-      numbered item down or up a level (1. becomes 1.1); the user never types
-      indentation
-- [ ] The preview (T-022-B) shows the computed outline numbers (1., 1.1,
-      1.1.1), not the digits stored
-- [ ] Keyboard shortcuts for bold and italic
-- [ ] Works when the editing area shows the formatted preview and when it
-      shows source (T-022-F)
-
-#### T-022-D Table editor
-
-- **Status:** claimed (ChatGPT, 2026-11-20)
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-022-B
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [ ] A dialog with a grid: add or remove rows and columns, type cell text,
-      mark the header row; produces the Markdown table without the user
-      typing pipes
-- [ ] Opening an existing table in the editor (round trip)
-- [ ] A literal pipe or a field with a pipe in a cell is handled as in
-      T-019-A
-
-#### T-022-E Insert a field
-
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** open
 - **Size:** S
-- **Agent:** any
-- **Needs:** T-022-A
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+- **Agent:** human
+- **Needs:** Beaux (or a colleague)
 
-- [ ] A button listing field names already used in the library and
-      publisher-profile fields, and the formats, inserting `{{Name}}` or
-      `{{Name | format}}`
-- [ ] Uses `core`'s own field parser to read and check names; do not write a
-      second parser. A malformed `{{` is flagged in plain English
+The editor and assembly windows are Tkinter dialogs. CI exercises their
+logic but opens no window, and Claude's environment has no display, so no
+one has looked at them yet. Do this on the published 0.4.0, starting from a
+PC that has 0.3.1 and real publisher profiles, so the update itself is the
+first step. Use invented wording only; the repository is public and
+screenshots may be shared.
 
-#### T-022-F Source view toggle
-
-- **Status:** claimed (ChatGPT, 2026-11-20)
-- **Size:** S
-- **Agent:** any
-- **Needs:** T-022-A
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [ ] An "Advanced: show raw text" switch that shows the Markdown, kept off
-      by default and described plainly
-
-#### T-022-G Import review dialog
-
-- **Status:** claimed (ChatGPT, 2026-11-20; T-020-F acceptance test included on this branch)
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-022-B, T-020-F (round-trip acceptance test is included on this branch)
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [ ] "Import from a Word file": choose a `.docx`, see the converted result
-      in the preview with the warnings listed above it in plain English
-- [ ] The user can fix text, then save as a component, or cancel; nothing is
-      saved before they agree
-- [ ] The source file is not modified
-
-### T-023 Component library and assembly builder
-
-- **Status:** done (2026-11-20; subtasks A–D in [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40), subtask E in [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
-- **Size:** umbrella of T-023-A to T-023-E
-- **Agent:** careful
-- **Needs:** T-021-E, T-026
-
-See PROPOSAL-001.md section 3B.
-
-**Latest size gate result (CI run #227):** the release executable is
-18,090,846 bytes (17.25 MiB); the component-enabled measurement build is
-18,094,048 bytes (17.26 MiB), an increase of 3,202 bytes (under 0.01 MiB).
-It leaves 13,363,232 bytes (12.74 MiB) below the 30 MiB limit. No runtime
-dependency or bundled data file was added.
-[CI run #227](https://github.com/RexBHavgreau/contractbuilder/actions/runs/44797646135).
-
-**Done when:** a user can choose a shell, add, order, include or omit
-components, review the result, fill the fields once, and create the
-document.
-
-#### T-023-A Library browser
-
-- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-021-E
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] List by category and tag, with search by name and wording; archived
-      components hidden unless asked for
-- [x] Open a component in the editor (T-022-A); see its version history
-
-#### T-023-B Choose a shell
-
-- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40); the checker and remembering
-  were added 2026-11-19 in `shell_selection.py`)
-- **Size:** S
-- **Agent:** any
-- **Needs:** T-026
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] Pick a shell file: the picker dialog waits for the component window
-      (T-023-A / T-022-A). `shell_selection.choose_shell(path)` is what it
-      calls with the file the user picked.
-- [x] Validate it with T-026's checker and show its plain-English findings
-      (`shell_selection.describe`, lines for errors and for each warning).
-- [x] Remember the last shell used, if it can be used (`last_shell()`); a
-      shell with errors is not remembered and a damaged settings file is
-      treated as nothing remembered.
-
-#### T-023-C Build and order an assembly
-
-- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-023-A
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] Add components, move up and down, remove, and tick "include" to omit
-      an optional component without removing it
-- [x] A component can be added more than once only if the user chooses
-
-#### T-023-D Review the assembled document
-
-- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
-- **Size:** S
-- **Agent:** careful
-- **Needs:** T-023-C, T-022-B
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] One preview of everything in order, fields highlighted
-
-#### T-023-E Fill and generate
-
-- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-023-D, T-019-G
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] Compose to a temporary `.docx`, then show a separate field form using
-      the existing field controls and engine, with one input per unique field
-      across all components
-- [x] Publisher profile loading as today; values shown for review before
-      creating the document
-- [x] Output named and saved as the template workflow does; the shell and
-      temporary composed document cannot be overwritten
-- [x] The existing template workflow's screen and generation path are
-      unchanged; its tests stay green
-
-### T-024 Saved assembly revisions and deliberate updates
-
-- **Status:** done (2026-11-20; subtask A in [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40), subtasks B–D in [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
-- **Size:** umbrella of T-024-A to T-024-D
-- **Agent:** careful
-- **Needs:** T-021-E, T-023-C
-
-See PROPOSAL-001.md section 9.
-
-**Done when:** a saved assembly reopens with the same versions, and newer
-component versions are used only after the user reviews and chooses them.
-
-#### T-024-A Save and reopen
-
-- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-023-C
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] Save an assembly (name, shell, components, order, included flags) as
-      revision 1; reopen it and produce identical Markdown
-
-#### T-024-B List newer versions
-
-- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
-- **Size:** S
-- **Agent:** any
-- **Needs:** T-024-A
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] On opening, show (not apply) which pinned components have newer
-      versions; the assembly remains pinned until the user chooses an update
-
-#### T-024-C Review and choose updates
-
-- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
-- **Size:** M
-- **Agent:** careful
-- **Needs:** T-024-B
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] A dialog showing, per component placement, pinned and newer wording
-      with additions and removals marked in a unified diff
-- [x] The user ticks which placements to update and selects the target
-      version; saving creates a new revision and leaves earlier revisions
-      unchanged and available to reopen
-
-#### T-024-D Reproducibility tests
-
-- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
-- **Size:** S
-- **Agent:** any
-- **Needs:** T-024-C
-- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
-
-- [x] Revise a component twice; the saved revision still generates the old
-      wording; an updated revision generates the explicitly selected new
-      wording while unselected components remain pinned
+- [ ] **Update:** Help > Check for updates offers 0.4.0; install it; the app
+      reopens as 0.4.0 (title bar). Note whether SmartScreen warned (T-011,
+      T-034) and any error message, with its words
+- [ ] **Existing data:** the first start of 0.4.0 upgrades the publisher
+      database in place. Publisher profiles are all still there, and a file
+      ending `.bak-1` sits beside `publisher_profiles.sqlite3` in the user
+      data folder (`%LOCALAPPDATA%` on Windows). Keep it for now
+- [ ] Components > Manage components: make a component with a heading, a
+      bold word, a numbered list with an indented sub-item, a table (use the
+      Table button) and a field (use the Field button, with a format such as
+      `money-words`). Save. The preview matches
+- [ ] Toolbar behaves with the preview and with "Advanced: show raw text"
+      switched on (the one unchecked item of T-022-C)
+- [ ] Import Word: choose one of your own invented `.docx`
+      files, read the warnings, edit, save. The original file is unchanged
+- [ ] Save a second version; Version history shows both
+- [ ] Build assembly: choose a shell (use one made in Word following the
+      guide), add three components, move one, untick one, check the preview,
+      Save assembly, close, Open saved
+- [ ] Fill fields and create the document: each field appears once; a
+      publisher profile fills what it should; the file opens in Word with
+      numbered clauses continuing 1, 2, 3 across components (this is also
+      T-030)
+- [ ] Revise a component, open the saved assembly: Review updates shows the
+      new wording and nothing changes until you tick it
+- [ ] Write down anything confusing in plain words. Anything that stops you
+      is a bug task; anything that is only awkward goes in a new task
 
 ### T-034 Find out what the install error message said
 
@@ -537,8 +353,10 @@ modules. Two weaknesses found 2026-11-20:
   most of the component stack.** PyInstaller finds the editor's imports even
   though the app loads them lazily, so the release build is already
   17,975,160 bytes (PR #36) against v0.3.1's 17,800,891, and the "with"
-  build adds only 30,359 bytes. Compare against the last published release
-  instead (growth since 0.3.1 was about 0.2 MiB at that point).
+  build adds only 30,359 bytes. On `main` after PR #41 it reads -148 bytes
+  (run 44798337642: 18,093,944 without, 18,093,796 with): the figure is
+  meaningless. Compare against the last published release instead. Growth
+  since 0.3.1 (17,800,891) is 293,053 bytes, 0.28 MiB.
 - **It only runs when someone pushes.** The build installs `pyinstaller` and
   `lxml` unpinned (`--upgrade`), so a new upstream release can grow the
   executable with no commit and no red build until the next push.
@@ -693,7 +511,275 @@ opens it.
 
 ---
 
+---
+
 ## Done tasks (kept until a month after they were done)
+### T-020 Import Word content as Markdown
+
+- **Status:** done (2026-11-20; A to G, last in [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** umbrella of T-020-A to T-020-G
+- **Agent:** careful
+- **Needs:** T-019-A (the field-protection method), T-019-B
+
+See PROPOSAL-001.md section 6. A new, isolated `docx_import.py` using
+zipfile and lxml. Import is content conversion, never layout; the source
+file is never changed.
+
+**Done when:** a DOCX of supported mixed content becomes reviewable Markdown
+in the right order, fields intact, and every unsupported structure reported.
+
+#### T-020-F Round trip: DOCX, Markdown, DOCX
+
+- **Status:** done (2026-11-20, [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-020-C, T-020-D, T-019-F
+
+- [x] Test: import an invented DOCX, compose it into a shell, and check the
+      text, order, tables and lists match the source
+- [x] Test: a second import of the composed output gives the same Markdown
+      (stable round trip for the supported subset)
+
+**Done when:** both round-trip tests pass.
+
+### T-022 In-app component editor
+
+- **Status:** done (2026-11-20; A to G in PRs #34, #36 and #39). GUI parts are covered only by pure-function tests in CI; the manual check is T-037
+- **Size:** umbrella of T-022-A to T-022-G
+- **Agent:** careful
+- **Needs:** T-021-E, T-019-A
+
+See PROPOSAL-001.md section 5. This was the largest, riskiest item, so it is
+now small steps. **Choice made here:** the editor remains Markdown-backed. The Tkinter Text widget uses elided syntax and basic text tags for a formatted editing surface, with an optional raw-source view; the separate preview shows structure only, not Word pagination or final layout.
+
+**Done when:** a user who does not know Markdown can create, import, edit and
+save a component, with tables and fields, and see how it will look.
+
+#### T-022-C Formatting toolbar
+
+- **Status:** done (2026-11-20, [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-B
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] Buttons for heading, bold, italic, bulleted list, numbered list,
+      indent and outdent; they wrap, prefix or re-indent the selection and
+      write Markdown the user need not see. Indent and outdent move a
+      numbered item down or up a level (1. becomes 1.1); the user never types
+      indentation
+- [x] The preview (T-022-B) shows the computed outline numbers (1., 1.1,
+      1.1.1), not the digits stored
+- [x] Keyboard shortcuts for bold and italic
+- [ ] Works when the editing area shows the formatted preview and when it
+      shows source (T-022-F). *Not checked by Claude on 2026-11-20: it needs a
+      display; it is on the manual checklist in T-037*
+
+#### T-022-D Table editor
+
+- **Status:** done (2026-11-20, [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-B
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] A dialog with a grid: add or remove rows and columns, type cell text,
+      mark the header row; produces the Markdown table without the user
+      typing pipes
+- [x] Opening an existing table in the editor (round trip)
+- [x] A literal pipe or a field with a pipe in a cell is handled as in
+      T-019-A
+
+#### T-022-E Insert a field
+
+- **Status:** done (2026-11-20, [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-022-A
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] A button listing field names already used in the library and
+      publisher-profile fields, and the formats, inserting `{{Name}}` or
+      `{{Name | format}}`
+- [x] Uses `core`'s own field parser to read and check names; do not write a
+      second parser. A malformed `{{` is flagged in plain English
+
+#### T-022-F Source view toggle
+
+- **Status:** done (2026-11-20, [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-022-A
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] An "Advanced: show raw text" switch that shows the Markdown, kept off
+      by default and described plainly
+
+#### T-022-G Import review dialog
+
+- **Status:** done (2026-11-20, [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-022-B, T-020-F (round-trip acceptance test is included on this branch)
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] "Import from a Word file": choose a `.docx`, see the converted result
+      in the preview with the warnings listed above it in plain English
+- [x] The user can fix text, then save as a component, or cancel; nothing is
+      saved before they agree
+- [x] The source file is not modified
+
+### T-023 Component library and assembly builder
+
+- **Status:** done (2026-11-20; subtasks A–D in [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40), subtask E in [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
+- **Size:** umbrella of T-023-A to T-023-E
+- **Agent:** careful
+- **Needs:** T-021-E, T-026
+
+See PROPOSAL-001.md section 3B.
+
+**Latest size gate result (CI run #227):** the release executable is
+18,090,846 bytes (17.25 MiB); the component-enabled measurement build is
+18,094,048 bytes (17.26 MiB), an increase of 3,202 bytes (under 0.01 MiB).
+It leaves 13,363,232 bytes (12.74 MiB) below the 30 MiB limit. No runtime
+dependency or bundled data file was added.
+[CI run #227](https://github.com/RexBHavgreau/contractbuilder/actions/runs/44797646135).
+
+**Done when:** a user can choose a shell, add, order, include or omit
+components, review the result, fill the fields once, and create the
+document.
+
+#### T-023-A Library browser
+
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-021-E
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] List by category and tag, with search by name and wording; archived
+      components hidden unless asked for
+- [x] Open a component in the editor (T-022-A); see its version history
+
+#### T-023-B Choose a shell
+
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40); the checker and remembering
+  were added 2026-11-19 in `shell_selection.py`)
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-026
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] Pick a shell file: the picker dialog waits for the component window
+      (T-023-A / T-022-A). `shell_selection.choose_shell(path)` is what it
+      calls with the file the user picked.
+- [x] Validate it with T-026's checker and show its plain-English findings
+      (`shell_selection.describe`, lines for errors and for each warning).
+- [x] Remember the last shell used, if it can be used (`last_shell()`); a
+      shell with errors is not remembered and a damaged settings file is
+      treated as nothing remembered.
+
+#### T-023-C Build and order an assembly
+
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-023-A
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] Add components, move up and down, remove, and tick "include" to omit
+      an optional component without removing it
+- [x] A component can be added more than once only if the user chooses
+
+#### T-023-D Review the assembled document
+
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-023-C, T-022-B
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] One preview of everything in order, fields highlighted
+
+#### T-023-E Fill and generate
+
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-023-D, T-019-G
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] Compose to a temporary `.docx`, then show a separate field form using
+      the existing field controls and engine, with one input per unique field
+      across all components
+- [x] Publisher profile loading as today; values shown for review before
+      creating the document
+- [x] Output named and saved as the template workflow does; the shell and
+      temporary composed document cannot be overwritten
+- [x] The existing template workflow's screen and generation path are
+      unchanged; its tests stay green
+
+### T-024 Saved assembly revisions and deliberate updates
+
+- **Status:** done (2026-11-20; subtask A in [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40), subtasks B–D in [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
+- **Size:** umbrella of T-024-A to T-024-D
+- **Agent:** careful
+- **Needs:** T-021-E, T-023-C
+
+See PROPOSAL-001.md section 9.
+
+**Done when:** a saved assembly reopens with the same versions, and newer
+component versions are used only after the user reviews and chooses them.
+
+#### T-024-A Save and reopen
+
+- **Status:** done (2026-11-20, [PR #40](https://github.com/RexBHavgreau/contractbuilder/pull/40))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-023-C
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] Save an assembly (name, shell, components, order, included flags) as
+      revision 1; reopen it and produce identical Markdown
+
+#### T-024-B List newer versions
+
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-024-A
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] On opening, show (not apply) which pinned components have newer
+      versions; the assembly remains pinned until the user chooses an update
+
+#### T-024-C Review and choose updates
+
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-024-B
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] A dialog showing, per component placement, pinned and newer wording
+      with additions and removals marked in a unified diff
+- [x] The user ticks which placements to update and selects the target
+      version; saving creates a new revision and leaves earlier revisions
+      unchanged and available to reopen
+
+#### T-024-D Reproducibility tests
+
+- **Status:** done (2026-11-20, [PR #41](https://github.com/RexBHavgreau/contractbuilder/pull/41))
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-024-C
+- **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
+
+- [x] Revise a component twice; the saved revision still generates the old
+      wording; an updated revision generates the explicitly selected new
+      wording while unselected components remain pinned
+
+
 ## T-010 Finish going public: stop telling users the repository is private
 
 - **Status:** done (2026-11-18, [PR #14](https://github.com/RexBHavgreau/contractbuilder/pull/14))
