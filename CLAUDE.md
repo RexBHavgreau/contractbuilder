@@ -49,6 +49,7 @@ trace.
 | `docx_to_markdown.py` | Reads DOCX body paragraphs and tables in order and produces a plain Markdown draft. |
 | `markdown_files.py` | UTF-8 Markdown file import/export; reports unsupported constructs without discarding source. |
 | `publisher_profiles.py` | Local SQLite store of publisher details, and mapping onto template fields. |
+| `component_preview.py` | Renders Markdown into styled text segments for the editor's read-only preview; uses the existing parser and field helpers. |
 | `library.py` | Tkinter-free component/assembly persistence, immutable versions, revision pinning, archive/restore and newer-version review; shares the publisher SQLite database. |
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
@@ -408,6 +409,8 @@ runs.
 
 Newest last.
 
+- **2026-11-20** T-022-A (ChatGPT, [PR #34](https://github.com/RexBHavgreau/contractbuilder/pull/34)): added the separate, lazily loaded Components window with library search, component metadata, version notes, atomic version saves, protected display for content the plain-text editor cannot round-trip, and plain-English save/discard/cancel prompts. The original template-filling workflow remains separate.
+- **2026-11-20** T-022-B (ChatGPT, [PR pending](https://github.com/RexBHavgreau/contractbuilder/tree/chatgpt/t-022-b-live-preview)): added a read-only Tk Text preview backed by the existing table-enabled, raw-HTML-disabled Markdown parser and field-protection helpers. Preview segments cover headings, emphasis, lists, tables, code, links, blockquotes and field highlighting. Updates are debounced and now subscribe to Tk's modified event so non-key edits refresh too. The Windows measurement build explicitly imports both editor and preview modules; no new runtime dependency is added.
 - **2026-11-20** T-021-A (ChatGPT, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)): added schema-versioned, transactional SQLite upgrades with verified per-version backups, publisher-data preservation, rollback coverage and older-app compatibility. CI run #176 passed all 210 tests and built Windows x64, macOS Intel and macOS Apple Silicon; the component-stack Windows build measured 17,967,571 bytes (17.14 MiB), leaving 12.86 MiB under the 30 MiB limit.
 
 - **2026-11-20** T-021-B (ChatGPT, [PR #30](https://github.com/RexBHavgreau/contractbuilder/pull/30)): added the component and immutable-version tables plus `library.py`, a Tkinter-free, standard-library storage API. Component creation creates version 1; later saves allocate the next number in a write-serialized transaction. SQLite triggers prevent rewriting or deleting saved versions. Tags are stored as a JSON array to preserve arbitrary user-defined labels; categories remain unrestricted text. CI run #183 passed 214 tests and all three platform builds; the Windows component-stack build measured 17,972,861 bytes (17.14 MiB), with 13,484,419 bytes (12.86 MiB) below the 30 MiB cap.
