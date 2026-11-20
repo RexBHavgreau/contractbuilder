@@ -8,6 +8,7 @@ from __future__ import annotations
 import pathlib
 import sqlite3
 import sys
+import tempfile
 import threading
 import tkinter as tk
 import webbrowser
@@ -384,6 +385,7 @@ class WordTemplateFiller:
         self.publisher_store_error = None
         self.publisher_profile_ids = {}
         self.component_editor_window = None
+        self.assembly_document_windows = []
         try:
             self.publisher_store = PublisherProfileStore()
         except (OSError, sqlite3.Error) as exc:
@@ -596,6 +598,43 @@ class WordTemplateFiller:
         self.load_publisher_button.configure(state="normal" if names else "disabled")
         self.publisher_variable.set("")
 
+    def create_assembly_document(self, shell_path, component_markdown, assembly_name=""):
+        """Compose an assembly draft and open a separate field-entry window."""
+        temporary = tempfile.TemporaryDirectory(prefix="contractbuilder-assembly-")
+        output_path = pathlib.Path(temporary.name) / "assembled.docx"
+        try:
+            from assembly_builder import compose_assembly_template
+
+            template, composition = compose_assembly_template(
+                shell_path, component_markdown, output_path
+            )
+            if template.problems:
+                raise core.TemplateError(
+                    "The assembled document has field problems that must be corrected:\n\n"
+                    + "\n".join(template.problems)
+                )
+            window = AssemblyDocumentWindow(
+                self, template, temporary, pathlib.Path(shell_path),
+                assembly_name, composition.warnings,
+            )
+        except (core.TemplateError, ValueError, TypeError, OSError, sqlite3.Error) as exc:
+            temporary.cleanup()
+            messagebox.showerror(
+                "Could not prepare the assembly", str(exc), parent=self.root
+            )
+            return None
+
+        remaining = []
+        for child in self.assembly_document_windows:
+            try:
+                if child.window.winfo_exists():
+                    remaining.append(child)
+            except tk.TclError:
+                pass
+        self.assembly_document_windows = remaining
+        self.assembly_document_windows.append(window)
+        return window
+
     def manage_components(self):
         """Open the component manager without loading it during app startup."""
         if self.component_editor_window is not None:
@@ -612,7 +651,9 @@ class WordTemplateFiller:
             from component_editor import ComponentEditorWindow
 
             self.component_editor_window = ComponentEditorWindow(
-                self.root, on_close=self._component_editor_closed
+                self.root,
+                on_close=self._component_editor_closed,
+                on_generate=self.create_assembly_document,
             )
         except (OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
             self.component_editor_window = None
@@ -1047,6 +1088,296 @@ class WordTemplateFiller:
         ttk.Button(buttons, text="Remove token", command=remove).pack(side="right", padx=8)
         ttk.Button(buttons, text="Close", command=window.destroy).pack(side="left")
         entry.focus_set()
+
+
+
+class AssemblyDocumentWindow:
+    """Fill an assembled temporary DOCX without changing the template workflow."""
+
+    def __init__(
+        self, app, template, temporary_directory, shell_path,
+        assembly_name="", composition_warnings=(),
+    ):
+        self.app = app
+        self.template = template
+        self.temporary_directory = temporary_directory
+        self.shell_path = pathlib.Path(shell_path)
+        self.assembly_name = str(assembly_name or "").strip()
+        self.composition_warnings = tuple(composition_warnings or ())
+        self.inputs = []
+        self.publisher_profile_ids = {}
+
+        self.window = tk.Toplevel(app.root)
+        self.window.title("Fill assembly fields")
+        self.window.geometry("820x690")
+        self.window.minsize(620, 500)
+        self.window.transient(app.root)
+        self.window.protocol("WM_DELETE_WINDOW", self.close)
+
+        outer = ttk.Frame(self.window, padding=16)
+        outer.pack(fill="both", expand=True)
+        ttk.Label(
+            outer, text="Fill assembly fields", font=("TkDefaultFont", 15, "bold")
+        ).pack(anchor="w")
+        ttk.Label(
+            outer,
+            text=(
+                f"{self.assembly_name or 'Unsaved assembly'} · "
+                f"{len(template.field_list())} unique field(s) in {template.places} location(s)"
+            ),
+            wraplength=760,
+        ).pack(anchor="w", pady=(3, 10))
+
+        profile_frame = ttk.LabelFrame(outer, text="Saved publisher", padding=8)
+        profile_frame.pack(fill="x", pady=(0, 10))
+        self.publisher_variable = tk.StringVar(master=self.window)
+        self.publisher_combo = ttk.Combobox(
+            profile_frame, textvariable=self.publisher_variable, state="disabled"
+        )
+        self.publisher_combo.pack(side="left", fill="x", expand=True)
+        self.load_publisher_button = ttk.Button(
+            profile_frame, text="Load into fields",
+            command=self.load_publisher_profile, state="disabled",
+        )
+        self.load_publisher_button.pack(side="left", padx=(8, 0))
+        ttk.Button(
+            profile_frame, text="Manage profiles…",
+            command=self.app.manage_publisher_profiles,
+        ).pack(side="left", padx=(8, 0))
+
+        ttk.Label(
+            outer,
+            text=(
+                "One field is shown for each unique placeholder, even when it appears "
+                "in several components or locations."
+            ),
+            foreground="#555555",
+            wraplength=760,
+        ).pack(anchor="w", pady=(0, 8))
+
+        form = ttk.LabelFrame(outer, text="Fields to fill in", padding=8)
+        form.pack(fill="both", expand=True)
+        self.scroll = ScrollableFrame(form)
+        self.scroll.pack(fill="both", expand=True)
+        row = 0
+        for field in template.field_list():
+            control = FieldInput(self.scroll.inner, field, row)
+            self.inputs.append(control)
+            row += 1 if field.kind == "yesno" else 2
+        if not self.inputs:
+            ttk.Label(
+                self.scroll.inner,
+                text="This assembly has no fields to fill. You can create the document as it is.",
+                wraplength=690,
+            ).grid(row=0, column=0, sticky="w", pady=12)
+
+        notes = list(template.warnings)
+        notes.extend(
+            getattr(warning, "message", str(warning))
+            for warning in self.composition_warnings
+        )
+        ttk.Label(
+            outer,
+            text=("Notes: " + " ".join(notes)) if notes else "",
+            foreground="#8a5a00" if notes else "#555555",
+            wraplength=760,
+        ).pack(anchor="w", pady=(8, 0))
+
+        footer = ttk.Frame(outer)
+        footer.pack(fill="x", pady=(12, 0))
+        self.status = ttk.Label(footer, text="", foreground="#555555", wraplength=350)
+        self.status.pack(side="left", fill="x", expand=True)
+        self.highlight_variable = tk.BooleanVar(master=self.window, value=False)
+        ttk.Checkbutton(
+            footer, text="Highlight inserted text", variable=self.highlight_variable
+        ).pack(side="left", padx=(5, 8))
+        ttk.Button(footer, text="Clear fields", command=self.clear_fields).pack(
+            side="right", padx=(0, 7)
+        )
+        ttk.Button(footer, text="Close", command=self.close).pack(side="right")
+        ttk.Button(
+            footer, text="Create document…", command=self.create_document
+        ).pack(side="right", padx=(0, 7))
+        self._refresh_publisher_profiles()
+
+    def _refresh_publisher_profiles(self):
+        store = self.app.publisher_store
+        if store is None:
+            self.publisher_combo.configure(state="disabled", values=[])
+            self.load_publisher_button.configure(state="disabled")
+            return
+        try:
+            profiles = store.list_profiles()
+        except sqlite3.Error as exc:
+            self.publisher_combo.configure(state="disabled", values=[])
+            self.load_publisher_button.configure(state="disabled")
+            self.status.configure(
+                text=f"Could not read publisher profiles: {exc}",
+                foreground="#a00000",
+            )
+            return
+        self.publisher_profile_ids = {
+            str(profile["publisher_name"]): int(profile["id"])
+            for profile in profiles
+        }
+        names = list(self.publisher_profile_ids)
+        self.publisher_combo.configure(
+            values=names, state="readonly" if names else "disabled"
+        )
+        self.load_publisher_button.configure(
+            state="normal" if names else "disabled"
+        )
+        self.publisher_variable.set("")
+
+    def load_publisher_profile(self):
+        name = self.publisher_variable.get()
+        profile_id = self.publisher_profile_ids.get(name)
+        store = self.app.publisher_store
+        if profile_id is None or store is None:
+            return
+        try:
+            profile = store.get_profile(profile_id)
+        except sqlite3.Error as exc:
+            messagebox.showerror(
+                "Could not load publisher profile", str(exc), parent=self.window
+            )
+            return
+        if profile is None:
+            self._refresh_publisher_profiles()
+            messagebox.showwarning(
+                "Profile not found",
+                "That publisher profile was removed. Refresh the list and try again.",
+                parent=self.window,
+            )
+            return
+        values = values_for_template(
+            profile, [control.field.name for control in self.inputs]
+        )
+        if not values:
+            messagebox.showinfo(
+                "No matching fields",
+                "No fields in this assembly match the saved publisher profile.",
+                parent=self.window,
+            )
+            return
+        overwritten = [
+            field_name for field_name in values
+            if any(
+                control.field.name == field_name and str(control.get()).strip()
+                for control in self.inputs
+            )
+        ]
+        if overwritten and not messagebox.askyesno(
+            "Replace existing entries?",
+            "Loading this profile will replace these non-empty fields:\n\n"
+            + "\n".join("• " + field for field in overwritten)
+            + "\n\nContinue?",
+            parent=self.window,
+        ):
+            return
+        for control in self.inputs:
+            if control.field.name in values:
+                control.set(values[control.field.name])
+        self.status.configure(
+            text=(
+                f"Loaded {len(values)} field(s) from {profile['publisher_name']}. "
+                "Review the remaining fields before creating the document."
+            ),
+            foreground="#1b6e2e",
+        )
+
+    def collect_values(self):
+        return {control.field.name: control.get() for control in self.inputs}
+
+    def clear_fields(self):
+        for control in self.inputs:
+            control.clear()
+        self.status.configure(text="All fields cleared.", foreground="#555555")
+
+    def create_document(self):
+        values = self.collect_values()
+        problems = core.problems_with(self.template, values)
+        if problems:
+            messagebox.showerror(
+                "Some entries need attention",
+                "\n".join(f"• {name}: {reason}" for name, reason in problems),
+                parent=self.window,
+            )
+            return
+        try:
+            document_bytes, report = core.render(
+                self.template, values, highlight=self.highlight_variable.get()
+            )
+        except core.TemplateError as exc:
+            messagebox.showerror(
+                "Could not create the document", str(exc), parent=self.window
+            )
+            return
+        if report.blanks:
+            names = "\n".join("• " + name for name in report.blanks)
+            if not messagebox.askyesno(
+                "Some fields are empty",
+                "These fields will be left as blank lines in the document:\n\n"
+                + names + "\n\nCreate the document anyway?",
+                parent=self.window,
+            ):
+                return
+
+        suggested = core.suggested_name(self.template, values) + ".docx"
+        if self.assembly_name:
+            safe_name = "".join(
+                character for character in self.assembly_name
+                if character not in '<>:"/\\|?*'
+            ).strip(" .")
+            if safe_name:
+                suggested = safe_name + ".docx"
+        output = filedialog.asksaveasfilename(
+            parent=self.window,
+            title="Save the completed assembly",
+            defaultextension=".docx",
+            initialdir=str(self.shell_path.parent),
+            initialfile=suggested,
+            filetypes=[("Word document", "*.docx")],
+        )
+        if not output:
+            return
+        destination = pathlib.Path(output)
+        try:
+            if destination.resolve() == self.shell_path.resolve():
+                messagebox.showerror(
+                    "Choose a different file name",
+                    "The completed document cannot overwrite its Word shell.",
+                    parent=self.window,
+                )
+                return
+            if destination.resolve() == self.template.path.resolve():
+                messagebox.showerror(
+                    "Choose a different file name",
+                    "The completed document cannot overwrite the temporary assembly.",
+                    parent=self.window,
+                )
+                return
+            destination.write_bytes(document_bytes)
+        except OSError as exc:
+            messagebox.showerror(
+                "Could not save the document", str(exc), parent=self.window
+            )
+            return
+        self.status.configure(
+            text=f"Created {destination.name} — filled {report.filled} placeholder(s).",
+            foreground="#1b6e2e",
+        )
+        messagebox.showinfo(
+            "Document created",
+            f"The completed document was saved to:\n{destination}",
+            parent=self.window,
+        )
+
+    def close(self):
+        try:
+            self.temporary_directory.cleanup()
+        finally:
+            self.window.destroy()
 
 
 def main():
