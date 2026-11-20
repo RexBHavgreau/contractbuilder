@@ -194,6 +194,7 @@ jobs:
             "--hidden-import", "library",
             "--hidden-import", "component_editor",
             "--hidden-import", "component_preview",
+            "--hidden-import", "assembly_builder",
             "--hidden-import", "docx_to_markdown",
             "simple_app.py"
           )

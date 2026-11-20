@@ -956,6 +956,9 @@ class ComponentEditorWindow:
         self.protected_content = False
         self.saved_snapshot = None
         self.suspend_selection = False
+        self.assembly_builder_window = None
+        self.save_button = None
+        self.history_button = None
         self._preview_after_id = None
         self.editor_markdown_mode = False
         self.source_view_variable = None
@@ -993,7 +996,7 @@ class ComponentEditorWindow:
         library_frame = ttk.LabelFrame(body, text="Saved components", padding=8)
         library_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         library_frame.columnconfigure(0, weight=1)
-        library_frame.rowconfigure(1, weight=1)
+        library_frame.rowconfigure(2, weight=1)
 
         search_row = ttk.Frame(library_frame)
         search_row.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 8))
@@ -1006,6 +1009,41 @@ class ComponentEditorWindow:
             search_row, text="Search", command=self.refresh_components
         ).grid(row=0, column=1, padx=(5, 0))
 
+        filter_row = ttk.Frame(library_frame)
+        filter_row.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 7))
+        self.category_filter_variable = tk.StringVar(
+            master=self.window, value="All categories"
+        )
+        self.tag_filter_variable = tk.StringVar(
+            master=self.window, value="All tags"
+        )
+        ttk.Label(filter_row, text="Category").grid(row=0, column=0, sticky="w")
+        self.category_filter = ttk.Combobox(
+            filter_row, textvariable=self.category_filter_variable,
+            state="readonly", width=13,
+        )
+        self.category_filter.grid(row=1, column=0, sticky="ew", padx=(0, 5))
+        self.category_filter.bind(
+            "<<ComboboxSelected>>", lambda _event: self.refresh_components()
+        )
+        ttk.Label(filter_row, text="Tag").grid(row=0, column=1, sticky="w")
+        self.tag_filter = ttk.Combobox(
+            filter_row, textvariable=self.tag_filter_variable,
+            state="readonly", width=12,
+        )
+        self.tag_filter.grid(row=1, column=1, sticky="ew", padx=(0, 5))
+        self.tag_filter.bind(
+            "<<ComboboxSelected>>", lambda _event: self.refresh_components()
+        )
+        self.show_archived_variable = tk.BooleanVar(master=self.window, value=False)
+        ttk.Checkbutton(
+            filter_row, text="Show archived",
+            variable=self.show_archived_variable,
+            command=self.refresh_components,
+        ).grid(row=1, column=2, sticky="w")
+        filter_row.columnconfigure(0, weight=1)
+        filter_row.columnconfigure(1, weight=1)
+
         self.tree = ttk.Treeview(
             library_frame, columns=("name", "category"), show="headings",
             selectmode="browse",
@@ -1014,17 +1052,27 @@ class ComponentEditorWindow:
         self.tree.heading("category", text="Category")
         self.tree.column("name", width=155, anchor="w")
         self.tree.column("category", width=115, anchor="w")
-        self.tree.grid(row=1, column=0, sticky="nsew")
+        self.tree.grid(row=2, column=0, sticky="nsew")
+        self.tree.tag_configure("archived", foreground="#777777")
         tree_scroll = ttk.Scrollbar(
             library_frame, orient="vertical", command=self.tree.yview
         )
-        tree_scroll.grid(row=1, column=1, sticky="ns")
+        tree_scroll.grid(row=2, column=1, sticky="ns")
         self.tree.configure(yscrollcommand=tree_scroll.set)
         self.tree.bind("<<TreeviewSelect>>", self.select_component)
 
+        library_actions = ttk.Frame(library_frame)
+        library_actions.grid(
+            row=3, column=0, columnspan=2, sticky="ew", pady=(8, 0)
+        )
         ttk.Button(
-            library_frame, text="New component", command=self.new_component
-        ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+            library_actions, text="New component", command=self.new_component
+        ).pack(side="left", fill="x", expand=True)
+        self.history_button = ttk.Button(
+            library_actions, text="Version history…",
+            command=self.open_version_history, state="disabled",
+        )
+        self.history_button.pack(side="left", padx=(6, 0))
 
         form = ttk.LabelFrame(body, text="Component details", padding=10)
         form.grid(row=0, column=1, sticky="nsew")
@@ -1165,8 +1213,12 @@ class ComponentEditorWindow:
         self.status.pack(side="left", fill="x", expand=True)
         ttk.Button(footer, text="Close", command=self.close).pack(side="right")
         ttk.Button(
-            footer, text="Save version", command=self.save_component
+            footer, text="Build assembly…", command=self.open_assembly_builder
         ).pack(side="right", padx=(0, 8))
+        self.save_button = ttk.Button(
+            footer, text="Save version", command=self.save_component
+        )
+        self.save_button.pack(side="right", padx=(0, 8))
 
     def _ensure_markdown_mode(self):
         """Convert a new plain-text draft once, then keep Markdown as the source of truth."""
@@ -1496,21 +1548,67 @@ class ComponentEditorWindow:
         return True
 
     def refresh_components(self, selected_id: int | None = None):
+        include_archived = bool(self.show_archived_variable.get())
+        all_components = self.library.list_components(
+            include_archived=include_archived
+        )
+
+        categories = sorted(
+            {item["category"].strip() for item in all_components if item["category"].strip()},
+            key=str.casefold,
+        )
+        tags = sorted(
+            {
+                str(tag).strip()
+                for item in all_components
+                for tag in item["tags"]
+                if str(tag).strip()
+            },
+            key=str.casefold,
+        )
+        category_values = ["All categories"] + categories
+        tag_values = ["All tags"] + tags
+        self.category_filter.configure(values=category_values)
+        self.tag_filter.configure(values=tag_values)
+        if self.category_filter_variable.get() not in category_values:
+            self.category_filter_variable.set("All categories")
+        if self.tag_filter_variable.get() not in tag_values:
+            self.tag_filter_variable.set("All tags")
+
         query = self.search_variable.get().strip()
         components = (
-            self.library.search_components(query)
+            self.library.search_components(
+                query, include_archived=include_archived
+            )
             if query
-            else self.library.list_components()
+            else all_components
         )
+        wanted_category = self.category_filter_variable.get()
+        wanted_tag = self.tag_filter_variable.get()
+        if wanted_category != "All categories":
+            components = [
+                item for item in components
+                if item["category"].casefold() == wanted_category.casefold()
+            ]
+        if wanted_tag != "All tags":
+            components = [
+                item for item in components
+                if wanted_tag.casefold() in {
+                    str(tag).casefold() for tag in item["tags"]
+                }
+            ]
+
         self.suspend_selection = True
         try:
             for item in self.tree.get_children():
                 self.tree.delete(item)
             for component in components:
                 item_id = str(component["id"])
+                row_tags = ("archived",) if component["status"] == "archived" else ()
                 self.tree.insert(
                     "", "end", iid=item_id,
                     values=(component["name"], component["category"]),
+                    tags=row_tags,
                 )
             target = str(selected_id) if selected_id is not None else None
             if target and self.tree.exists(target):
@@ -1523,6 +1621,11 @@ class ComponentEditorWindow:
                 self.tree.selection_set(str(self.current_component_id))
         finally:
             self.suspend_selection = False
+
+        if self.history_button is not None:
+            self.history_button.configure(
+                state="normal" if self.current_component_id is not None else "disabled"
+            )
 
     def select_component(self, _event=None):
         if self.suspend_selection:
@@ -1561,6 +1664,12 @@ class ComponentEditorWindow:
             return
         latest = versions[0]
         self.current_component_id = component_id
+        if self.history_button is not None:
+            self.history_button.configure(state="normal")
+        if self.save_button is not None:
+            self.save_button.configure(
+                state="disabled" if component["status"] == "archived" else "normal"
+            )
         self.loaded_markdown = latest["markdown"]
         self.loaded_plain_text = self.loaded_markdown
         self.editor_markdown_mode = True
@@ -1622,6 +1731,10 @@ class ComponentEditorWindow:
             finally:
                 self.suspend_selection = False
         self.status.configure(text="New component.")
+        if self.history_button is not None:
+            self.history_button.configure(state="disabled")
+        if self.save_button is not None:
+            self.save_button.configure(state="normal")
         self.name_entry_focus()
 
     def name_entry_focus(self):
@@ -1686,6 +1799,127 @@ class ComponentEditorWindow:
         version_number = result["version"]["number"]
         self.status.configure(text=f"Saved {name} · version {version_number}.")
         return True
+
+    def open_version_history(self):
+        """Show immutable wording versions for the currently selected component."""
+        if self.current_component_id is None:
+            return
+        component = self.library.get_component(self.current_component_id)
+        versions = self.library.list_component_versions(self.current_component_id)
+        if component is None or not versions:
+            messagebox.showinfo(
+                "No version history",
+                "This component has no saved wording versions.",
+                parent=self.window,
+            )
+            return
+
+        dialog = tk.Toplevel(self.window)
+        dialog.title(f"Version history · {component['name']}")
+        dialog.geometry("760x560")
+        dialog.minsize(560, 400)
+        dialog.transient(self.window)
+        dialog.columnconfigure(0, weight=1)
+        dialog.rowconfigure(1, weight=1)
+
+        ttk.Label(
+            dialog,
+            text="Saved wording is read-only. Each version remains available to assemblies that use it.",
+            wraplength=720,
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(12, 8))
+
+        body = ttk.Frame(dialog, padding=(12, 0, 12, 8))
+        body.grid(row=1, column=0, sticky="nsew")
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=3)
+        body.rowconfigure(0, weight=1)
+        history = ttk.Treeview(
+            body, columns=("version", "date", "note"), show="headings",
+            selectmode="browse",
+        )
+        history.heading("version", text="Version")
+        history.heading("date", text="Saved")
+        history.heading("note", text="Version note")
+        history.column("version", width=60, anchor="center", stretch=False)
+        history.column("date", width=120, anchor="w", stretch=False)
+        history.column("note", width=170, anchor="w")
+        history.grid(row=0, column=0, sticky="nsew")
+        history_scroll = ttk.Scrollbar(body, orient="vertical", command=history.yview)
+        history_scroll.grid(row=0, column=0, sticky="nse")
+        history.configure(yscrollcommand=history_scroll.set)
+
+        detail = ttk.LabelFrame(body, text="Saved wording", padding=7)
+        detail.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        detail.columnconfigure(0, weight=1)
+        detail.rowconfigure(1, weight=1)
+        detail_info = ttk.Label(detail, text="", wraplength=430)
+        detail_info.grid(row=0, column=0, sticky="w", pady=(0, 6))
+        wording = tk.Text(detail, wrap="word", state="disabled", padx=7, pady=6)
+        wording.grid(row=1, column=0, sticky="nsew")
+        wording_scroll = ttk.Scrollbar(detail, orient="vertical", command=wording.yview)
+        wording_scroll.grid(row=1, column=1, sticky="ns")
+        wording.configure(yscrollcommand=wording_scroll.set)
+
+        by_id = {str(version["id"]): version for version in versions}
+        for version in versions:
+            history.insert(
+                "", "end", iid=str(version["id"]),
+                values=(
+                    f"v{version['number']}",
+                    str(version["created"])[:10],
+                    version["note"] or "",
+                ),
+            )
+
+        def show_version(_event=None):
+            selected = history.selection()
+            if not selected:
+                return
+            version = by_id.get(selected[0])
+            if version is None:
+                return
+            detail_info.configure(
+                text=f"Version {version['number']} · {version['created']}"
+                + (f" · {version['note']}" if version["note"] else "")
+            )
+            wording.configure(state="normal")
+            wording.delete("1.0", "end")
+            wording.insert("1.0", version["markdown"])
+            wording.configure(state="disabled")
+
+        history.bind("<<TreeviewSelect>>", show_version)
+        if versions:
+            history.selection_set(str(versions[0]["id"]))
+            show_version()
+
+        ttk.Button(dialog, text="Close", command=dialog.destroy).grid(
+            row=2, column=0, sticky="e", padx=12, pady=(0, 12)
+        )
+
+    def open_assembly_builder(self):
+        """Open the separate assembly workflow after resolving editor changes."""
+        was_dirty = self._has_unsaved_changes()
+        if not self._confirm_pending_changes("opening the assembly builder"):
+            return
+        if was_dirty and self._has_unsaved_changes():
+            # The user chose to discard. Reload the saved wording so the
+            # assembly builder cannot appear to include an unsaved draft.
+            if self.current_component_id is None:
+                self.new_component(prompt=False)
+            else:
+                self._load_component(self.current_component_id)
+        try:
+            from assembly_builder import AssemblyBuilderWindow
+
+            self.assembly_builder_window = AssemblyBuilderWindow(
+                self.window, self.library
+            )
+        except (ImportError, OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
+            messagebox.showerror(
+                "Assembly builder unavailable",
+                f"Could not open the assembly builder.\n\n{exc}",
+                parent=self.window,
+            )
 
     def close(self):
         if not self._confirm_pending_changes("closing the Components window"):
