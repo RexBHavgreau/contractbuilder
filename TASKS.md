@@ -836,17 +836,18 @@ publisher profiles are untouched.
 
 #### T-021-B Components and immutable versions
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #30](https://github.com/RexBHavgreau/contractbuilder/pull/30))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-A
 
-- [ ] Tables `components` (id, name, description, category, tags, status)
+- [x] Tables `components` (id, name, description, category, tags, status)
       and `component_versions` (id, component_id, number, markdown, created,
       note)
-- [ ] Saving an edit always creates a new version; a version's Markdown is
-      never updated (enforce with a trigger and test it)
-- [ ] Categories and tags are free text; suggested categories are only
+- [x] Saving an edit always creates a new version; a version's Markdown is
+      never updated (SQLite triggers reject updates/deletes; the API inserts
+      the next number in a `BEGIN IMMEDIATE` transaction)
+- [x] Categories and tags are free text; suggested categories are only
       suggestions
 
 #### T-021-C Assemblies and revisions
