@@ -57,7 +57,7 @@ def _inline_segments(tokens: Iterable[object], styles: Sequence[str] = ()) -> li
         elif kind == "em_close":
             italic = False
         elif kind == "code_inline":
-            _append(result, content, *styles, "code")
+            result.extend(_field_aware_segments(content, (*styles, "code")))
         elif kind == "link_open":
             link = True
         elif kind == "link_close":
