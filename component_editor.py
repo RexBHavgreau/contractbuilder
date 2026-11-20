@@ -1585,7 +1585,8 @@ class ComponentEditorWindow:
             for column_index, (name, _requested_width) in enumerate(row):
                 self.toolbar_button_widgets[name].grid(
                     row=row_index, column=column_index, sticky="w",
-                    padx=(0, 4), pady=(0, 2),
+                    padx=(0, 4 if column_index < len(row) - 1 else 0),
+                    pady=(0, 2),
                 )
         for column_index in range(max((len(row) for row in rows), default=0)):
             self.toolbar.columnconfigure(column_index, weight=0)
