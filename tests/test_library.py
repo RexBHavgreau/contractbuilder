@@ -143,7 +143,7 @@ def test_archiving_preserves_pinned_component_wording_and_prevents_deletion(tmp_
         # records or wording still needed by the assembly revision.
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute("DELETE FROM components WHERE id = ?", (component_id,))
-        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+        with pytest.raises(sqlite3.IntegrityError, match="cannot be deleted"):
             connection.execute(
                 "DELETE FROM component_versions WHERE id = ?", (version_id,)
             )
