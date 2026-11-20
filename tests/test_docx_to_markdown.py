@@ -491,6 +491,16 @@ def test_supported_docx_markdown_docx_round_trip_is_stable(tmp_path):
     assert "1. Second clause" in imported.markdown
     assert "- Bullet clause" in imported.markdown
     assert "| Payment | Within thirty days |" in imported.markdown
+    ordered_parts = (
+        "## Service terms",
+        "The provider will act",
+        "1. First clause",
+        "1. Second clause",
+        "- Bullet clause",
+        "| Term | Value |",
+    )
+    positions = [imported.markdown.index(part) for part in ordered_parts]
+    assert positions == sorted(positions)
 
     shell = Document()
     shell.sections[0].header.paragraphs[0].text = "Invented shell header"
