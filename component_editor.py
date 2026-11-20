@@ -594,7 +594,7 @@ class TableEditorDialog:
             ttk.Button(row_buttons, text=label, command=command).pack(side="left", padx=(0, 5))
         footer = ttk.Frame(outer)
         footer.pack(fill="x", pady=(12, 0))
-        ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
+        ttk.Button(footer, text="Cancel", command=self.close).pack(side="right")
         ttk.Button(footer, text="Use table", command=self.save).pack(side="right", padx=(0, 8))
         self.window.grab_set()
 
@@ -826,8 +826,18 @@ class ImportReviewDialog:
         self._preview_after_id = None
         self._style_source()
         self._update_preview()
-        self.window.protocol("WM_DELETE_WINDOW", self.window.destroy)
+        self.window.protocol("WM_DELETE_WINDOW", self.close)
+        self.source.edit_modified(False)
         self.window.grab_set()
+
+    def close(self):
+        if self._preview_after_id is not None:
+            try:
+                self.window.after_cancel(self._preview_after_id)
+            except tk.TclError:
+                pass
+            self._preview_after_id = None
+        self.window.destroy()
 
     def _configure_preview(self):
         self.preview.tag_configure("heading_1", font=("TkDefaultFont", 16, "bold"))
