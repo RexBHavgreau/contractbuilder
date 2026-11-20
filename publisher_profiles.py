@@ -691,10 +691,26 @@ class PublisherProfileStore:
                 _backup_database(connection, self.path, version)
                 connection.execute("BEGIN IMMEDIATE")
                 try:
-                    for target in range(version + 1, SCHEMA_VERSION + 1):
-                        _MIGRATIONS[target](connection)
-                        _set_schema_version(connection, target)
-                    _verify_database(connection, SCHEMA_VERSION)
+                    # Another app instance may have completed the same upgrade
+                    # while this one was creating or checking the backup. Read
+                    # the version again after obtaining the write lock so no
+                    # migration is applied twice.
+                    locked_version = int(
+                        connection.execute("PRAGMA user_version").fetchone()[0]
+                    )
+                    if locked_version < version:
+                        raise sqlite3.DatabaseError(
+                            "The database schema version changed unexpectedly during upgrade."
+                        )
+                    if locked_version > SCHEMA_VERSION:
+                        # A newer app won the race. Leave its tables and
+                        # version marker alone.
+                        _verify_database(connection, expected_version=None)
+                    else:
+                        for target in range(locked_version + 1, SCHEMA_VERSION + 1):
+                            _MIGRATIONS[target](connection)
+                            _set_schema_version(connection, target)
+                        _verify_database(connection, SCHEMA_VERSION)
                     connection.commit()
                 except Exception:
                     connection.rollback()

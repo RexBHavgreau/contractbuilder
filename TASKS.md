@@ -103,8 +103,10 @@ Suggested order: the update and release group (T-010 to T-015, T-017) is
 done. T-002 passed (2026-11-19) apart from an install error message that
 Beaux will describe in T-034. For the component
 builder: Beaux decides T-033 (numbering continuity), which gates the last
-item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
-and T-019-H (measured in CI run #166) are done. T-019-D still waits on
+item of T-019-D. Meanwhile, T-020-B to T-020-D (importer) are done. T-021-A (schema
+versioning) is done in [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29);
+T-021-B is next after that PR merges. T-019-H was measured in CI run #166.
+T-019-D still waits on
 Beaux's T-033 numbering decision; after that decision, T-019-D and T-030's
 real-Word numbering check remain before T-019 can be closed. Then T-020-F
 (round trip), T-022, T-023, T-024; T-029 and T-031 last.
