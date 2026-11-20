@@ -244,6 +244,7 @@ def test_v2_migration_creates_components_and_immutable_versions(tmp_path, monkey
     assert upgraded.get_profile(publisher_id) == publishers_before[0]
 
     with sqlite3.connect(path) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
         component_columns = {
             row[1] for row in connection.execute("PRAGMA table_info(components)")
         }
@@ -294,6 +295,19 @@ def test_v2_migration_creates_components_and_immutable_versions(tmp_path, monkey
             (1, "Payment is due within {{Payment Period}}."),
             (2, "Payment is due within {{Due Date}}."),
         ]
+
+        with pytest.raises(sqlite3.IntegrityError, match="UNIQUE"):
+            connection.execute(
+                "INSERT INTO component_versions "
+                "(component_id, number, markdown, created, note) VALUES (?, 2, ?, ?, ?)",
+                (component_id, "Duplicate revision.", "2026-11-20T16:02:00+00:00", ""),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+            connection.execute(
+                "INSERT INTO component_versions "
+                "(component_id, number, markdown, created, note) VALUES (?, 1, ?, ?, ?)",
+                (999999, "Orphaned revision.", "2026-11-20T16:02:00+00:00", ""),
+            )
 
     backup_path = pathlib.Path(str(path) + ".bak-1")
     assert backup_path.is_file()
