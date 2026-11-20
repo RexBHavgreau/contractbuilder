@@ -193,6 +193,7 @@ jobs:
             "--hidden-import", "docx_compose",
             "--hidden-import", "library",
             "--hidden-import", "component_editor",
+            "--hidden-import", "component_preview",
             "simple_app.py"
           )
           python @arguments
