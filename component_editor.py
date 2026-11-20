@@ -158,7 +158,9 @@ def make_field_placeholder(name: str, format_name: str = "", options: str = "") 
         if format_name in {"choice", "plural"}:
             clean_options = str(options or "").strip()
             if not clean_options:
-                raise ValueError("Enter the wording options for this field format.")
+                if format_name == "choice":
+                    raise ValueError("A choice field needs at least one option.")
+                raise ValueError("A singular-or-plural field needs two wordings.")
             expression += ": " + clean_options
     parsed_name, parsed_format, parsed_options = core.parse_field(expression)
     if not parsed_name:
