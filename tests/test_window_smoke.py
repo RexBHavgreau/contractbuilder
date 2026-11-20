@@ -65,7 +65,7 @@ def test_component_and_assembly_windows_work_under_a_virtual_display(
             editor._layout_toolbar(force=True)
             root.update()
             assert all(
-                widget.winfo_manager() == "grid"
+                widget.winfo_manager() == "place"
                 for widget in editor.toolbar_button_widgets.values()
             )
             overflow = [
@@ -73,7 +73,7 @@ def test_component_and_assembly_windows_work_under_a_virtual_display(
                     name, widget.winfo_rootx(), widget.winfo_width(),
                     widget.winfo_rootx() + widget.winfo_width(),
                     editor.toolbar.winfo_rootx(), editor.toolbar.winfo_width(),
-                    widget.grid_info().get("row"), widget.grid_info().get("column"),
+                    widget.place_info().get("y"), widget.place_info().get("x"),
                     widget.winfo_reqwidth(),
                 )
                 for name, widget in editor.toolbar_button_widgets.items()
@@ -85,13 +85,13 @@ def test_component_and_assembly_windows_work_under_a_virtual_display(
                 [
                     (
                         name, widget.winfo_reqwidth(), widget.winfo_width(),
-                        widget.grid_info().get("row"), widget.grid_info().get("column"),
+                        widget.place_info().get("y"), widget.place_info().get("x"),
                     )
                     for name, widget in editor.toolbar_button_widgets.items()
                 ],
             )
         assert len({
-            int(widget.grid_info()["row"])
+            int(widget.place_info()["y"])
             for widget in editor.toolbar_button_widgets.values()
         }) > 1
 

@@ -1579,17 +1579,26 @@ class ComponentEditorWindow:
             for group in self.toolbar_groups
         ]
         rows = wrap_toolbar_groups(groups, available, gap=4)
+        # Use place within each row. Tk grid columns are shared across rows;
+        # a wide control in one row otherwise shifts every later row's controls.
         for widget in self.toolbar_button_widgets.values():
             widget.grid_forget()
-        for row_index, row in enumerate(rows):
-            for column_index, (name, _requested_width) in enumerate(row):
-                self.toolbar_button_widgets[name].grid(
-                    row=row_index, column=column_index, sticky="w",
-                    padx=(0, 4 if column_index < len(row) - 1 else 0),
-                    pady=(0, 2),
-                )
-        for column_index in range(max((len(row) for row in rows), default=0)):
-            self.toolbar.columnconfigure(column_index, weight=0)
+            widget.place_forget()
+
+        y = 0
+        for row in rows:
+            x = 0
+            row_height = 0
+            for name, requested_width in row:
+                widget = self.toolbar_button_widgets[name]
+                requested_height = widget.winfo_reqheight()
+                widget.place(x=x, y=y)
+                x += requested_width + 4
+                row_height = max(row_height, requested_height)
+            y += row_height + 2
+
+        self.toolbar.grid_propagate(False)
+        self.toolbar.configure(height=max(1, y))
 
     def _update_toolbar_state(self, _event=None):
         """Keep pressed controls in step with the wording at the cursor or selection."""
