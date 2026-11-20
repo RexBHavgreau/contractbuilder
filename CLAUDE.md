@@ -131,6 +131,14 @@ trace.
 
 Newest last. Each entry: date, decision, why, consequences. (Some entries from 2026-11-18 sit above the older ones and are not bolded; the order is not strictly chronological.)
 
+- **2026-11-20 — Extend the existing publisher database in place.** The
+  existing publisher schema is version 1; `PRAGMA user_version = 0` is
+  recognized as that legacy layout and stamped version 1. Later schema
+  changes use ordered transactional migrations with a verified SQLite
+  backup named for the old version. An older app may keep using publisher
+  profiles in a newer database, but must not downgrade the version or alter
+  unknown tables. This avoids a second database and preserves existing data.
+
 - **2026-11-18 — Public update checks do not require a token.** The per-user token field remains optional for users who frequently hit GitHub's unauthenticated API limit. A 404 without a token means no release is published yet or the repository has moved; it does not prompt users to configure credentials.
 
 
@@ -363,9 +371,14 @@ runs.
   a future explicit feature. T-030 still requires a real-Word check on
   Windows and macOS if available.
 
+
+- **2026-11-20 — SQLite schema upgrades are versioned and recoverable (T-021-A).** Keep `publisher_profiles.sqlite3` as the shared database. Its existing publisher layout is schema version 1; an existing database whose `PRAGMA user_version` is still zero is treated as that v1 layout, not as an empty database. Each later schema change is an ordered migration run inside one SQLite transaction. Before the first attempt to leave a version, create one verified snapshot named `<database filename>.bak-<old version>` with SQLite's backup API (so committed WAL data is included); never replace that backup. Keep it for recovery after success. A failed migration rolls back the schema changes and version marker. The migration rereads the version after acquiring its write lock, so two app instances cannot apply the same step twice. An older app may continue using the publisher table in a newer database, but must leave the newer schema version and unknown tables untouched.
+
 ## Progress log
 
 Newest last.
+
+- **2026-11-20** T-021-A (ChatGPT, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)): added schema-versioned, transactional SQLite upgrades with verified per-version backups, publisher-data preservation, rollback coverage, a version recheck under the write lock and older-app compatibility. CI run #177 passed all 210 tests and built Windows x64, macOS Intel and macOS Apple Silicon; the component-stack Windows build measured 17,967,780 bytes (17.14 MiB), leaving 12.86 MiB under the 30 MiB limit.
 
 - **2026-11-19** T-019-D and T-033 (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): Beaux chose continuous clause numbering across the assembled contract. The composer now remaps all ordered lists across all components to one shared native Word numbering instance, while retaining the shell's multi-level decimal outline and separate bullet-list instances. Regression coverage checks continuity across separate lists, component boundaries, intervening paragraphs and tables. T-019 is complete; real-Word verification remains T-030.
 

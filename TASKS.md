@@ -83,7 +83,11 @@ composer. Next free number: **T-035**.
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
 | [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
-| ↳ T-021-A to T-021-E | Schema version and backup; components and versions; assemblies; archive; storage module | open | careful | in order |
+| ↳ [T-021-A](#t-021-a-schema-version-and-safe-upgrade) | Schema version and safe upgrade | done (2026-11-20, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)) | careful | — |
+| ↳ [T-021-B](#t-021-b-components-and-immutable-versions) | Components and immutable versions | open | careful | T-021-A |
+| ↳ [T-021-C](#t-021-c-assemblies-and-revisions) | Assemblies and revisions | open | careful | T-021-B |
+| ↳ [T-021-D](#t-021-d-archive-instead-of-delete) | Archive instead of delete | open | careful | T-021-B, T-021-C |
+| ↳ [T-021-E](#t-021-e-storage-module-and-tests) | Storage module and tests | open | any | T-021-B, T-021-C, T-021-D |
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
 | ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
 | [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
@@ -99,8 +103,10 @@ Suggested order: the update and release group (T-010 to T-015, T-017) is
 done. T-002 passed (2026-11-19) apart from an install error message that
 Beaux will describe in T-034. For the component
 builder: Beaux decides T-033 (numbering continuity), which gates the last
-item of T-019-D. Meanwhile, T-020-B to T-020-D (importer), T-021 (storage)
-and T-019-H (measured in CI run #166) are done. T-019-D still waits on
+item of T-019-D. Meanwhile, T-020-B to T-020-D (importer) are done. T-021-A (schema
+versioning) is done in [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29);
+T-021-B is next after that PR merges. T-019-H was measured in CI run #166.
+T-019-D still waits on
 Beaux's T-033 numbering decision; after that decision, T-019-D and T-030's
 real-Word numbering check remain before T-019 can be closed. Then T-020-F
 (round trip), T-022, T-023, T-024; T-029 and T-031 last.
@@ -807,27 +813,27 @@ warning, and the warning text is plain English.
 See PROPOSAL-001.md section 9. **Choice made here:** extend the existing
 `publisher_profiles.sqlite3` with new tables; do not rename or move it. No
 user data migration is then needed. Add a schema version
-(`PRAGMA user_version`) so later changes are safe. Beaux to confirm when
-claiming the task.
+(`PRAGMA user_version`) so later changes are safe. Beaux confirmed this
+direction on 2026-11-20 when T-021-A was claimed.
 
 **Done when:** the new tables exist, are tested, and an existing user's
 publisher profiles are untouched.
 
 #### T-021-A Schema version and safe upgrade
 
-- **Status:** open
+- **Status:** done (2026-11-20, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29))
 - **Size:** S
 - **Agent:** careful
 - **Needs:** —
 
-- [ ] Add `PRAGMA user_version`; a database with no version is version 1
+- [x] Add `PRAGMA user_version`; a database with no version is version 1
       (today's publisher schema)
-- [ ] Upgrade steps run in a transaction, after copying the file to
+- [x] Upgrade steps run in a transaction, after copying the file to
       `publisher_profiles.sqlite3.bak-<version>` once; the backup is kept
       until the upgrade has succeeded and been checked
-- [ ] Test: a database made by the current code upgrades and its publishers
+- [x] Test: a database made by the current code upgrades and its publishers
       are identical; a failed step leaves the original unchanged
-- [ ] Test: an older app opening an upgraded database does not damage it
+- [x] Test: an older app opening an upgraded database does not damage it
       (extra tables are ignored)
 
 #### T-021-B Components and immutable versions
