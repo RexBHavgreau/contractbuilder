@@ -178,6 +178,51 @@ def test_archive_and_restore_return_false_for_missing_records(tmp_path):
     assert library.archive_assembly(404) is False
     assert library.restore_assembly(404) is False
 
+
+
+def test_save_component_updates_metadata_and_adds_a_version_atomically(tmp_path):
+    library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+    first = library.save_component(
+        None,
+        "Payment terms",
+        "Payment is due within thirty days.",
+        description="Payment timing",
+        category="Commercial",
+        tags=["billing", "initial"],
+        note="First version",
+    )
+    component_id = first["component_id"]
+    assert first["is_new"] is True
+    assert first["version"]["number"] == 1
+
+    second = library.save_component(
+        component_id,
+        "Payment and late fees",
+        "Payment is due within fifteen days.",
+        description="Updated payment timing",
+        category="Commercial terms",
+        tags=["billing", "late payment"],
+        note="Shortened the deadline",
+    )
+    assert second["is_new"] is False
+    assert second["version"]["number"] == 2
+    component = library.get_component(component_id)
+    assert component["name"] == "Payment and late fees"
+    assert component["description"] == "Updated payment timing"
+    assert component["category"] == "Commercial terms"
+    assert component["tags"] == ["billing", "late payment"]
+    versions = library.list_component_versions(component_id)
+    assert [item["number"] for item in versions] == [2, 1]
+    assert versions[1]["markdown"] == "Payment is due within thirty days."
+
+    with pytest.raises(TypeError, match="wording must be text"):
+        library.save_component(
+            component_id, "Should not persist", None, category="Changed"
+        )
+    assert library.get_component(component_id)["name"] == "Payment and late fees"
+    assert [item["number"] for item in library.list_component_versions(component_id)] == [2, 1]
+
+
 def test_component_creation_and_version_saving_validate_inputs(tmp_path):
     library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
 

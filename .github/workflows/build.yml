@@ -192,6 +192,7 @@ jobs:
             "--hidden-import", "md_to_word",
             "--hidden-import", "docx_compose",
             "--hidden-import", "library",
+            "--hidden-import", "component_editor",
             "simple_app.py"
           )
           python @arguments
@@ -214,7 +215,7 @@ jobs:
           | Build | Bytes | MiB |
           | --- | ---: | ---: |
           | Current application (without component modules) | $withoutBytes | $([math]::Round($withoutBytes / $mib, 2)) |
-          | Same application with Markdown-to-Word modules included | $withBytes | $([math]::Round($withBytes / $mib, 2)) |
+          | Same application with component editor and document modules included | $withBytes | $([math]::Round($withBytes / $mib, 2)) |
           | Additional bundled size | $deltaBytes | $([math]::Round($deltaBytes / $mib, 2)) |
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 

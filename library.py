@@ -142,6 +142,72 @@ class ComponentLibrary:
             self._insert_version(connection, component_id, markdown, note)
             return component_id
 
+
+    def save_component(
+        self,
+        component_id: int | None,
+        name: str,
+        markdown: str,
+        description: str = "",
+        category: str = "",
+        tags: Sequence[str] | None = None,
+        note: str = "",
+    ) -> dict:
+        """Atomically save component metadata and one new immutable wording version."""
+        clean_name = str(name or "").strip()
+        if not clean_name:
+            raise ValueError("Enter a component name.")
+        if not isinstance(markdown, str):
+            raise TypeError("Component wording must be text.")
+
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            is_new = component_id is None
+            if is_new:
+                cursor = connection.execute(
+                    "INSERT INTO components (name, description, category, tags, status) "
+                    "VALUES (?, ?, ?, ?, 'active')",
+                    (
+                        clean_name,
+                        str(description or "").strip(),
+                        str(category or "").strip(),
+                        _tags_json(tags),
+                    ),
+                )
+                saved_id = int(cursor.lastrowid)
+            else:
+                saved_id = int(component_id)
+                existing = connection.execute(
+                    "SELECT status FROM components WHERE id = ?", (saved_id,)
+                ).fetchone()
+                if existing is None:
+                    raise ValueError("That component no longer exists.")
+                if existing["status"] != "active":
+                    raise ValueError("Restore the archived component before saving a new version.")
+                connection.execute(
+                    """
+                    UPDATE components
+                    SET name = ?, description = ?, category = ?, tags = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        clean_name,
+                        str(description or "").strip(),
+                        str(category or "").strip(),
+                        _tags_json(tags),
+                        saved_id,
+                    ),
+                )
+
+            version = self._insert_version(
+                connection, saved_id, markdown, note
+            )
+            return {
+                "component_id": saved_id,
+                "version": version,
+                "is_new": is_new,
+            }
+
     def get_component(self, component_id: int) -> dict | None:
         with self._connection() as connection:
             row = connection.execute(

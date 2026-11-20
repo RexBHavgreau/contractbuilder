@@ -383,6 +383,7 @@ class WordTemplateFiller:
         self.publisher_store = None
         self.publisher_store_error = None
         self.publisher_profile_ids = {}
+        self.component_editor_window = None
         try:
             self.publisher_store = PublisherProfileStore()
         except (OSError, sqlite3.Error) as exc:
@@ -401,6 +402,12 @@ class WordTemplateFiller:
             label="Manage publisher profiles…", command=self.manage_publisher_profiles
         )
         menu.add_cascade(label="Publishers", menu=publisher_menu)
+
+        component_menu = tk.Menu(menu, tearoff=False)
+        component_menu.add_command(
+            label="Manage components…", command=self.manage_components
+        )
+        menu.add_cascade(label="Components", menu=component_menu)
 
         help_menu = tk.Menu(menu, tearoff=False)
         help_menu.add_command(label="User instructions", command=self.show_user_guide)
@@ -588,6 +595,35 @@ class WordTemplateFiller:
         self.publisher_combo.configure(values=names, state="readonly" if names else "disabled")
         self.load_publisher_button.configure(state="normal" if names else "disabled")
         self.publisher_variable.set("")
+
+    def manage_components(self):
+        """Open the component manager without loading it during app startup."""
+        if self.component_editor_window is not None:
+            try:
+                if self.component_editor_window.window.winfo_exists():
+                    self.component_editor_window.window.lift()
+                    self.component_editor_window.window.focus_set()
+                    return
+            except tk.TclError:
+                self.component_editor_window = None
+        try:
+            # Keep the editor module out of the template workflow's import
+            # path; it is loaded only when the user opens Components.
+            from component_editor import ComponentEditorWindow
+
+            self.component_editor_window = ComponentEditorWindow(
+                self.root, on_close=self._component_editor_closed
+            )
+        except (OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
+            self.component_editor_window = None
+            messagebox.showerror(
+                "Components unavailable",
+                f"Could not open the component library.\n\n{exc}",
+                parent=self.root,
+            )
+
+    def _component_editor_closed(self):
+        self.component_editor_window = None
 
     def manage_publisher_profiles(self):
         if self.publisher_store is None:
