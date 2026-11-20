@@ -113,6 +113,72 @@ def markdown_to_plain_text(markdown: str) -> str:
 
 
 
+def format_markdown_block(
+    markdown: str,
+    action: str,
+    level: int = 2,
+    previous_text: str = "",
+) -> str:
+    """Apply a block toolbar operation to Markdown lines without touching prose."""
+    if action not in {"heading", "bullet", "numbered", "indent", "outdent"}:
+        raise ValueError(f"Unsupported block-format action: {action}")
+    lines = str(markdown or "").splitlines()
+    if not lines:
+        return ""
+
+    marker = re.compile(r"^([ \t]*)(?:[-+*]|\d{1,4}\.)[ \t]+(.*)$")
+    numbered = re.compile(r"^([ \t]*)(\d{1,4}\.)[ \t]+(.*)$")
+
+    if action == "indent":
+        first = next((line for line in lines if line.strip()), "")
+        first_match = numbered.match(first)
+        if first_match is None:
+            return markdown
+        previous = next(
+            (line for line in reversed(str(previous_text).splitlines()) if line.strip()),
+            "",
+        )
+        previous_match = numbered.match(previous)
+        if previous_match is None:
+            return markdown
+        current_depth = len(first_match.group(1).expandtabs(4))
+        parent_depth = len(previous_match.group(1).expandtabs(4))
+        if parent_depth > current_depth:
+            return markdown
+
+    result = []
+    for line in lines:
+        if not line.strip():
+            result.append(line)
+            continue
+        match = marker.match(line)
+        if action == "heading":
+            indent = re.match(r"^[ \t]*", line).group(0)
+            content = line[len(indent):]
+            content = re.sub(r"^#{1,3}[ \t]+", "", content)
+            result.append(indent + "#" * max(1, min(3, int(level))) + " " + content)
+        elif action in {"bullet", "numbered"}:
+            indent = re.match(r"^[ \t]*", line).group(0)
+            content = match.group(2) if match else line[len(indent):]
+            prefix = "- " if action == "bullet" else "1. "
+            result.append(indent + prefix + content)
+        elif action == "indent":
+            item = numbered.match(line)
+            if item:
+                depth = len(item.group(1).expandtabs(4)) + 4
+                result.append(" " * depth + "1. " + item.group(3))
+            else:
+                result.append(line)
+        else:  # outdent
+            item = numbered.match(line)
+            if item:
+                depth = max(0, len(item.group(1).expandtabs(4)) - 4)
+                result.append(" " * depth + "1. " + item.group(3))
+            else:
+                result.append(line)
+    return "\n".join(result)
+
+
 _PROFILE_FIELD_NAMES = {
     "publisher_name": "Publisher Name",
     "contact_name": "Contact Name",
@@ -1167,45 +1233,11 @@ class ComponentEditorWindow:
                 first = widget.index("insert linestart")
                 last = widget.index("insert lineend")
             block = widget.get(first, last)
-            lines = block.splitlines()
-            if not lines:
-                return "break"
-
-            def remove_marker(line):
-                return re.sub(r"^([ \t]*)(?:[-+*]|\d{1,4}\.)[ \t]+", r"\1", line)
-
-            transformed = []
-            for line in lines:
-                if not line.strip():
-                    transformed.append(line)
-                    continue
-                indent = re.match(r"^[ \t]*", line).group(0)
-                content = line[len(indent):]
-                if action == "heading":
-                    content = re.sub(r"^#{1,3}[ \t]+", "", content)
-                    content = "#" * max(1, min(3, int(level))) + " " + content
-                elif action == "bullet":
-                    transformed.append(indent + "- " + remove_marker(content))
-                    continue
-                elif action == "numbered":
-                    transformed.append(indent + "1. " + remove_marker(content))
-                    continue
-                elif action in {"indent", "outdent"}:
-                    match = re.match(r"^(\d{1,4}\.)[ \t]+(.*)$", content)
-                    if match:
-                        if action == "indent":
-                            indent += "    "
-                        else:
-                            indent = indent[4:] if indent.startswith("    ") else ""
-                        transformed.append(indent + "1. " + match.group(2))
-                        continue
-                    transformed.append(line)
-                    continue
-                transformed.append(indent + content)
-            replacement = "\n".join(transformed)
+            previous_text = widget.get("1.0", first)
+            replacement = format_markdown_block(block, action, level, previous_text)
             widget.delete(first, last)
             widget.insert(first, replacement)
-            widget.mark_set("insert", widget.index(f"{first} + {len(replacement)} chars"))
+
         self._refresh_editor_styling()
         self._schedule_preview()
         widget.focus_set()
