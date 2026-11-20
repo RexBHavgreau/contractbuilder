@@ -88,6 +88,7 @@ class AssemblyBuilderWindow:
         self._build_widgets()
         self._populate_library()
         self._load_last_shell()
+        self.saved_snapshot = self._snapshot()
         self._refresh_preview()
 
     def _build_widgets(self):
@@ -533,8 +534,8 @@ class AssemblyBuilderWindow:
                 parent=self.window,
             )
             return False
-        shell_text = self.shell_variable.get().strip()
-        if not self.shell_digest or shell_text == "No shell chosen":
+        shell_text = self.shell_variable.get()
+        if not self.shell_digest or not shell_text or shell_text == "No shell chosen":
             messagebox.showerror(
                 "Choose a shell first",
                 "Choose a usable Word shell before saving the assembly.",

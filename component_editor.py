@@ -1831,7 +1831,8 @@ class ComponentEditorWindow:
         body = ttk.Frame(dialog, padding=(12, 0, 12, 8))
         body.grid(row=1, column=0, sticky="nsew")
         body.columnconfigure(0, weight=1)
-        body.columnconfigure(1, weight=3)
+        body.columnconfigure(1, weight=0)
+        body.columnconfigure(2, weight=3)
         body.rowconfigure(0, weight=1)
         history = ttk.Treeview(
             body, columns=("version", "date", "note"), show="headings",
@@ -1845,11 +1846,11 @@ class ComponentEditorWindow:
         history.column("note", width=170, anchor="w")
         history.grid(row=0, column=0, sticky="nsew")
         history_scroll = ttk.Scrollbar(body, orient="vertical", command=history.yview)
-        history_scroll.grid(row=0, column=0, sticky="nse")
+        history_scroll.grid(row=0, column=1, sticky="ns")
         history.configure(yscrollcommand=history_scroll.set)
 
         detail = ttk.LabelFrame(body, text="Saved wording", padding=7)
-        detail.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
+        detail.grid(row=0, column=2, sticky="nsew", padx=(10, 0))
         detail.columnconfigure(0, weight=1)
         detail.rowconfigure(1, weight=1)
         detail_info = ttk.Label(detail, text="", wraplength=430)
