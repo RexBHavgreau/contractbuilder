@@ -128,5 +128,9 @@ Fields (bullets directly under the `# T-NNN title` heading of the file):
   or another task
 - **Touches:** the files (or modules) the task will change, from T-055; two
   claimed tasks that share a file are done one after the other
+- **Schema migrations** are numbered in merge order: only one open task adds
+  a migration at a time, so a second one never renumbers on top of the first
+  (T-043-A, then T-046-C...). `scripts/overlaps.py` reads the Touches fields
+  of the task files and lists tasks that share one.
 - **Size gate:** present on any task that adds code, a dependency or a bundled
   file; see "Size gate" above. It is part of that task's `Done when`
