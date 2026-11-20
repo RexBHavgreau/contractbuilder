@@ -387,6 +387,34 @@ def _migrate_assemblies_and_revisions(connection: sqlite3.Connection) -> None:
         END
         """
     )
+    # Keep referential safety even for SQLite connections that have not
+    # enabled PRAGMA foreign_keys. Archived history is never hard-deleted.
+    connection.execute(
+        """
+        CREATE TRIGGER components_prevent_delete_with_history
+        BEFORE DELETE ON components
+        WHEN EXISTS (
+            SELECT 1 FROM component_versions
+            WHERE component_id = OLD.id
+        )
+        BEGIN
+            SELECT RAISE(ABORT, 'components with versions cannot be deleted');
+        END
+        """
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER assemblies_prevent_delete_with_revisions
+        BEFORE DELETE ON assemblies
+        WHEN EXISTS (
+            SELECT 1 FROM assembly_versions
+            WHERE assembly_id = OLD.id
+        )
+        BEGIN
+            SELECT RAISE(ABORT, 'assemblies with revisions cannot be deleted');
+        END
+        """
+    )
 
 
 _MIGRATIONS[3] = _migrate_assemblies_and_revisions
@@ -493,6 +521,8 @@ def _verify_assembly_schema(connection: sqlite3.Connection) -> None:
         "assembly_components_no_late_insert",
         "assembly_components_immutable_update",
         "assembly_components_immutable_delete",
+        "components_prevent_delete_with_history",
+        "assemblies_prevent_delete_with_revisions",
     }
     missing_triggers = sorted(required_triggers - triggers)
     if missing_triggers:

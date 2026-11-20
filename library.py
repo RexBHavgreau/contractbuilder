@@ -240,3 +240,33 @@ class ComponentLibrary:
             # instances, preventing two edits from receiving the same number.
             connection.execute("BEGIN IMMEDIATE")
             return self._insert_version(connection, component_id, markdown, note)
+
+    def _set_status(self, table: str, record_id: int, status: str) -> bool:
+        """Change only the lifecycle status of a component or assembly."""
+        if table not in {"components", "assemblies"}:
+            raise ValueError("Unsupported archive record type.")
+        if status not in {"active", "archived"}:
+            raise ValueError("Unsupported archive status.")
+        with self._connection() as connection:
+            cursor = connection.execute(
+                f"UPDATE {table} SET status = ? WHERE id = ?",
+                (status, int(record_id)),
+            )
+            return cursor.rowcount == 1
+
+    def archive_component(self, component_id: int) -> bool:
+        """Hide a component from normal browsing without deleting its history."""
+        return self._set_status("components", component_id, "archived")
+
+    def restore_component(self, component_id: int) -> bool:
+        """Return an archived component to normal browsing."""
+        return self._set_status("components", component_id, "active")
+
+    def archive_assembly(self, assembly_id: int) -> bool:
+        """Hide an assembly while preserving every saved revision."""
+        return self._set_status("assemblies", assembly_id, "archived")
+
+    def restore_assembly(self, assembly_id: int) -> bool:
+        """Return an archived assembly to normal browsing."""
+        return self._set_status("assemblies", assembly_id, "active")
+
