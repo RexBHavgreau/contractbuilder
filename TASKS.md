@@ -920,7 +920,7 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-B Preview
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** claimed (ChatGPT, 2026-11-20, [PR #36](https://github.com/RexBHavgreau/contractbuilder/pull/36))
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-022-A, T-019-C
