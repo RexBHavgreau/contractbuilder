@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import publisher_profiles as profiles  # noqa: E402
+from library import ComponentLibrary  # noqa: E402
 
 
 def sample_profile(name="Éditions Exemple"):
@@ -320,7 +321,7 @@ def test_v2_migration_creates_components_and_immutable_versions(tmp_path, monkey
 
 def test_v3_migration_pins_immutable_assembly_revisions_and_shell_hash(tmp_path, monkeypatch):
     path = tmp_path / "publisher_profiles.sqlite3"
-    library = __import__("library").ComponentLibrary(path)
+    library = ComponentLibrary(path)
     component_id = library.create_component(
         "Payment clause", "Payment is due within thirty days."
     )
