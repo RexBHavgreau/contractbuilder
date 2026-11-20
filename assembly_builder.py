@@ -94,7 +94,8 @@ def update_component_items(items, selections):
         key = int(item["key"])
         selected = selections.get(key)
         if selected is not None:
-            if int(selected["component_id"]) != int(item["component_id"]):
+            selected_component_id = selected.get("component_id", item["component_id"])
+            if int(selected_component_id) != int(item["component_id"]):
                 raise ValueError("A selected version belongs to a different component.")
             if int(selected["number"]) <= int(item["component_version_number"]):
                 raise ValueError("Choose a version newer than the currently pinned wording.")
