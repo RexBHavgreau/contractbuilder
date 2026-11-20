@@ -71,3 +71,21 @@ def test_preview_uses_safe_plain_text_for_untrusted_html_and_code():
     assert "<script>alert('not executable')</script>" in text
     assert any("code_block" in tags for _value, tags in segments)
     assert any("field" in tags for _value, tags in segments if "{{Field}}" in _value)
+
+def test_preview_highlights_fields_inside_inline_code_and_emphasis():
+    text, segments = _rendered(
+        "Use `{{Payment Period | number}}` and **{{Governing Law}}**."
+    )
+    assert "{{Payment Period | number}}" in text
+    assert "{{Governing Law}}" in text
+    assert any(
+        "field" in tags and "code" in tags
+        for value, tags in segments
+        if "{{Payment Period | number}}" in value
+    )
+    assert any(
+        "field" in tags and "bold" in tags
+        for value, tags in segments
+        if "{{Governing Law}}" in value
+    )
+
