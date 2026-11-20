@@ -2122,7 +2122,7 @@ class ComponentEditorWindow:
             text=f"Editing {component['name']} · version {latest['number']}."
         )
         self._schedule_preview()
-        self.refresh_components(selected_id)
+        self.refresh_components(component_id)
 
     def new_component(self, prompt: bool = True):
         if prompt and not self._confirm_pending_changes("starting a new component"):
