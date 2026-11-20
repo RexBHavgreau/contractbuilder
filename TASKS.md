@@ -866,7 +866,7 @@ publisher profiles are untouched.
 
 #### T-021-D Archive instead of delete
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-021-B, T-021-C
