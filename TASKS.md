@@ -88,14 +88,25 @@ Fields:
 
 Open and in-progress work only. Finished tasks leave this table and move to
 "Done tasks" at the bottom, where they stay for a month. Reviewed 2026-11-20
-(after PR #41). Next free number: **T-039**.
+(after PR #41). Next free number: **T-052**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-037](#t-037-release-040-the-component-builder) | Release 0.4.0 (component builder) | open: merge now (Beaux, 2026-11-20: the self-update can only be tested on a published release); then T-038 | human | — |
+| [T-039](#t-039-stop-the-update-restart-error-fix-in-041) | Stop the error shown when the app restarts after a self-update: cause confirmed, fix written; release 0.4.1 | open: needs a pull request, green CI, merge | careful | Beaux |
+| [T-040](#t-040-let-the-components-and-assembly-windows-be-maximized) | Let the Components and assembly windows be maximized | open | any | — |
+| [T-044](#t-044-make-saving-obvious) | Make saving obvious (visible confirmation, unsaved mark) | open | any | — |
+| [T-041](#t-041-make-the-editors-toolbar-wrap) | Make the editor's toolbar wrap | open | careful | — |
+| [T-045](#t-045-formatting-buttons-toggle) | Formatting buttons toggle on and off | open | careful | — |
+| [T-047](#t-047-open-the-windows-in-ci-under-a-virtual-display) | Open the windows in CI under a virtual display | open | careful | — |
+| [T-043](#t-043-field-picker-reusable-and-custom-fields-no-typing) | Field picker: reusable and custom fields (umbrella; A to D) | open | careful | — |
+| [T-046](#t-046-fill-from-the-publisher-profile-with-matching-the-user-controls) | Fill from the publisher profile, with user-defined matching (umbrella; A to D) | open | careful | T-043-A |
+| [T-048](#t-048-start-screen-build-contract-from) | Start screen: "Build contract from" Existing assembly / New assembly / Word file (umbrella; A to C) | open | careful | T-040 for A |
+| [T-049](#t-049-conditional-and-singularplural-wording-without-typing-the-syntax) | Conditional and singular/plural wording without typing the syntax (umbrella; A to E) | open | careful | T-043-C |
+| [T-050](#t-050-preview-shows-conditional-markers-as-if-they-were-fields) | Preview shows `{{else}}` and `{{/if}}` as fields: fix | open | any | — |
+| [T-051](#t-051-copying-out-of-the-editor-gives-clean-text-stray-backslashes) | Copying out of the editor gives clean text; stray backslashes | open | careful | — |
+| [T-042](#t-042-centering-and-other-paragraph-alignment) | Centering and other paragraph alignment | open: decision first | human | Beaux |
 | [T-038](#t-038-try-the-component-builder-by-hand-on-windows) | Try the 0.4.0 release by hand on Windows, including the self-update | open, after the release | human | T-037 |
 | [T-030](#t-030-check-generated-documents-in-real-word) | Check generated documents in real Word | open, ready | human | — |
-| [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said (see unmerged `fix/windows-vc-runtime`) | open | human | Beaux |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate meaningful and run weekly; cut redundant CI builds | open | careful | — |
 | [T-036](#t-036-housekeeping-stale-branches-and-legacy-code) | Housekeeping: stale branches and legacy code | open, needs decisions | human | Beaux |
 | [T-029](#t-029-component-library-backup-and-markdown-export-and-import) | Library backup; Markdown export and import | open | careful | — |
@@ -105,13 +116,16 @@ Open and in-progress work only. Finished tasks leave this table and move to
 pull requests #1 to #9. Details under T-018. Nobody needs to do anything until
 Support replies.
 
-**Suggested order:** merge the 0.4.0 branch (T-037; open a pull request so CI
-runs on it first, then merge once it is green). Then T-038 on a PC that has
-0.3.1: it tests the self-update and the new windows in one go. T-030 (Word)
-and the T-034 answers at the same time. If T-038 finds a fault, the fix ships
-as 0.4.1. T-035 before the next feature lands, since the size comparison is
-currently meaningless and every pull request runs three platform builds.
-T-029 (backup) and T-031 (links) are next features; T-036 is tidying.
+**Suggested order:** T-039 first: open a pull request from the branch (it
+carries the restart fix and the 0.4.1 bump), wait for green CI, merge to
+publish 0.4.1. Then T-038 on a PC with 0.4.0 (the update to 0.4.1 will show
+the error one more time; the update after that should not) and T-030 (Word).
+T-035 before the next feature lands, since the size comparison is currently
+meaningless and every pull request runs three platform builds. T-029
+(backup) and T-031 (links) are next features; T-036 is tidying.
+
+Usability fixes from Beaux's hand testing (T-040 to T-047) are grouped under
+"Component manager usability"; they ship as 0.5.0 after 0.4.1.
 
 **History was rewritten on 2026-11-18.** Work from a clone or download made
 after that date. A copy made earlier holds the old history; delete it rather
@@ -123,6 +137,8 @@ T-009, T-013, T-016 (below the open tasks).
 ---
 
 ## Open tasks
+
+
 
 
 
@@ -219,47 +235,47 @@ Where a task here differs from or narrows the proposal, it says so:
 - **Clause numbering** is decided (T-025): nested ordered lists, rendered as
   a decimal outline. Other legal formatting is out of scope (T-032).
 
-### T-037 Release 0.4.0 (the component builder)
+### T-039 Stop the update restart error (fix in 0.4.1)
 
-- **Status:** open: version bump, release notes and user-guide section are
-  on the branch `claude/kind-keller-847k6d`; **merging it to `main` publishes
-  the release** (CI tags `v0.4.0` and attaches the Windows `.exe` and both
-  macOS zips). Beaux decided on 2026-11-20 to merge before the hand check,
-  because the automatic update can only be tested against a published
-  release. The hand check (T-038) therefore follows the release
+- **Status:** open: fix and tests are on the branch `claude/kind-keller-847k6d`
+  (2026-11-20), with the 0.4.1 version bump and release notes in a separate
+  commit; needs a pull request, green CI and a merge (which publishes 0.4.1)
 - **Size:** S
-- **Agent:** human (the decision to publish)
-- **Needs:** Beaux
-- **Size gate:** yes. Windows `.exe` on `main` before this release:
-  18,093,944 bytes (17.26 MiB), headroom 12.74 MiB; v0.3.1 was 17,800,891, so
-  the component builder added about 293,000 bytes (0.28 MiB)
+- **Agent:** careful
+- **Needs:** Beaux (merge and release)
+- **Size gate:** yes, but this adds no module or file; confirm the CI size
+  numbers as usual
 
-What 0.4.0 adds for staff: the **Components** menu (write reusable wording
-with a toolbar, table editor, field inserter and live preview; import a Word
-file; keep every saved version), and **Build an assembly** (choose a Word
-shell, pick and order components, tick optional ones, preview, save the
-recipe, fill the fields once, create the Word document; review newer wording
-before adopting it). The Word-template workflow is unchanged.
+Beaux saw an error message while the app updated itself (0.3.0 to 0.3.1, and
+again 0.3.1 to 0.4.0); the app ran normally afterwards. He suspected it had
+to do with the new file having the same name as the old one.
 
-- [x] `version.py` raised to `0.4.0`; `CHANGES.txt` has a `## 0.4.0` section
-      (CI refuses a release without it)
-- [x] `USER-GUIDE.txt` gains "COMPONENTS AND ASSEMBLED CONTRACTS" and the
-      shell section no longer says the workflow is "not available yet"
-- [ ] Open a pull request from the branch to `main`; wait for a green CI run
-      at its latest commit (CI before merge)
-- [ ] Merge; confirm the `v0.4.0` release has the Windows `.exe` with a
-      digest and both macOS zips
-- [ ] On a PC with 0.3.1 installed: Help > Check for updates offers 0.4.0,
-      installs it and reopens as 0.4.0 (second real self-update test); this is
-      T-038
-- [ ] If a fault is found: fix as 0.4.1; do not edit the 0.4.0 release
-- [ ] Progress log entry with the CI run number and the two size numbers
+**Cause (reproduced 2026-11-20 and confirmed against the message Beaux
+sent: "Failed to load Python DLL" naming a `_MEI` folder and
+`python311.dll`).** The update restarts the app by running a small script, which starts
+the new `.exe`. A PyInstaller one-file app unpacks itself into a temporary
+`_MEI...` folder and passes that folder's location to anything it starts,
+through environment variables. The script, and the new app it starts,
+inherited those variables, so the new app tried to reuse the old app's
+temporary folder, which is deleted when the old app closes. The result is a
+"Failed to load Python DLL ... _MEI..." message. It is about an app
+restarting itself, which is why it looks tied to the file name, but
+renaming the file would not change it. A test build of a tiny one-file app
+under PyInstaller 6.22.3 (what CI installs) failed exactly this way when it
+started itself with the inherited environment, and started cleanly when
+`PYINSTALLER_RESET_ENVIRONMENT=1` was set.
 
-Known gaps to tell staff or accept: real-Word display of generated documents
-is T-030 (not done); the install error from T-034 is unexplained; there is
-no library backup yet (T-029), so tell staff the component library lives in
-the same per-user file as publisher profiles and should be copied if the PC
-is replaced.
+- [x] `self_update.clean_restart_environment()` removes the inherited
+      `_PYI_*` and `_MEIPASS2` values and sets
+      `PYINSTALLER_RESET_ENVIRONMENT=1`; `start_swap` passes it to the script
+- [x] Tests: the environment is cleaned; `start_swap` passes it
+- [x] Beaux sent the message; it matches the cause above (T-034)
+- [ ] Release 0.4.1 with the fix. **The fix only helps updates from 0.4.1
+      onward**: the script that restarts the app is written by the version
+      that is closing. So 0.4.0 to 0.4.1 will probably show the message one
+      more time; 0.4.1 to the next version should not. Tell staff the message
+      is harmless: click OK and start the app again from its icon
+- [ ] On the 0.4.1 to next-version update, confirm there is no message
 
 ### T-038 Try the component builder by hand on Windows
 
@@ -303,34 +319,731 @@ screenshots may be shared.
 - [ ] Write down anything confusing in plain words. Anything that stops you
       is a bug task; anything that is only awkward goes in a new task
 
-### T-034 Find out what the install error message said
+## Component manager usability (found by Beaux, 2026-11-20)
+
+Beaux used the 0.4.0 windows by hand and listed what got in the way. Each
+item below was checked against the code (what the code does today is stated
+in each task). Rules for all of them: invented test data only; keep logic in
+plain functions that CI can test, because CI opens no window (T-047 changes
+that); say in the task what it adds to the executable and confirm the CI size
+numbers (see Size gate); and finish with a short hand check on Windows. The
+decision in the 2026-11-17 Decision log still holds: **the app carries no
+built-in schemas for kinds of contract**, so "preset" fields below means the
+publisher-profile fields the app already has plus fields the user defines.
+
+Suggested order: T-040, T-044, T-041, T-045 are quick and independent. T-047
+makes the rest easier to prove. T-043 comes before T-046 (they share storage).
+T-042 starts with a decision from Beaux. T-048 (the start screen) can go
+anytime after T-040. T-049 and the publisher type in T-046-C need the field
+store of T-043-A. These ship after 0.4.1 (T-039) as 0.5.0.
+
+### T-040 Let the Components and assembly windows be maximized
 
 - **Status:** open
 - **Size:** S
-- **Agent:** human
+- **Agent:** any
+- **Needs:** —
+- **Size gate:** yes (no new code reaches the executable; say so and confirm)
+
+**Today:** the Components window and the Build assembly window are created
+with `window.transient(parent)` (`component_editor.py`, `assembly_builder.py`).
+On Windows a transient window has no maximize or minimize button, which is
+what Beaux sees. Both are working windows, not pop-up questions.
+
+- [ ] Stop making the two main windows transient; keep them resizable with a
+      sensible minimum size, and keep them from hiding behind the main window
+      (lift on open, one instance at a time as now)
+- [ ] Check the larger dialogs (import review, version history, review
+      updates, table editor) and decide for each: modal and fixed, or
+      resizable and maximizable. Resizable if it holds a long text or a grid
+- [ ] Layout uses the extra room: lists and the wording box grow, buttons stay
+      put
+- [ ] Hand check on Windows: maximize, restore, minimize, and the window
+      returns to the front when "Manage components" is chosen again
+
+**Done when:** both main windows can be maximized and restored on Windows, and
+the layout fills the space.
+
+### T-041 Make the editor's toolbar wrap
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+**Today:** the formatting buttons sit in one row (`pack(side="left")`), so
+anything past the window width is cut off, even when maximized if the row is
+long enough.
+
+- [ ] A wrapping toolbar: when the width changes, buttons flow onto more rows
+      instead of being cut off; related buttons stay together (text style;
+      lists and indent; table, field, import)
+- [ ] The row computation is a plain function (button widths and available
+      width in, rows out) with tests, including a width narrower than the
+      widest button and one wider than all of them
+- [ ] Works at the window's minimum size and when maximized; no horizontal
+      scrolling anywhere
+- [ ] Every button gets a plain-English tooltip or label (it is easy to guess
+      what "B", "I" and "Field" do, harder for "Outdent")
+- [ ] Hand check on Windows at several widths
+
+**Done when:** at every window width, every toolbar button is reachable
+without scrolling.
+
+### T-042 Centering, and other paragraph alignment
+
+- **Status:** open: needs a decision first
+- **Size:** M after the decision
+- **Agent:** human for the decision, then careful
 - **Needs:** Beaux
+- **Size gate:** yes
 
-During T-002 (2026-11-19) Beaux saw an error message while installing. The
-app ran normally afterwards, so it is not urgent, but the message could be
-from the Windows build, the self-update swap, or SmartScreen, and staff will
-see it too.
+**Today:** nothing offers centering. Markdown has no centering. Table columns
+can already be left, centered or right aligned (T-019-E). T-025 and T-032 set
+the rule of no new Markdown syntax and no underline, page breaks or signature
+blocks, so this needs a conscious choice. Beaux's wording: "if it can be an
+option, it should be".
 
-- [ ] **Unmerged branch to look at first:** `fix/windows-vc-runtime` (Beaux,
-      2026-11-19 07:15, one commit, "Bundle the Python MSVC runtime in
-      Windows builds", changes `build-windows.ps1` only). It was made the
-      morning of the T-002 test and is not merged or mentioned anywhere. If
-      the message was about a missing runtime DLL (for example
-      VCRUNTIME140), that branch may be the fix. Decide: merge, or delete
-      it. Check any change with the size gate, since it adds files
-- [ ] Beaux records exactly what it said (a screenshot or the words), which
-      step it came at (running the downloaded `.exe`, the update, or
-      `build-windows.bat`), and whether it appears every time
-- [ ] If it came during the self-update, attach `build-log.txt`, or look for
-      a `.exe.new` or batch file left beside the app
-- [ ] Also answer: did SmartScreen warn after the 0.3.0 app updated itself
-      to 0.3.1? (settles T-011's unconfirmed sentence)
-- [ ] An agent then opens a fix task, or closes this as harmless with the
-      reason written down
+Options to decide between (Claude recommends B):
+
+- **A. Not supported.** Say so in the guide; titles and blocks that must be
+  centered belong in the Word shell or a template. Nothing to build.
+- **B. A hidden marker the editor writes.** A button "Center" puts an invisible
+  marker (for example an HTML comment on the line before the paragraph) in the
+  stored text; the user never types it. Other Markdown tools ignore it, so
+  exports degrade to a normal paragraph. The renderer reads it and sets
+  centered alignment; the preview centers; the importer reads centered Word
+  paragraphs back; the toggle removes it. Raw HTML stays switched off for
+  everything else
+- **C. A paragraph style from the shell** (for example "Centered Title") that
+  the user picks by name. Needs a shell contract change (T-026) and more
+  steps for the user
+
+- [ ] Beaux chooses; record it in CLAUDE.md's Decision log
+- [ ] If B or C: renderer (`md_to_word.py`), preview, editor button (a toggle,
+      see T-045), importer (`docx_to_markdown.py`, so imported centered text
+      stays centered; today it is dropped silently with no warning), field
+      protection check, tests, guide text
+- [ ] If A: warn on import when a centered paragraph loses its alignment
+
+**Done when:** the choice is recorded and, if B or C, a centered paragraph
+survives edit, save, preview, import, assembly and the Word output.
+
+### T-043 Field picker: reusable and custom fields, no typing
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-043-A to T-043-D
+- **Agent:** careful
+- **Needs:** —
+
+**Today:** the Field button opens a small dialog with a drop-down of names
+already used in the library plus the publisher-profile names, a format box and
+an options box (`FieldInsertDialog`). A new field means typing its name, the
+list is not grouped, and a field you invent is not remembered anywhere unless
+it is already in some saved component. Beaux wants fields chosen from a list,
+reused without retyping, and new fields added by the user.
+
+#### T-043-A Store field definitions
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+- [ ] A database migration (next schema version, with the usual backup and
+      transaction, as T-021-A did) adds field definitions: name, short
+      description, group, default format and options, **allowed values**
+      (for a field that is a choice, such as Publisher type: Non-profit, Sole
+      proprietor), optional link to a publisher-profile column or detail
+      (used by T-046), archived flag. Allowed values matter because the form
+      rejects a value that is not one of a choice's options (`core.py`
+      compares ignoring case and spacing, so "Non-profit" and "nonprofit" differ)
+- [ ] `library.py` functions: list, add, edit, archive and restore. Names
+      follow `core`'s field rules and are unique ignoring case and spacing;
+      a clear plain-English error for a bad or duplicate name
+- [ ] Nothing is deleted while any component version uses the name (archive
+      only), matching the rule for components
+- [ ] Tests with a temporary database, including upgrade from the current
+      version and an older app opening the upgraded file
+
+#### T-043-B Built-in publisher fields
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-043-A
+- **Size gate:** yes
+
+- [ ] The picker always offers the publisher-profile fields the app already
+      has (`PROFILE_FIELDS`, plus the combined address) with readable names
+      such as "Publisher name" and "Contact email", each linked to its profile
+      column. No contract-type fields are built in (Decision log, 2026-11-17)
+- [ ] Names used by existing components are included automatically, so the
+      picker is never missing a field the library already uses
+- [ ] Tests
+
+#### T-043-C Field picker and field creator
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-A, T-043-B, T-040
+- **Size gate:** yes
+
+Beaux (2026-11-20): conditional syntax is hard for people who do not know it,
+so the field creator should be a window where the user defines **different
+kinds of field**, and a conditional field should walk the user through its
+creation.
+
+- [ ] The Field button opens a searchable list grouped as Publisher, Fields
+      from your library, and Your fields. Double-click or Insert places
+      `{{Name}}` at the cursor, with the field's default format
+- [ ] **New field…** opens the **field creator**. Step one asks what kind of
+      field it is, in plain words, with a one-line example for each:
+      **Text** (a name, an address), **Long text** (several lines),
+      **Date**, **Amount of money**, **Number**, **List** (one item per line,
+      such as titles), **Choice** (a drop-down of values), **Optional clause**
+      (include a paragraph or phrase only when ticked), **Conditional
+      wording** (different wording depending on a choice, T-049-A), and
+      **Singular or plural word** (T-049-B)
+- [ ] Each kind then asks only the questions it needs (name, description,
+      format and options, allowed values) and saves a field definition
+      (T-043-A); the plain kinds finish in one step, the three wording kinds
+      continue into their walk-throughs and insert the finished text
+- [ ] **Edit** and **Archive** manage the list; a field that is a choice shows
+      its values
+- [ ] The picker stays open on request so several fields can be inserted in a
+      row; the editor's preview updates
+- [ ] Typing a name still works for a one-off, and a malformed one is still
+      explained (`make_field_placeholder`, as today)
+- [ ] The kind-to-syntax rules are plain functions with tests
+- [ ] Hand check on Windows
+
+#### T-043-D Use the same fields elsewhere
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** T-043-C
+- **Size gate:** yes
+
+- [ ] The assembly field form (and the template form) show a field's
+      description where one exists, so staff know what to type
+- [ ] Guide section added; tests
+
+#### T-043-E Optional starter set of fields (needs Beaux)
+
+- **Status:** open: needs Beaux's decision
+- **Size:** S
+- **Agent:** human for the decision, then any
+- **Needs:** Beaux, T-043-A
+- **Size gate:** yes (a small text list; confirm it)
+
+Beaux (2026-11-20): standardized fields make automatic filling and conditional
+wording work, "which is another reason that building a standardized field set
+is a good idea". The 2026-11-17 decision says the app carries no built-in
+schemas for kinds of contract. These fit together if the standard set is
+**the user's own**, kept in the field definitions of T-043-A, and any set the
+app ships is only an optional, editable starting list, never a fixed schema.
+
+- [ ] Beaux decides: (1) no shipped set, users define their own; or (2) an
+      optional starter list that is copied into the user's definitions on
+      first use and can be edited or archived (Claude suggests names such as
+      Works (a list), Publisher type (a choice), Territory, Term; Beaux
+      supplies the real list, with invented examples only in the repository)
+- [ ] If (2): "Add the starter fields" in the picker, never re-adding ones the
+      user archived; tests
+- [ ] Record the decision in CLAUDE.md
+
+**Done when (T-043):** a user can insert a stored field, add and reuse a custom
+field, and never has to type a name, from the Components window.
+
+### T-044 Make saving obvious
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+- **Size gate:** yes (no new executable content; say so and confirm)
+
+**Today:** after Save version the only sign is a small grey line at the bottom
+of the window ("Saved <name> · version N", `ComponentEditorWindow.save`), easy
+to miss and out of sight when the window is short.
+
+- [ ] A clear confirmation next to the button the moment the save completes
+      (for example the button reads "Saved ✓ version 3" for a few seconds, or
+      a green banner above the wording), and a failed save shows a red message
+      in the same place that stays until dismissed
+- [ ] An "Unsaved changes" mark that appears when the wording or details
+      change and clears on save; the window title shows it too
+- [ ] The component list refreshes and keeps the saved component selected, with
+      its new version number visible
+- [ ] The message text is built by a plain function with tests (saved, saved
+      with note, failed, nothing to save)
+- [ ] Hand check on Windows: nobody can miss that it saved
+
+**Done when:** a user always sees at once whether the save worked.
+
+### T-045 Formatting buttons toggle
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+**Today:** bold and italic wrap the selection in markers every time; pressing
+again adds a second pair. Headings and lists can be added but there is no
+direct way to remove them (Outdent only reduces a level).
+
+- [ ] **Bold and italic toggle** on the selection, and on the word at the
+      cursor: pressing again removes the markers; a mixed selection becomes
+      all bold first; bold plus italic is handled; markers inside a field
+      placeholder or already escaped are left alone
+- [ ] **Heading buttons toggle** back to a normal paragraph (pressing the
+      active heading level, or choosing "Normal text"); **Bullets and
+      Numbering toggle** off on the selected lines, and Numbering/Bullets
+      switch between each other
+- [ ] Buttons show their state for the text at the cursor (pressed or not)
+- [ ] The editing rules are pure functions on Markdown text (text, selection
+      and action in; text and selection out) with tests, including
+      multi-line selections and the cases above
+- [ ] Works in the formatted view and in the raw-text view
+- [ ] Hand check on Windows
+
+**Done when:** every formatting button can undo its own effect.
+
+### T-046 Fill from the publisher profile, with matching the user controls
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-046-A to T-046-D
+- **Agent:** careful
+- **Needs:** T-043-A (shared storage)
+
+**Today:** the template form and the assembly form each have one "Load" button
+for a saved publisher. It fills every field whose name matches a fixed list of
+aliases in `publisher_profiles.py` (`_FIELD_ALIASES`, for example "Publisher
+Name", "Contact Email"), and nothing else; the profile has 13 fixed columns.
+Fields with other names are silently skipped, the user cannot say "my field
+Licensor is the publisher name", there is no way to fill a single field, and a
+profile cannot hold extra details. Beaux's wording: each time publishing
+information is looked for, there should be an option to fill all of it from
+the profile, and it should be more customizable.
+
+#### T-046-A Let users define the matching
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-A
+- **Size gate:** yes
+
+- [ ] A "Field matching" window (Publishers menu) shows each profile column
+      with the field names that currently fill from it (the built-in aliases
+      plus the user's own) and lets the user add or remove names; user entries
+      are stored in the database and take priority over the built-ins
+- [ ] A field defined in the picker (T-043) can be linked to a profile column
+      there, and the same link is used here
+- [ ] `values_for_template` uses the user's matching first; names stay
+      matched ignoring case, spacing and apostrophes as now
+- [ ] Tests, including a custom name beating a built-in one and an unknown
+      name still being skipped without an error
+
+#### T-046-B Fill from the profile wherever it applies
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-046-A
+- **Size gate:** yes
+
+- [ ] In the template form and the assembly form, every field that has a
+      profile column gets a small "From publisher" control that fills just
+      that field from the chosen publisher; the existing button is renamed
+      "Fill all from publisher"
+- [ ] After a fill, say plainly what was filled and which profile details had
+      no matching field, so a missed match is visible
+- [ ] If a publisher is chosen after fields were typed, ask before replacing
+      (as now); an option "Fill automatically when I choose a publisher" is
+      available and off by default
+- [ ] Applies the same way wherever the app asks for publisher information,
+      including any later screen
+- [ ] Tests for the fill rules; hand check on Windows
+
+#### T-046-C Extra publisher details, starting with Publisher type
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-A, T-046-A
+- **Size gate:** yes
+
+Beaux (2026-11-20) wants some wording to depend on the publisher, for example
+non-profit organizations versus sole proprietors, with the choice stored in the
+publisher profile and filled in automatically. Today the profile has 13 fixed
+columns and no type, so this cannot be filled automatically.
+
+- [ ] A migration adds extra details per publisher (name, value), shown and
+      edited in the publisher profile window. A detail that has allowed
+      values (T-043-A) is edited with a drop-down, so the stored value can
+      never differ from what the wording tests for
+- [ ] "Publisher type" is the first such detail, with values the user sets
+      (for example Non-profit, Sole proprietor, Company)
+- [ ] Details join the matching of T-046-A, so a condition such as
+      `{{#if Publisher Type = Sole proprietor}}` is filled from the chosen
+      publisher in the template form and the assembly form, with the
+      "From publisher" controls of T-046-B
+- [ ] A profile with no value for a detail leaves the field for the user to
+      choose, and the form says why
+- [ ] Tests, including a stored value that is not among the field's allowed
+      values being caught when saving the profile, and the end-to-end case:
+      two publishers of different types produce different wording from the
+      same assembly
+
+**Done when:** choosing a publisher selects the right alternative wording
+without the user answering a question.
+
+#### T-046-D More than one publisher in a contract (parties)
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-046-A, T-046-B
+- **Size gate:** yes
+
+Beaux's sample component has two parties with fields named for their role:
+`{{ Publisher One (Proprietor) }}`, `{{ Publisher One’s Address }}`,
+`{{ Publisher One’s State }}`, `{{ Publisher Two (Publisher) }}`,
+`{{ Publisher Two’s Address }}`, `{{ Publisher Two’s Contact }}`. Today the
+forms have one "Saved publisher" box, and the profile matching knows only a
+single set of names ("Publisher Name", "Contact Email"...). So none of these
+fields would fill from a profile, and a second party could not come from one.
+
+- [ ] Define **parties** (a name such as "Publisher One", with an optional role
+      label) in the field definitions or the field-matching window (T-046-A):
+      a field is "the address of Publisher One", so every profile column
+      (name, address, state, contact...) is available for each party without
+      listing every combined name by hand; a name like `Publisher One’s
+      Address` matches automatically
+- [ ] The template form and the assembly form show **one publisher choice per
+      party that appears in the document**, with the per-field and fill-all
+      controls of T-046-B working per party
+- [ ] A document with one publisher behaves as now; the old names keep working
+- [ ] Tests: two parties filled from two profiles, one party left to type, and
+      curly and straight apostrophes in the names; hand check on Windows
+
+**Done when (T-046):** any field can be tied to a publisher detail by the user,
+including a publisher type that selects alternative wording, and the user can
+fill one field or all of them from the profile wherever publisher information
+is asked for.
+
+### T-047 Open the windows in CI under a virtual display
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes (CI only; say so)
+
+**Today:** CI tests only the logic behind the windows, and Claude's own
+environment has no display, so the toolbar, saving and window behaviour in
+T-040 to T-045 have never been seen running before a user finds them.
+
+- [ ] The Linux test job runs a small set of window tests under a virtual
+      display (`xvfb`): open the Components window; check the toolbar fits at
+      several widths (T-041); type, save and check the confirmation (T-044);
+      press each formatting button twice (T-045); open the field picker
+      (T-043); build an assembly
+- [ ] Tests stub message boxes and file dialogs so nothing blocks, and run
+      quickly; document the pattern in CLAUDE.md "Working on it"
+- [ ] A window test that fails makes the job fail; the other jobs are
+      unchanged
+- [ ] Known limit written down: Linux cannot show Windows-only window
+      behaviour such as the missing maximize button (T-040)
+
+**Done when:** a broken toolbar or save confirmation fails CI before it ships.
+
+### T-048 Start screen: "Build contract from"
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-048-A to T-048-C
+- **Agent:** careful
+- **Needs:** —
+
+**Today:** the main window opens on "Choose a template" with a Browse button
+for a Word file. Starting from a saved assembly means Components > Manage
+components > Build assembly > Open saved; a new assembly starts the same way.
+Two of the three ways to start a contract are buried. Beaux wants three clear
+choices up front.
+
+#### T-048-A The three choices
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-040
+- **Size gate:** yes
+
+- [ ] The top of the main window gets a **Build contract from:** row with three
+      buttons, each with one plain line under it: **Existing contract
+      assembly** (pick a saved recipe), **New contract assembly** (open the
+      builder), **Word file** (a `.docx` or `.dotx`, as the Browse button does
+      now; the file dialog lists both types)
+- [ ] The existing template row and its Browse button become the Word file
+      path rather than a fourth thing on the screen; the Components and
+      Publishers menus stay for managing the library and profiles
+- [ ] Keyboard use works (Tab, Enter, access keys) and the buttons sit well on
+      a small screen; first-run help text updated
+- [ ] Hand check on Windows
+
+#### T-048-B Open an existing assembly straight to the fields
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-048-A
+- **Size gate:** yes
+
+- [ ] **Existing contract assembly** opens a list of saved assemblies (name,
+      latest revision, date, and a mark where newer component wording is
+      available), searchable; Enter or double-click opens it
+- [ ] The latest revision opens by default; an "Earlier revisions" choice
+      shows the others. Choosing one goes directly to the field form
+      (`create_assembly_document` with the pinned component versions), with
+      the publisher controls available, without opening the builder
+- [ ] From the field form, "Edit this assembly…" opens the builder with it
+      loaded, and "Review updates…" is offered when newer wording exists
+- [ ] If the shell file moved or changed since the revision was saved, say so
+      in plain English and let the user pick it again instead of failing
+- [ ] Tests for the list and the open path; hand check on Windows
+
+#### T-048-C Recent and last-used
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-048-B
+- **Size gate:** yes
+
+- [ ] Under the three buttons, a short "Recent" list of the last few
+      assemblies and Word files used, one click to reopen; remembered per
+      user in the existing settings file; a missing file is shown as such and
+      removable
+- [ ] Guide section "Starting a contract"; tests
+
+**Done when (T-048):** all three ways of starting a contract are visible on the
+first screen and each leads to a filled-in form in one or two steps.
+
+### T-049 Conditional and singular/plural wording without typing the syntax
+
+- **Status:** open (umbrella; work its subtasks)
+- **Size:** umbrella of T-049-A to T-049-E
+- **Agent:** careful
+- **Needs:** T-043-C (field picker)
+
+**Today:** the engine already does both, and they work inside components
+(tested in T-019-G), but a user has to type the markers by hand:
+
+- Alternative wording: `{{#if Publisher Type = Non-profit}} ... {{else}} ...
+  {{/if}}` (also `!=`, `not`, and a bare field for an optional clause). The
+  form turns the values used in conditions into a drop-down list. The opening
+  and closing markers must be on their own lines for whole paragraphs.
+- Singular or plural: a field typed one item per line, and
+  `{{Works | plural: work, works}}` writes "work" for one line and "works" for
+  more; the same field can also be shown as a list ("A, B, and C"). The Field
+  dialog has the format and options boxes for this, but nothing says that the
+  field should be a list or that the count comes from its lines.
+
+So the same component can already serve one work or several. What is missing is
+a way to build these without knowing the syntax, and the matching of the
+publisher type to the profile (T-046-C).
+
+#### T-049-A Conditional wording walk-through
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-043-C
+- **Size gate:** yes
+
+Beaux's own example (2026-11-20), typed by hand: "...of {{ Publisher One’s
+Address }}, {{#if Publisher Type = Non-profit}} a non-profit corporation
+{{else}} a sole proprietor {{/if}} organized in and doing business under the
+laws of the State of ...". The engine accepts it and picks the right words, but
+checked on 2026-11-20 it has two traps the walk-through must avoid:
+
+- **The form can offer only one choice.** A drop-down gets its values from the
+  conditions in the text. With `= Non-profit` and an `else`, the only value is
+  "Non-profit"; choosing "Sole proprietor" is rejected as "must be one of:
+  Non-profit", and only a blank answer gives the `else` wording. Writing one
+  `{{#if Publisher Type = ...}}` block per value, as below, lists every value
+- **Extra spaces.** Spaces inside the markers stay in the sentence, so the
+  result reads "X,  a non-profit corporation  organized" with two spaces
+
+- [ ] **Conditional wording** (from the field creator, and a **Choice
+      wording…** toolbar button) walks the user through four steps, each on
+      its own page with a plain explanation: (1) which choice field decides it,
+      or create one here; (2) its values (for example Non-profit, Sole
+      proprietor) and the wording for each, typed in a box with a live
+      sentence preview; (3) where it goes (inside the sentence, or as its own
+      paragraph; the markers go on their own lines when it is a paragraph);
+      (4) a summary showing the wording the contract will read for each value
+- [ ] It writes **one `{{#if Field = Value}}` block per value**, with no
+      spaces inside the markers, so every value is a drop-down option and the
+      sentence spacing is right. Where one alternative is "everything else",
+      it still writes explicit blocks
+- [ ] The field's allowed values are saved with the field definition
+      (T-043-A), so the publisher profile (T-046-C) offers the same values
+- [ ] The text is built by a plain function and checked by opening the result
+      with `core.Template`, so a malformed block can never be inserted. Tests:
+      Beaux's sample, two, three and four values, inside a list item, a field
+      used in more than one component, and each value rendering with single
+      spaces
+- [ ] **Optional clause…** (a yes/no field and the clause it controls) and an
+      **Only if blank** variant use the same walk-through pattern
+- [ ] Editing an existing block reopens it in the walk-through; hand-typed
+      text that does not fit (a lone `else`) is shown as it is with a warning
+      from T-049-C, never rewritten silently
+
+#### T-049-B Singular/plural helper
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-043-C
+- **Size gate:** yes
+
+- [ ] In the Field picker, **Singular/plural word…**: choose a list field
+      (such as Works), type the singular and plural words, and the editor
+      inserts `{{Works | plural: work, works}}`; wording with commas uses the
+      slash form automatically
+- [ ] The form shows a list field as a multi-line box labelled "one per line",
+      and the preview shows both forms side by side so the author can see it
+- [ ] Tests, including capital letters and a field used both as a list and as
+      a count in the same component
+
+#### T-049-C Show the alternatives in the preview
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** T-049-A
+- **Size gate:** yes
+
+- [ ] The editor and assembly previews show conditional blocks as labelled
+      alternatives (for example a tinted "If Publisher type is Non-profit"
+      band) instead of raw markers, and warn in plain English when a closing
+      marker is missing or not on its own line
+- [ ] Add the warnings the walk-through cannot give for hand-typed text: an
+      `else` with only one value listed ("the form will offer only
+      Non-profit; use Choice wording… to list every value"), a missing or
+      misplaced closing marker, and double spaces left around a phrase
+- [ ] A control to preview the assembly "as" a chosen value, so the author can
+      check each alternative reads well; tests
+
+#### T-049-D Guide and examples
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** T-049-A, T-049-B
+- **Size gate:** no executable change (say so)
+
+- [ ] USER-GUIDE.txt: how to build choice wording and singular/plural wording
+      from the buttons, with the publisher-type and works examples using
+      invented names, and the rule that choice values must match the allowed
+      values exactly
+
+#### T-049-E Tidy spaces around inline conditional wording (engine)
+
+- **Status:** open
+- **Size:** S
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes (no new content; confirm)
+
+Found 2026-11-20: `of X, {{#if A = B}} a phrase {{else}} another {{/if}} organized`
+renders "of X,  a phrase  organized", with two spaces on each side, because the
+spaces inside and outside the markers both stay. The engine already collapses
+blank lines; extend that to a doubled space created by removing or replacing
+an inline conditional.
+
+- [ ] In `core.py`, collapse a run of spaces created where an inline
+      conditional was replaced, in both the kept and the dropped case, without
+      touching spaces the author typed elsewhere; a change to the engine, so
+      all existing template tests stay green and new ones cover: phrase kept,
+      phrase dropped, at the start and end of a sentence, next to punctuation,
+      and inside table cells
+- [ ] The template workflow produces the same documents as before for every
+      existing test fixture
+
+**Done when (T-049):** an author can write one clause that changes with the
+publisher type and with the number of works, using only buttons and typing the
+wording itself.
+
+### T-050 Preview shows conditional markers as if they were fields
+
+- **Status:** open
+- **Size:** S
+- **Agent:** any
+- **Needs:** —
+- **Size gate:** yes (no new content; confirm)
+
+Reported by Beaux 2026-11-20 and reproduced: `component_preview.py` styles every
+`{{...}}` as a field, so `{{#if ...}}`, `{{else}}` and `{{/if}}` look like field
+names ("else", "/if"). The syntax is fine; the preview does not know which
+markers are instructions. The editor's field suggestions already tell them
+apart (`core.classify`).
+
+- [ ] Use `core.classify` to tell fields from `if`, `else` and `/if` markers;
+      give the markers their own style (a muted tag with plain words such as
+      "If Publisher Type is Non-profit", "Otherwise", "End of choice") and keep
+      fields highlighted as now. The same in the assembly preview
+- [ ] A short key under the preview says what the colors mean
+- [ ] Tests on the preview segments for a sentence with an `if`/`else`, a
+      block form, an optional clause and a field inside the conditional text
+- [ ] T-049-C builds on this for the fuller labelled-alternatives view
+
+**Done when:** no instruction marker is ever shown as a field.
+
+### T-051 Copying out of the editor gives clean text; stray backslashes
+
+- **Status:** open
+- **Size:** M
+- **Agent:** careful
+- **Needs:** —
+- **Size gate:** yes
+
+Beaux (2026-11-20) copied a component and found backslashes he did not type:
+`\(hereinafter the **proprietor\**)`. Two causes are known or likely:
+
+- **Known:** the editor stores what is typed as Markdown and escapes
+  punctuation that Markdown would act on, including `(`, `)`, `*`, `_`, `[`,
+  `]`, `{`, `}` and `|` (`plain_text_to_markdown`, checked 2026-11-20:
+  "(hereinafter the proprietor)" is stored as `\(hereinafter the
+  proprietor\)`). The formatted view hides the backslashes, but copying from
+  it probably brings the hidden characters along (to confirm: Tk includes
+  elided text when copying unless `get -displaychars` is used)
+- **Not reproduced:** the misplaced `proprietor\**)` suggests the bold button
+  put its closing marker next to an escaped character; reproduce it with the
+  pure formatting functions of T-045 before changing anything
+
+- [ ] **Copy** and **Cut** from the formatted view put the visible text on the
+      clipboard (no backslashes, no markers), with an option to "Copy as
+      stored text" for people who want the Markdown
+- [ ] **Paste** of plain text is escaped as typed text; pasting text that
+      already has `**bold**` or `\(` asks nothing and keeps it readable
+- [ ] Reproduce the bold-next-to-escape case, fix it, and add a test that
+      toggling bold on a word next to `(` or `)` never moves a backslash or a
+      marker (shares code with T-045)
+- [ ] The raw-text view says what it shows ("Stored text: backslashes here are
+      normal")
+- [ ] Hand check on Windows: copy from the editor into Word and into an email
+
+**Done when:** text copied from the editor reads exactly as shown, and bold or
+italic never leaves a stray backslash.
 
 ### T-035 Make the size gate complete and periodic
 
@@ -428,7 +1141,9 @@ project easier to read and the Actions and branch lists shorter.
 - [ ] **Look at two unmerged branches:** `task/t-019-d-e-lists-tables-final`
       holds one commit (`940da90`, a size-measurement step) that appears to
       duplicate what PR #27 already put in `main`; delete it if so.
-      `fix/windows-vc-runtime` is T-034's
+      `fix/windows-vc-runtime` bundles the Windows runtime DLLs. T-034 showed the
+      error was not a missing runtime, so it is not needed for that; delete it
+      or keep it for its own sake
 - [ ] **Decide about the legacy window.** `advanced_app.py` (not packaged) and
       the spreadsheet and saved-answer code in `core.py` (`blank_sheet`,
       `read_sheet`, `batch`, `save_answers`, `load_answers`, `templates_in`,
@@ -513,7 +1228,81 @@ opens it.
 
 ---
 
+---
+
+---
+
 ## Done tasks (kept until a month after they were done)
+
+### T-037 Release 0.4.0 (the component builder)
+
+- **Status:** done (2026-11-20, Beaux): merged in PR #42; CI on `main` green; v0.4.0 published with the Windows `.exe` (18,095,285 bytes) and both macOS zips, each with a SHA-256 digest. The hand check continues under T-038 and the restart error under T-039
+- **Size:** S
+- **Agent:** human (the decision to publish)
+- **Needs:** Beaux
+- **Size gate:** yes. Windows `.exe` on `main` before this release:
+  18,093,944 bytes (17.26 MiB), headroom 12.74 MiB; v0.3.1 was 17,800,891, so
+  the component builder added about 293,000 bytes (0.28 MiB)
+
+What 0.4.0 adds for staff: the **Components** menu (write reusable wording
+with a toolbar, table editor, field inserter and live preview; import a Word
+file; keep every saved version), and **Build an assembly** (choose a Word
+shell, pick and order components, tick optional ones, preview, save the
+recipe, fill the fields once, create the Word document; review newer wording
+before adopting it). The Word-template workflow is unchanged.
+
+- [x] `version.py` raised to `0.4.0`; `CHANGES.txt` has a `## 0.4.0` section
+      (CI refuses a release without it)
+- [x] `USER-GUIDE.txt` gains "COMPONENTS AND ASSEMBLED CONTRACTS" and the
+      shell section no longer says the workflow is "not available yet"
+- [x] Open a pull request from the branch to `main`; wait for a green CI run
+      at its latest commit (CI before merge)
+- [x] Merge; confirm the `v0.4.0` release has the Windows `.exe` with a
+      digest and both macOS zips
+- [x] On a PC with 0.3.1 installed: the update was offered, downloaded and
+      installed (Beaux, 2026-11-20), with the restart error of T-039; the
+      rest of the hand check is T-038
+- [ ] If a fault is found: fix as 0.4.1; do not edit the 0.4.0 release
+- [ ] Progress log entry with the CI run number and the two size numbers
+
+Known gaps to tell staff or accept: real-Word display of generated documents
+is T-030 (not done); the install error from T-034 is unexplained; there is
+no library backup yet (T-029), so tell staff the component library lives in
+the same per-user file as publisher profiles and should be copied if the PC
+is replaced.
+
+### T-034 Find out what the install error message said
+
+*Resolved 2026-11-20: Beaux sent a screenshot of the message ("Failed to load Python DLL", a path under `AppData\Local\Temp\_MEI...`, `python311.dll`, "The specified module could not be found"). It is the inherited-temporary-folder problem described in T-039, not a missing Windows runtime, so `fix/windows-vc-runtime` is not the fix (T-036 asks Beaux whether to delete it). Left open from T-034's list: whether SmartScreen warned after the self-update, now in T-038.*
+
+- **Status:** done (2026-11-20): the message was "Failed to load Python DLL ... \_MEI...\python311.dll ... The specified module could not be found", on both updates; cause and fix are T-039
+- **Size:** S
+- **Agent:** human
+- **Needs:** Beaux
+
+During T-002 (2026-11-19) Beaux saw an error message while installing. The
+app ran normally afterwards, so it is not urgent, but the message could be
+from the Windows build, the self-update swap, or SmartScreen, and staff will
+see it too.
+
+- [ ] **Unmerged branch to look at first:** `fix/windows-vc-runtime` (Beaux,
+      2026-11-19 07:15, one commit, "Bundle the Python MSVC runtime in
+      Windows builds", changes `build-windows.ps1` only). It was made the
+      morning of the T-002 test and is not merged or mentioned anywhere. If
+      the message was about a missing runtime DLL (for example
+      VCRUNTIME140), that branch may be the fix. Decide: merge, or delete
+      it. Check any change with the size gate, since it adds files
+- [ ] Beaux records exactly what it said (a screenshot or the words), which
+      step it came at (running the downloaded `.exe`, the update, or
+      `build-windows.bat`), and whether it appears every time
+- [ ] If it came during the self-update, attach `build-log.txt`, or look for
+      a `.exe.new` or batch file left beside the app
+- [ ] Also answer: did SmartScreen warn after the 0.3.0 app updated itself
+      to 0.3.1? (settles T-011's unconfirmed sentence)
+- [ ] An agent then opens a fix task, or closes this as harmless with the
+      reason written down
+
+
 ### T-020 Import Word content as Markdown
 
 - **Status:** done (2026-11-20; A to G, last in [PR #39](https://github.com/RexBHavgreau/contractbuilder/pull/39))

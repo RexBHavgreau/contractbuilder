@@ -356,3 +356,29 @@ def test_update_settings_keep_the_saved_token_when_recording_a_check(tmp_path):
     assert settings["github_token"] == "private-token"
     assert settings["last_successful_check"] == 1_800_000_000.0
     assert self_update.load_token(path) == "private-token"
+
+
+def test_restart_environment_is_clean_for_a_pyinstaller_one_file_app():
+    env = self_update.clean_restart_environment({
+        "PATH": "keep",
+        "_MEIPASS2": r"C:\Temp\_MEI12345",
+        "_PYI_APPLICATION_HOME_DIR": r"C:\Temp\_MEI12345",
+        "_pyi_archive_file": "old.exe",
+    })
+    assert env["PATH"] == "keep"
+    assert env["PYINSTALLER_RESET_ENVIRONMENT"] == "1"
+    assert not any(name.upper().startswith("_PYI_") or name.upper() == "_MEIPASS2" for name in env)
+
+
+def test_start_swap_passes_the_clean_environment(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_popen(command, **kwargs):
+        seen.update(kwargs)
+
+    monkeypatch.setenv("_PYI_APPLICATION_HOME_DIR", "stale")
+    monkeypatch.setattr(self_update.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setattr(self_update.subprocess, "Popen", fake_popen)
+    self_update.start_swap(tmp_path / "app.exe", tmp_path / "app.exe.new")
+    assert seen["env"]["PYINSTALLER_RESET_ENVIRONMENT"] == "1"
+    assert "_PYI_APPLICATION_HOME_DIR" not in seen["env"]

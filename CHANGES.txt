@@ -1,5 +1,11 @@
 # What's new
 
+## 0.4.1
+
+Fixes the error message that could appear when the app restarted itself after an automatic update ("Failed to load Python DLL"). The update itself always worked.
+
+If you are updating from 0.4.0 you may see that message one more time, because the old version starts the new one. Click OK, then open Word Template Filler again from its icon. Updates after that should restart cleanly.
+
 ## 0.4.0
 
 New Components menu. Write reusable contract wording once, with buttons for bold, italic, headings, lists, numbered clauses, tables and fields, and a preview as you type. Import wording from an existing Word file and check it before saving. Every saved change is kept as a new version.
