@@ -50,6 +50,23 @@ self-contained app, not a final check, so it applies at three points:
 The CI check also runs weekly (T-035), because build tools that are not
 pinned can grow the executable without any commit.
 
+**CI before merge (rule for every agent).** A pull request is not ready, and
+nobody should merge it, until its own branch has a *completed, passing* CI
+run at its latest commit: the tests, the Windows build with its size check
+and, until T-035 changes it, the macOS builds. A run on an earlier commit,
+a queued or in-progress run, or no run at all does not count. In practice:
+
+- Open the pull request against `main`. A pull request whose base is another
+  branch gets no CI run, which is how `main` went red on 2026-11-20 (PR #34).
+  If the work is stacked, wait for the earlier pull request to merge, then
+  retarget
+- After pushing, wait for the run. Fix a red run on the branch. Never skip,
+  delete, loosen or quarantine a test to get green
+- Write the run number and the two size numbers (see Size gate) in the
+  Progress log entry for the task
+- After a merge, look at the run on `main`. If it is red, fixing it comes
+  before any other work, and say so at the top of your report
+
 **To add a task:** give it the next number and every field below. Write the
 acceptance check so someone else can tell, without asking, whether it is
 done. Add it to the board.
@@ -573,8 +590,14 @@ project easier to read and the Actions and branch lists shorter.
       `task/t-006-clean-stale-update-download`,
       `task/t-007-template-author-guide`, `task/t-019-d-e-lists-tables`,
       `task/t-019-d-e-lists-tables-verified`, `task/t-019-h-size-measurement`.
-      Easiest: Settings > General > "Automatically delete head branches", so
-      it stops recurring. (Deleting a branch does not remove its pull request
+      To stop it recurring: on the repository page click the **Settings** tab
+      (top row, far right; only an owner or admin sees it), stay on
+      **General**, scroll a long way down to the **Pull Requests** section
+      (below "Allow merge commits / squash / rebase"), and tick
+      **Automatically delete head branches**. That only affects pull requests
+      merged afterwards. The branches listed here must be deleted by hand:
+      repository page > **Branches** > **All branches**, then the bin icon at
+      the right of each row. (Deleting a branch does not remove its pull request
       or commits, so T-018 is unaffected.)
 - [ ] **Look at two unmerged branches:** `task/t-019-d-e-lists-tables-final`
       holds one commit (`940da90`, a size-measurement step) that appears to

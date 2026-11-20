@@ -89,6 +89,11 @@ trace.
   `tests/test_no_private_details.py`, which checks every file against a
   private list held in the GitHub secret `BLOCKED_TERMS`. If it fails, it
   names the file and line; replace the detail, do not just reword around it.
+- **CI before merge.** A pull request is not ready until its own branch has a
+  completed, passing CI run at its latest commit (tests, Windows build and size
+  check, macOS builds). Open it against `main`; a stacked pull request gets no
+  CI run. Never skip or loosen a test to get green. After a merge, check the
+  run on `main` and fix a red one first. Full rule: TASKS.md "CI before merge".
 - **Size gate.** The Windows executable must stay at or below 31,457,280
   bytes (30 MiB). Every task that adds code, a dependency or a bundled file
   states its size effect in its design, and confirms the CI size numbers
