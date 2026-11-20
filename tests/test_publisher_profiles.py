@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import publisher_profiles as profiles  # noqa: E402
+from library import ComponentLibrary  # noqa: E402
 
 
 def sample_profile(name="Éditions Exemple"):
@@ -153,15 +154,9 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
     second_id = store.save_profile(second)
     before = store.list_profiles()
 
-    def add_component_table(connection):
-        connection.execute(
-            "CREATE TABLE component_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL)"
-        )
-        connection.execute(
-            "INSERT INTO component_probe (value) VALUES ('migration complete')"
-        )
-
-    upgraded = _upgrade_store_to_v2(monkeypatch, path, add_component_table)
+    upgraded = _upgrade_store_to_v2(
+        monkeypatch, path, profiles._migrate_components_and_versions
+    )
 
     assert _user_version(path) == 2
     assert upgraded.list_profiles() == before
@@ -174,7 +169,7 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
     assert _user_version(backup_path) == 1
     with sqlite3.connect(backup_path) as backup:
         assert backup.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'component_probe'"
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'components'"
         ).fetchone() is None
         assert backup.execute("SELECT COUNT(*) FROM publishers").fetchone()[0] == 2
 
@@ -317,22 +312,166 @@ def test_v2_migration_creates_components_and_immutable_versions(tmp_path, monkey
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'components'"
         ).fetchone() is None
 
+
+def test_v3_migration_pins_immutable_assembly_revisions_and_shell_hash(tmp_path, monkeypatch):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    # Start from the real v2 schema so this test exercises the v2 -> v3 step,
+    # rather than allowing the current application to create v3 immediately.
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 2)
+    monkeypatch.setattr(
+        profiles, "_MIGRATIONS", {2: profiles._migrate_components_and_versions}
+    )
+    library = ComponentLibrary(path)
+    component_id = library.create_component(
+        "Payment clause", "Payment is due within thirty days."
+    )
+    component_version_id = library.list_component_versions(component_id)[0]["id"]
+
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 3)
+    monkeypatch.setattr(
+        profiles,
+        "_MIGRATIONS",
+        {
+            2: profiles._migrate_components_and_versions,
+            3: profiles._migrate_assemblies_and_revisions,
+        },
+    )
+    upgraded = profiles.PublisherProfileStore(path)
+    assert _user_version(path) == 3
+    assert library.get_component(component_id)["name"] == "Payment clause"
+
+    with sqlite3.connect(path) as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        assembly_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(assemblies)")
+        }
+        revision_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(assembly_versions)")
+        }
+        membership_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(assembly_components)")
+        }
+        assert {"id", "name", "description", "status", "created"} <= assembly_columns
+        assert {
+            "id", "assembly_id", "number", "shell_path", "shell_sha256",
+            "created", "note", "finalized",
+        } <= revision_columns
+        assert {
+            "id", "assembly_version_id", "component_version_id", "position", "included"
+        } <= membership_columns
+
+        assembly_id = connection.execute(
+            "INSERT INTO assemblies (name, description, created) "
+            "VALUES (?, ?, ?)",
+            ("Publisher agreement", "A reusable recipe", "2026-11-20T16:30:00+00:00"),
+        ).lastrowid
+        shell_path = "C:/Contracts/Standard Shell.docx"
+        shell_hash = "a" * 64
+        revision_id = connection.execute(
+            "INSERT INTO assembly_versions "
+            "(assembly_id, number, shell_path, shell_sha256, created, note) "
+            "VALUES (?, 1, ?, ?, ?, ?)",
+            (
+                assembly_id,
+                shell_path,
+                shell_hash,
+                "2026-11-20T16:31:00+00:00",
+                "Initial assembly",
+            ),
+        ).lastrowid
+
+        # Pin a specific version ID. The same component version may be used
+        # more than once in a recipe, at different positions.
+        connection.execute(
+            "INSERT INTO assembly_components "
+            "(assembly_version_id, component_version_id, position, included) "
+            "VALUES (?, ?, 0, 1)",
+            (revision_id, component_version_id),
+        )
+        connection.execute(
+            "INSERT INTO assembly_components "
+            "(assembly_version_id, component_version_id, position, included) "
+            "VALUES (?, ?, 1, 0)",
+            (revision_id, component_version_id),
+        )
+        connection.execute(
+            "UPDATE assembly_versions SET finalized = 1 WHERE id = ?",
+            (revision_id,),
+        )
+
+        pinned = connection.execute(
+            "SELECT component_version_id, position, included "
+            "FROM assembly_components WHERE assembly_version_id = ? "
+            "ORDER BY position",
+            (revision_id,),
+        ).fetchall()
+        assert pinned == [(component_version_id, 0, 1), (component_version_id, 1, 0)]
+
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute(
+                "UPDATE assembly_versions SET shell_path = 'different.docx' WHERE id = ?",
+                (revision_id,),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute(
+                "INSERT INTO assembly_components "
+                "(assembly_version_id, component_version_id, position, included) "
+                "VALUES (?, ?, 2, 1)",
+                (revision_id, component_version_id),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute(
+                "UPDATE assembly_components SET included = 0 WHERE assembly_version_id = ?",
+                (revision_id,),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute(
+                "DELETE FROM assembly_components WHERE assembly_version_id = ?",
+                (revision_id,),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="cannot be deleted"):
+            connection.execute(
+                "DELETE FROM assembly_versions WHERE id = ?", (revision_id,)
+            )
+
+        # The assembly itself remains archivable while its revision is pinned.
+        connection.execute(
+            "UPDATE assemblies SET status = 'archived' WHERE id = ?", (assembly_id,)
+        )
+        saved = connection.execute(
+            "SELECT shell_path, shell_sha256, finalized FROM assembly_versions WHERE id = ?",
+            (revision_id,),
+        ).fetchone()
+        assert saved == (shell_path, shell_hash, 1)
+
+        with pytest.raises(sqlite3.IntegrityError, match="CHECK constraint failed"):
+            connection.execute(
+                "INSERT INTO assembly_versions "
+                "(assembly_id, number, shell_path, shell_sha256, created) "
+                "VALUES (?, 2, ?, ?, ?)",
+                (assembly_id, shell_path, "not-a-hash", "2026-11-20T16:32:00+00:00"),
+            )
+
+    backup_path = pathlib.Path(str(path) + ".bak-2")
+    assert backup_path.is_file()
+    assert _user_version(backup_path) == 2
+    with sqlite3.connect(backup_path) as backup:
+        assert backup.execute("SELECT COUNT(*) FROM components").fetchone()[0] == 1
+        assert backup.execute("SELECT COUNT(*) FROM component_versions").fetchone()[0] == 1
+
 def test_older_application_can_use_publishers_without_changing_newer_tables(
     tmp_path, monkeypatch
 ):
     path = tmp_path / "publisher_profiles.sqlite3"
 
-    def add_component_table(connection):
-        connection.execute(
-            "CREATE TABLE components (id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
-        )
+    newer = _upgrade_store_to_v2(
+        monkeypatch, path, profiles._migrate_components_and_versions
+    )
+    newer.save_profile(sample_profile())
+    with sqlite3.connect(path) as connection:
         connection.execute(
             "INSERT INTO components (name) VALUES ('Invented component')"
         )
-
-    newer = _upgrade_store_to_v2(monkeypatch, path, add_component_table)
-    newer.save_profile(sample_profile())
-    with sqlite3.connect(path) as connection:
         component_before = connection.execute(
             "SELECT id, name FROM components"
         ).fetchall()

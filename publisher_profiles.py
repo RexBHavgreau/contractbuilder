@@ -19,7 +19,7 @@ from typing import Callable, Iterator, Mapping, Sequence
 
 # The existing publisher_profiles.sqlite3 layout is schema version 1.
 # Later component-library changes add one migration per new version.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 PROFILE_FIELDS = (
@@ -267,6 +267,132 @@ def _migrate_components_and_versions(connection: sqlite3.Connection) -> None:
 _MIGRATIONS[2] = _migrate_components_and_versions
 
 
+def _migrate_assemblies_and_revisions(connection: sqlite3.Connection) -> None:
+    """Add named assemblies and revisions that pin exact component versions."""
+    connection.execute(
+        """
+        CREATE TABLE assemblies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+            description TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'active'
+                CHECK (status IN ('active', 'archived')),
+            created TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE assembly_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            assembly_id INTEGER NOT NULL
+                REFERENCES assemblies(id) ON DELETE RESTRICT,
+            number INTEGER NOT NULL CHECK (number > 0),
+            shell_path TEXT NOT NULL CHECK (length(trim(shell_path)) > 0),
+            shell_sha256 TEXT NOT NULL
+                CHECK (
+                    length(shell_sha256) = 64
+                    AND shell_sha256 NOT GLOB '*[^0-9A-Fa-f]*'
+                ),
+            created TEXT NOT NULL,
+            note TEXT NOT NULL DEFAULT '',
+            finalized INTEGER NOT NULL DEFAULT 0
+                CHECK (finalized IN (0, 1)),
+            UNIQUE (assembly_id, number)
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE assembly_components (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            assembly_version_id INTEGER NOT NULL
+                REFERENCES assembly_versions(id) ON DELETE RESTRICT,
+            component_version_id INTEGER NOT NULL
+                REFERENCES component_versions(id) ON DELETE RESTRICT,
+            position INTEGER NOT NULL CHECK (position >= 0),
+            included INTEGER NOT NULL DEFAULT 1 CHECK (included IN (0, 1)),
+            UNIQUE (assembly_version_id, position)
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX idx_assembly_versions_assembly_number "
+        "ON assembly_versions(assembly_id, number DESC)"
+    )
+    connection.execute(
+        "CREATE INDEX idx_assembly_components_version "
+        "ON assembly_components(component_version_id)"
+    )
+
+    # A revision is assembled in one transaction while finalized=0. The one
+    # permitted update changes only finalized from 0 to 1. Thereafter neither
+    # the revision metadata nor its pinned component membership can change.
+    connection.execute(
+        """
+        CREATE TRIGGER assembly_versions_finalize_only
+        BEFORE UPDATE ON assembly_versions
+        WHEN NOT (
+            OLD.finalized = 0 AND NEW.finalized = 1
+            AND NEW.id = OLD.id
+            AND NEW.assembly_id = OLD.assembly_id
+            AND NEW.number = OLD.number
+            AND NEW.shell_path = OLD.shell_path
+            AND NEW.shell_sha256 = OLD.shell_sha256
+            AND NEW.created = OLD.created
+            AND NEW.note = OLD.note
+        )
+        BEGIN
+            SELECT RAISE(ABORT, 'assembly revisions are immutable');
+        END
+        """
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER assembly_versions_immutable_delete
+        BEFORE DELETE ON assembly_versions
+        BEGIN
+            SELECT RAISE(ABORT, 'assembly revisions cannot be deleted');
+        END
+        """
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER assembly_components_no_late_insert
+        BEFORE INSERT ON assembly_components
+        WHEN COALESCE(
+            (SELECT finalized FROM assembly_versions
+             WHERE id = NEW.assembly_version_id), 0
+        ) = 1
+        BEGIN
+            SELECT RAISE(ABORT, 'assembly revisions are immutable');
+        END
+        """
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER assembly_components_immutable_update
+        BEFORE UPDATE ON assembly_components
+        BEGIN
+            SELECT RAISE(ABORT, 'assembly revisions are immutable');
+        END
+        """
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER assembly_components_immutable_delete
+        BEFORE DELETE ON assembly_components
+        BEGIN
+            SELECT RAISE(ABORT, 'assembly revisions are immutable');
+        END
+        """
+    )
+
+
+_MIGRATIONS[3] = _migrate_assemblies_and_revisions
+
+
+
 def _verify_publisher_schema(connection: sqlite3.Connection) -> None:
     """Refuse to stamp or migrate a database missing its existing profile data."""
     if not _table_exists(connection, "publishers"):
@@ -288,6 +414,94 @@ def _verify_publisher_schema(connection: sqlite3.Connection) -> None:
         )
 
 
+def _verify_component_schema(connection: sqlite3.Connection) -> None:
+    """Verify the version-2 component tables and immutability triggers."""
+    required = {
+        "components": {"id", "name", "description", "category", "tags", "status"},
+        "component_versions": {
+            "id", "component_id", "number", "markdown", "created", "note"
+        },
+    }
+    for table_name, expected in required.items():
+        if not _table_exists(connection, table_name):
+            raise sqlite3.DatabaseError(f"The {table_name} table is missing.")
+        actual = {
+            row[1] for row in connection.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+        }
+        missing = sorted(expected - actual)
+        if missing:
+            raise sqlite3.DatabaseError(
+                f"The {table_name} table is missing required column(s): "
+                + ", ".join(missing)
+            )
+
+    triggers = {
+        row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger'"
+        ).fetchall()
+    }
+    required_triggers = {
+        "component_versions_immutable_update",
+        "component_versions_immutable_delete",
+    }
+    missing_triggers = sorted(required_triggers - triggers)
+    if missing_triggers:
+        raise sqlite3.DatabaseError(
+            "The component schema is missing required trigger(s): "
+            + ", ".join(missing_triggers)
+        )
+
+
+def _verify_assembly_schema(connection: sqlite3.Connection) -> None:
+    """Verify the version-3 assembly tables and revision-protection triggers."""
+    required = {
+        "assemblies": {"id", "name", "description", "status", "created"},
+        "assembly_versions": {
+            "id", "assembly_id", "number", "shell_path", "shell_sha256",
+            "created", "note", "finalized",
+        },
+        "assembly_components": {
+            "id", "assembly_version_id", "component_version_id",
+            "position", "included",
+        },
+    }
+    for table_name, expected in required.items():
+        if not _table_exists(connection, table_name):
+            raise sqlite3.DatabaseError(f"The {table_name} table is missing.")
+        actual = {
+            row[1] for row in connection.execute(
+                f"PRAGMA table_info({table_name})"
+            ).fetchall()
+        }
+        missing = sorted(expected - actual)
+        if missing:
+            raise sqlite3.DatabaseError(
+                f"The {table_name} table is missing required column(s): "
+                + ", ".join(missing)
+            )
+
+    triggers = {
+        row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger'"
+        ).fetchall()
+    }
+    required_triggers = {
+        "assembly_versions_finalize_only",
+        "assembly_versions_immutable_delete",
+        "assembly_components_no_late_insert",
+        "assembly_components_immutable_update",
+        "assembly_components_immutable_delete",
+    }
+    missing_triggers = sorted(required_triggers - triggers)
+    if missing_triggers:
+        raise sqlite3.DatabaseError(
+            "The assembly schema is missing required trigger(s): "
+            + ", ".join(missing_triggers)
+        )
+
+
 def _verify_database(
     connection: sqlite3.Connection, expected_version: int | None
 ) -> None:
@@ -299,6 +513,10 @@ def _verify_database(
                 f"Database schema version is {actual}; expected {expected_version}."
             )
     _verify_publisher_schema(connection)
+    if expected_version is not None and expected_version >= 2:
+        _verify_component_schema(connection)
+    if expected_version is not None and expected_version >= 3:
+        _verify_assembly_schema(connection)
     integrity = connection.execute("PRAGMA integrity_check").fetchall()
     if integrity != [("ok",)]:
         raise sqlite3.DatabaseError(
