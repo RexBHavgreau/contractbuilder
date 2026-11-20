@@ -102,3 +102,126 @@ def test_toolbar_formats_lists_and_decimal_outline_levels():
     ) == "    1. Child"
     assert format_markdown_block("1. First item", "indent") == "1. First item"
     assert format_markdown_block("    1. Child", "outdent") == "1. Child"
+
+
+def test_toolbar_wrap_keeps_related_controls_together_when_they_fit():
+    from component_editor import wrap_toolbar_groups
+
+    groups = [
+        [("bold", 24), ("italic", 28), ("heading", 52)],
+        [("bullets", 48), ("numbering", 62), ("indent", 74)],
+        [("table", 38), ("field", 38)],
+    ]
+    rows = wrap_toolbar_groups(groups, available_width=120, gap=4)
+    flattened = [name for row in rows for name, _width in row]
+    assert flattened == [
+        "bold", "italic", "heading", "bullets", "numbering", "indent", "table", "field"
+    ]
+    assert [name for name, _width in rows[0]] == ["bold", "italic", "heading"]
+    assert [name for name, _width in rows[-1]] == ["table", "field"]
+
+    narrow = wrap_toolbar_groups(
+        [[("small", 12), ("too-wide", 36), ("next", 14)]],
+        available_width=20,
+        gap=2,
+    )
+    assert narrow == [[("small", 12)], [("too-wide", 36)], [("next", 14)]]
+
+
+def test_inline_format_toggles_and_preserves_the_other_emphasis():
+    from component_editor import inline_format_active, toggle_inline_format
+
+    source = "agreement"
+    bold, start, end = toggle_inline_format(source, 0, len(source), "bold")
+    assert bold == "**agreement**"
+    assert bold[start:end] == "agreement"
+    assert inline_format_active(bold, start, end, "bold")
+
+    plain, start, end = toggle_inline_format(bold, start, end, "bold")
+    assert plain == "agreement"
+    assert plain[start:end] == "agreement"
+    assert not inline_format_active(plain, start, end, "bold")
+
+    combined, start, end = toggle_inline_format("**term**", 2, 6, "italic")
+    assert combined == "***term***"
+    assert inline_format_active(combined, start, end, "bold")
+    assert inline_format_active(combined, start, end, "italic")
+
+    bold_only, start, end = toggle_inline_format(combined, start, end, "italic")
+    assert bold_only == "**term**"
+    assert bold_only[start:end] == "term"
+
+    raw_selection, start, end = toggle_inline_format(
+        "**term**", 0, len("**term**"), "bold"
+    )
+    assert raw_selection == "term"
+    assert raw_selection[start:end] == "term"
+
+    raw_italic, start, end = toggle_inline_format(
+        "**term**", 0, len("**term**"), "italic"
+    )
+    assert raw_italic == "***term***"
+    assert raw_italic[start:end] == "term"
+    bold_only, start, end = toggle_inline_format(
+        raw_italic, start, end, "italic"
+    )
+    assert bold_only == "**term**"
+    assert bold_only[start:end] == "term"
+
+    mixed = "**already bold** and plain"
+    normalized, start, end = toggle_inline_format(mixed, 0, len(mixed), "bold")
+    assert normalized == "**already bold and plain**"
+    assert normalized[start:end] == "already bold and plain"
+
+
+def test_inline_format_does_not_rewrite_fields_or_escaped_markers():
+    from component_editor import toggle_inline_format
+
+    field = "{{Client Name}}"
+    unchanged, start, end = toggle_inline_format(field, 0, len(field), "bold")
+    assert unchanged == field
+    assert (start, end) == (0, len(field))
+
+    escaped_marker = r"\*"
+    unchanged, start, end = toggle_inline_format(
+        escaped_marker, 0, len(escaped_marker), "italic"
+    )
+    assert unchanged == escaped_marker
+    assert (start, end) == (0, len(escaped_marker))
+
+    escaped_text = r"\*literal\*"
+    wrapped, start, end = toggle_inline_format(
+        escaped_text, 0, len(escaped_text), "italic"
+    )
+    assert wrapped == r"*\*literal\**"
+    assert r"\*literal\*" in wrapped
+    assert wrapped[start:end] == escaped_text
+
+
+def test_heading_and_list_controls_toggle_off_or_switch_type():
+    from component_editor import format_markdown_block, markdown_block_state, toggle_markdown_block
+
+    assert format_markdown_block("## Heading", "heading", 2) == "Heading"
+    assert format_markdown_block("## Heading", "heading", 1) == "# Heading"
+    assert format_markdown_block("## Heading", "normal") == "Heading"
+    assert format_markdown_block("- Clause", "bullet") == "Clause"
+    assert format_markdown_block("- Clause", "numbered") == "1. Clause"
+    assert format_markdown_block("1. Clause", "numbered") == "Clause"
+
+    source = "First clause\nSecond clause"
+    bulleted, start, end = toggle_markdown_block(source, 0, len(source), "bullet")
+    assert bulleted == "- First clause\n- Second clause"
+    assert bulleted[start:end] == bulleted
+    assert markdown_block_state(bulleted, start, end)["bullet"]
+
+    numbered, start, end = toggle_markdown_block(
+        bulleted, start, end, "numbered"
+    )
+    assert numbered == "1. First clause\n1. Second clause"
+    assert markdown_block_state(numbered, start, end)["numbered"]
+
+    plain, start, end = toggle_markdown_block(
+        numbered, start, end, "numbered"
+    )
+    assert plain == source
+    assert plain[start:end] == source
