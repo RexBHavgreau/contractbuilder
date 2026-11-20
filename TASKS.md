@@ -878,7 +878,7 @@ publisher profiles are untouched.
 
 #### T-021-E Storage module and tests
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-021-B, T-021-C, T-021-D
