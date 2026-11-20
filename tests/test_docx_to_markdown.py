@@ -473,6 +473,7 @@ def test_supported_docx_markdown_docx_round_trip_is_stable(tmp_path):
     paragraph.add_run("promptly").italic = True
     source.add_paragraph("First clause", style="List Number")
     source.add_paragraph("Second clause", style="List Number")
+    source.add_paragraph("Bullet clause", style="List Bullet")
     table = source.add_table(rows=2, cols=2)
     table.cell(0, 0).text = "Term"
     table.cell(0, 1).text = "Value"
@@ -487,7 +488,8 @@ def test_supported_docx_markdown_docx_round_trip_is_stable(tmp_path):
     assert "**reasonably**" in imported.markdown
     assert "*promptly*" in imported.markdown
     assert "1. First clause" in imported.markdown
-    assert "2. Second clause" in imported.markdown
+    assert "1. Second clause" in imported.markdown
+    assert "- Bullet clause" in imported.markdown
     assert "| Payment | Within thirty days |" in imported.markdown
 
     shell = Document()
@@ -508,4 +510,5 @@ def test_supported_docx_markdown_docx_round_trip_is_stable(tmp_path):
     assert "Service terms" in second_import.markdown
     assert "First clause" in second_import.markdown
     assert "Second clause" in second_import.markdown
+    assert "Bullet clause" in second_import.markdown
     assert "Within thirty days" in second_import.markdown
