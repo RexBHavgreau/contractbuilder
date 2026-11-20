@@ -89,3 +89,18 @@ def test_preview_highlights_fields_inside_inline_code_and_emphasis():
         if "{{Governing Law}}" in value
     )
 
+
+ 
+def test_nested_numbered_preview_uses_computed_decimal_outline():
+    text, _segments = _rendered(
+        "1. Parent\n"
+        "    1. Child\n"
+        "        1. Grandchild\n"
+        "    1. Next child\n"
+        "2. Next parent"
+    )
+    assert "1. Parent" in text
+    assert "1.1. Child" in text
+    assert "1.1.1. Grandchild" in text
+    assert "1.2. Next child" in text
+    assert "2. Next parent" in text

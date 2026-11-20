@@ -92,10 +92,10 @@ Next free number: **T-037**.
 
 | Task | What | Status | Agent | Needs |
 | --- | --- | --- | --- | --- |
-| [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella; A and B done) | claimed (ChatGPT) | careful | — |
-| ↳ T-022-C to T-022-G | Toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
-| [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella; 6 of 7 done) | open | careful | — |
-| ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | — |
+| [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella; A and B merged, C to G in progress) | claimed (ChatGPT, 2026-11-20) | careful | — |
+| ↳ T-022-C to T-022-G | Toolbar; table editor; insert field; source toggle; import review | claimed (ChatGPT, 2026-11-20) | careful | see task |
+| [T-020](#t-020-import-word-content-as-markdown) | Import Word content as Markdown (umbrella; T-020-F in progress) | claimed (ChatGPT, 2026-11-20) | careful | — |
+| ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | claimed (ChatGPT, 2026-11-20) | careful | — |
 | [T-035](#t-035-make-the-size-gate-complete-and-periodic) | Make the 30 MiB size gate cover every module and run weekly | open | careful | — |
 | [T-034](#t-034-find-out-what-the-install-error-message-said) | Find out what the install error message said (see unmerged `fix/windows-vc-runtime`) | open | human | Beaux |
 | [T-036](#t-036-housekeeping-stale-branches-and-legacy-code) | Housekeeping: stale branches and legacy code | open, needs decisions | human | Beaux |
@@ -239,7 +239,7 @@ in the right order, fields intact, and every unsupported structure reported.
 
 #### T-020-F Round trip: DOCX, Markdown, DOCX
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20; acceptance test on T-022 branch)
 - **Size:** S
 - **Agent:** careful
 - **Needs:** T-020-C, T-020-D, T-019-F
@@ -253,23 +253,20 @@ in the right order, fields intact, and every unsupported structure reported.
 
 ### T-022 In-app component editor
 
-- **Status:** claimed (ChatGPT, in progress; A and B done in [PR #34](https://github.com/RexBHavgreau/contractbuilder/pull/34) and [PR #36](https://github.com/RexBHavgreau/contractbuilder/pull/36); C to G not started)
+- **Status:** claimed (ChatGPT, 2026-11-20; A and B merged in [PR #34](https://github.com/RexBHavgreau/contractbuilder/pull/34) and [PR #36](https://github.com/RexBHavgreau/contractbuilder/pull/36); C to G in progress on `chatgpt/t-022-c-g-editor-tools`)
 - **Size:** umbrella of T-022-A to T-022-G
 - **Agent:** careful
 - **Needs:** T-021-E, T-019-A
 
 See PROPOSAL-001.md section 5. This was the largest, riskiest item, so it is
-now small steps. **Choice made here:** the first working editor is plain
-text plus a rendered preview, and the toolbar and table editor follow. A
-Tkinter Text widget cannot be a faithful Word view; the preview shows
-structure only, and the guide says so.
+now small steps. **Choice made here:** the editor remains Markdown-backed. The Tkinter Text widget uses elided syntax and basic text tags for a formatted editing surface, with an optional raw-source view; the separate preview shows structure only, not Word pagination or final layout.
 
 **Done when:** a user who does not know Markdown can create, import, edit and
 save a component, with tables and fields, and see how it will look.
 
 #### T-022-C Formatting toolbar
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-022-B
@@ -288,7 +285,7 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-D Table editor
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-022-B
@@ -303,7 +300,7 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-E Insert a field
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-022-A
@@ -317,7 +314,7 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-F Source view toggle
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-022-A
@@ -328,10 +325,10 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-G Import review dialog
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20; T-020-F acceptance test included on this branch)
 - **Size:** M
 - **Agent:** careful
-- **Needs:** T-022-B, T-020-F
+- **Needs:** T-022-B, T-020-F (round-trip acceptance test is included on this branch)
 - **Size gate:** yes. Say what this adds to the executable and confirm the CI size result before done (see Size gate).
 
 - [ ] "Import from a Word file": choose a `.docx`, see the converted result

@@ -208,6 +208,7 @@ def render_markdown_preview(markdown: str) -> list[Segment]:
             lists.append({
                 "kind": "ordered" if kind == "ordered_list_open" else "bullet",
                 "next": start_number,
+                "current": None,
             })
         elif kind in ("bullet_list_close", "ordered_list_close"):
             if lists:
@@ -215,12 +216,18 @@ def render_markdown_preview(markdown: str) -> list[Segment]:
             newline()
         elif kind == "list_item_open":
             depth = max(0, len(lists) - 1)
-            prefix = "  " * depth
             if lists and lists[-1]["kind"] == "ordered":
-                prefix += f'{lists[-1]["next"]}. '
-                lists[-1]["next"] = int(lists[-1]["next"]) + 1
+                current = int(lists[-1]["next"])
+                lists[-1]["current"] = current
+                lists[-1]["next"] = current + 1
+                outline = [
+                    str(frame["current"])
+                    for frame in lists
+                    if frame["kind"] == "ordered" and frame["current"] is not None
+                ]
+                prefix = ".".join(outline) + ". "
             else:
-                prefix += "• "
+                prefix = "  " * depth + "• "
             _append(result, prefix, "list_marker")
         elif kind == "list_item_close":
             newline()

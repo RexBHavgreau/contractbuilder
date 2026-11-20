@@ -2,6 +2,8 @@
 import zipfile
 
 from docx import Document
+
+import docx_compose
 from docx.enum.text import WD_COLOR_INDEX
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -459,3 +461,64 @@ def test_vertical_merge_is_reported(tmp_path):
 
     assert "Shared cell" in result.markdown
     assert any("merged or irregular cells" in item.message for item in result.warnings)
+
+
+def test_supported_docx_markdown_docx_round_trip_is_stable(tmp_path):
+    """T-020-F: the supported body subset survives an import and composition cycle."""
+    source = Document()
+    source.add_heading("Service terms", level=2)
+    paragraph = source.add_paragraph("The provider will act ")
+    paragraph.add_run("reasonably").bold = True
+    paragraph.add_run(" and ")
+    paragraph.add_run("promptly").italic = True
+    source.add_paragraph("First clause", style="List Number")
+    source.add_paragraph("Second clause", style="List Number")
+    source.add_paragraph("Bullet clause", style="List Bullet")
+    table = source.add_table(rows=2, cols=2)
+    table.cell(0, 0).text = "Term"
+    table.cell(0, 1).text = "Value"
+    table.cell(1, 0).text = "Payment"
+    table.cell(1, 1).text = "Within thirty days"
+    source_path = tmp_path / "invented-source.docx"
+    source.save(source_path)
+    source_bytes = source_path.read_bytes()
+
+    imported = import_docx(source_path)
+    assert "## Service terms" in imported.markdown
+    assert "**reasonably**" in imported.markdown
+    assert "*promptly*" in imported.markdown
+    assert "1. First clause" in imported.markdown
+    assert "1. Second clause" in imported.markdown
+    assert "- Bullet clause" in imported.markdown
+    assert "| Payment | Within thirty days |" in imported.markdown
+    ordered_parts = (
+        "## Service terms",
+        "The provider will act",
+        "1. First clause",
+        "1. Second clause",
+        "- Bullet clause",
+        "| Term | Value |",
+    )
+    positions = [imported.markdown.index(part) for part in ordered_parts]
+    assert positions == sorted(positions)
+
+    shell = Document()
+    shell.sections[0].header.paragraphs[0].text = "Invented shell header"
+    shell.sections[0].footer.paragraphs[0].text = "Invented shell footer"
+    shell.add_paragraph("Shell wording is replaced.")
+    shell_path = tmp_path / "invented-shell.docx"
+    shell.save(shell_path)
+    shell_bytes = shell_path.read_bytes()
+
+    output_path = tmp_path / "round-trip.docx"
+    docx_compose.compose_document(shell_path, [imported.markdown], output_path)
+    second_import = import_docx(output_path)
+
+    assert second_import.markdown == imported.markdown
+    assert source_path.read_bytes() == source_bytes
+    assert shell_path.read_bytes() == shell_bytes
+    assert "Service terms" in second_import.markdown
+    assert "First clause" in second_import.markdown
+    assert "Second clause" in second_import.markdown
+    assert "Bullet clause" in second_import.markdown
+    assert "Within thirty days" in second_import.markdown
