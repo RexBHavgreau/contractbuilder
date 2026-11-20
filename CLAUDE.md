@@ -132,6 +132,17 @@ trace.
 
 Newest last. Each entry: date, decision, why, consequences. (Some entries from 2026-11-18 sit above the older ones and are not bolded; the order is not strictly chronological.)
 
+- **2026-11-20 — Assembly revisions pin exact component versions and shell bytes.**
+  A revision stores ordered component-version IDs (including an explicit
+  included flag) rather than following a component's latest version. It also
+  records the selected shell path and SHA-256 so a later builder can detect
+  a moved or changed shell. A revision is assembled as one transaction and
+  finalized only after an included component exists; after finalization the
+  shell metadata and membership are immutable. Archiving changes lifecycle
+  status only. SQLite triggers protect historical components and assemblies
+  from hard deletion even when foreign-key enforcement is disabled on a
+  particular connection.
+
 - **2026-11-20 — Component wording is versioned data, never an edited row.**
   `components` holds mutable descriptive metadata; each save inserts a
   numbered `component_versions` row. SQLite triggers reject updates and
@@ -392,6 +403,8 @@ Newest last.
 - **2026-11-20** T-021-A (ChatGPT, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)): added schema-versioned, transactional SQLite upgrades with verified per-version backups, publisher-data preservation, rollback coverage and older-app compatibility. CI run #176 passed all 210 tests and built Windows x64, macOS Intel and macOS Apple Silicon; the component-stack Windows build measured 17,967,571 bytes (17.14 MiB), leaving 12.86 MiB under the 30 MiB limit.
 
 - **2026-11-20** T-021-B (ChatGPT, [PR #30](https://github.com/RexBHavgreau/contractbuilder/pull/30)): added the component and immutable-version tables plus `library.py`, a Tkinter-free, standard-library storage API. Component creation creates version 1; later saves allocate the next number in a write-serialized transaction. SQLite triggers prevent rewriting or deleting saved versions. Tags are stored as a JSON array to preserve arbitrary user-defined labels; categories remain unrestricted text. CI run #183 passed 214 tests, Windows x64 and Intel macOS; the Windows component-stack build measured 17,972,861 bytes (17.14 MiB), with 13,484,419 bytes (12.86 MiB) below the 30 MiB cap. Apple Silicon was still queued when this entry was written.
+- **2026-11-20** T-021-C (ChatGPT, [PR #31](https://github.com/RexBHavgreau/contractbuilder/pull/31)): added assembly records, numbered revisions and ordered membership rows that pin exact component-version IDs. Each revision stores its shell path and validated SHA-256; it is finalized once, only after at least one included component is present, and SQLite triggers prevent later membership or shell changes. Run #189 passed 215 tests and all three platform builds.
+- **2026-11-20** T-021-D (ChatGPT, [PR #32](https://github.com/RexBHavgreau/contractbuilder/pull/32)): added archive/restore operations for components and assemblies. Normal component browsing hides archived records; pinned revisions continue to resolve their original Markdown. Delete-protection triggers prevent removing components with version history or assemblies with revisions even when a caller has not enabled SQLite foreign keys. Run #193 passed 217 tests and all three platform builds. The Windows component-stack executable measured 17,976,977 bytes (17.14 MiB), leaving 13,480,303 bytes (12.86 MiB) below the 30 MiB cap.
 - **2026-11-19** T-019-D and T-033 (ChatGPT, [PR #27](https://github.com/RexBHavgreau/contractbuilder/pull/27)): Beaux chose continuous clause numbering across the assembled contract. The composer now remaps all ordered lists across all components to one shared native Word numbering instance, while retaining the shell's multi-level decimal outline and separate bullet-list instances. Regression coverage checks continuity across separate lists, component boundaries, intervening paragraphs and tables. T-019 is complete; real-Word verification remains T-030.
 
 - **2026-11-19** T-002 (Beaux): ran the v0.3.0 build and the 0.3.0 to 0.3.1 self-update on a Windows PC. Everything worked; an error message appeared during install without affecting the app (details: TASKS.md T-034). T-018: Beaux confirmed no other copies of the old history exist; GitHub Support's purge is the only thing outstanding, and a check on 2026-11-19 shows pull requests #1 and #6 still serve the old commits.
