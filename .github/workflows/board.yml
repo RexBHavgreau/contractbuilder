@@ -1,0 +1,60 @@
+name: Task board
+
+# Builds the task board from the files in tasks/ after every merge to main
+# (TASKS.md T-054). Pull requests never edit a board file, so they cannot
+# conflict over it. The board is always published as the run summary and as an
+# artifact. It is also committed as BOARD.md only when the repository variable
+# BOARD_BOT_COMMIT is set to "true" (Settings > Secrets and variables >
+# Actions > Variables), which lets the repository owner decide whether the
+# Actions bot may push to main.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "tasks/**"
+      - "scripts/board.py"
+      - "scripts/task_files.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  board:
+    name: Build the task board
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the task files
+        run: python3 scripts/board.py --check
+
+      - name: Build the board
+        run: python3 scripts/board.py --markdown > BOARD.md
+
+      - name: Publish the board in the run summary
+        run: cat BOARD.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the board as an artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: task-board
+          path: BOARD.md
+          retention-days: 30
+
+      - name: Commit BOARD.md (only when the repository variable allows it)
+        if: ${{ vars.BOARD_BOT_COMMIT == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add BOARD.md
+          if git diff --cached --quiet; then
+            echo "The board has not changed."
+          else
+            git commit -m "Update the task board [skip ci]"
+            git push
+          fi

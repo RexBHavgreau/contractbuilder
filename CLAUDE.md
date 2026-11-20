@@ -6,7 +6,8 @@ request. When you finish a piece of work, add a file under
 [progress/](progress/README.md), and one under
 [decisions/](decisions/README.md) for any choice a later person would
 otherwise have to rediscover; do not add log entries here (T-053). Open work
-lives in [TASKS.md](TASKS.md).
+lives in [tasks/](tasks/README.md), one file per task; the rules are in
+[TASKS.md](TASKS.md) and the board is `python scripts/board.py` (T-054).
 
 ## What it is
 
@@ -67,7 +68,7 @@ trace.
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
 | `version.py` | `APP_NAME`, `APP_VERSION`, `GITHUB_REPOSITORY`. The single source of the version. |
-| `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see TASKS.md. |
+| `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see tasks/T-036.md. |
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
 | `build-mac.command` | Local macOS build. |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases, and side-by-side Windows package-size measurement with and without the component-builder modules, including the DOCX importer. |
