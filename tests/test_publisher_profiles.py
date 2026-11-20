@@ -110,15 +110,22 @@ def _user_version(path):
         return connection.execute("PRAGMA user_version").fetchone()[0]
 
 
+def _new_v1_store(monkeypatch, path):
+    """Create a database using the publisher-only schema for migration tests."""
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 1)
+    monkeypatch.setattr(profiles, "_MIGRATIONS", {})
+    return profiles.PublisherProfileStore(path)
+
+
 def _upgrade_store_to_v2(monkeypatch, path, migration):
     monkeypatch.setattr(profiles, "SCHEMA_VERSION", 2)
     monkeypatch.setattr(profiles, "_MIGRATIONS", {2: migration})
     return profiles.PublisherProfileStore(path)
 
 
-def test_new_and_unversioned_legacy_databases_are_schema_version_one(tmp_path):
+def test_new_and_unversioned_legacy_databases_are_schema_version_one(tmp_path, monkeypatch):
     path = tmp_path / "publisher_profiles.sqlite3"
-    store = profiles.PublisherProfileStore(path)
+    store = _new_v1_store(monkeypatch, path)
     profile_id = store.save_profile(sample_profile())
 
     assert _user_version(path) == 1
@@ -140,7 +147,7 @@ def test_upgrade_makes_one_verified_backup_and_preserves_publisher_profiles(
     tmp_path, monkeypatch
 ):
     path = tmp_path / "publisher_profiles.sqlite3"
-    store = profiles.PublisherProfileStore(path)
+    store = _new_v1_store(monkeypatch, path)
     first_id = store.save_profile(sample_profile())
     second = sample_profile("Maison Exemple")
     second_id = store.save_profile(second)
@@ -182,7 +189,7 @@ def test_failed_migration_rolls_back_database_and_keeps_original_backup(
     tmp_path, monkeypatch
 ):
     path = tmp_path / "publisher_profiles.sqlite3"
-    store = profiles.PublisherProfileStore(path)
+    store = _new_v1_store(monkeypatch, path)
     store.save_profile(sample_profile())
     before = store.list_profiles()
 
@@ -218,6 +225,83 @@ def test_failed_migration_rolls_back_database_and_keeps_original_backup(
     with sqlite3.connect(backup_path) as backup:
         assert backup.execute("SELECT notes FROM publishers").fetchone()[0] == before[0]["notes"]
 
+
+
+def test_v2_migration_creates_components_and_immutable_versions(tmp_path, monkeypatch):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    legacy = _new_v1_store(monkeypatch, path)
+    publisher_id = legacy.save_profile(sample_profile())
+    publishers_before = legacy.list_profiles()
+
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 2)
+    monkeypatch.setattr(
+        profiles, "_MIGRATIONS", {2: profiles._migrate_components_and_versions}
+    )
+    upgraded = profiles.PublisherProfileStore(path)
+
+    assert _user_version(path) == 2
+    assert upgraded.list_profiles() == publishers_before
+    assert upgraded.get_profile(publisher_id) == publishers_before[0]
+
+    with sqlite3.connect(path) as connection:
+        component_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(components)")
+        }
+        version_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(component_versions)")
+        }
+        assert {"id", "name", "description", "category", "tags", "status"} <= component_columns
+        assert {"id", "component_id", "number", "markdown", "created", "note"} <= version_columns
+
+        # Arbitrary categories and tag labels are accepted; no fixed taxonomy
+        # is imposed by the schema.
+        cursor = connection.execute(
+            "INSERT INTO components (name, category, tags) VALUES (?, ?, ?)",
+            ("Payment terms", "A category made by the user", '["custom tag", "another tag"]'),
+        )
+        component_id = cursor.lastrowid
+        connection.execute(
+            "INSERT INTO component_versions "
+            "(component_id, number, markdown, created, note) VALUES (?, 1, ?, ?, ?)",
+            (component_id, "Payment is due within {{Payment Period}}.", "2026-11-20T16:00:00+00:00", "First draft"),
+        )
+        version_id = connection.execute(
+            "SELECT id FROM component_versions WHERE component_id = ?", (component_id,)
+        ).fetchone()[0]
+
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            connection.execute(
+                "UPDATE component_versions SET markdown = 'rewritten' WHERE id = ?",
+                (version_id,),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="cannot be deleted"):
+            connection.execute(
+                "DELETE FROM component_versions WHERE id = ?", (version_id,)
+            )
+
+        # A new version is allowed; it does not overwrite the first one.
+        connection.execute(
+            "INSERT INTO component_versions "
+            "(component_id, number, markdown, created, note) VALUES (?, 2, ?, ?, ?)",
+            (component_id, "Payment is due within {{Due Date}}.", "2026-11-20T16:01:00+00:00", "Revised draft"),
+        )
+        versions = connection.execute(
+            "SELECT number, markdown FROM component_versions "
+            "WHERE component_id = ? ORDER BY number",
+            (component_id,),
+        ).fetchall()
+        assert versions == [
+            (1, "Payment is due within {{Payment Period}}."),
+            (2, "Payment is due within {{Due Date}}."),
+        ]
+
+    backup_path = pathlib.Path(str(path) + ".bak-1")
+    assert backup_path.is_file()
+    assert _user_version(backup_path) == 1
+    with sqlite3.connect(backup_path) as backup:
+        assert backup.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'components'"
+        ).fetchone() is None
 
 def test_older_application_can_use_publishers_without_changing_newer_tables(
     tmp_path, monkeypatch
