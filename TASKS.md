@@ -7,8 +7,12 @@ decisions every task assumes.
 
 ## How to use this file
 
-**To take a task:** change its `Status` to `claimed (your name or agent id,
-date)` in the same commit or pull request that starts the work. Take only
+**To take a task:** look at the open pull requests first, then claim the
+task with **its own one-line pull request** that changes only that task's
+`Status` to `claimed (your name or agent id, date)` (and its board row).
+Merge it within minutes and before any other work starts; if someone else's
+claim merged first, pick another task. Two agents then never take the same
+task. Take only
 tasks marked `Agent: any` unless you are a stronger model or a person. Do
 not take a task marked `Needs: Beaux` until its decision is recorded in
 CLAUDE.md, and do not take one whose `Needs` names an unfinished task.
@@ -18,10 +22,12 @@ bigger than its size, split it: add new tasks below with the next free
 number and say so in the original.
 
 **When done:** set `Status: done (date, PR link)`, tick every subtask that
-was done (and say why any was not), update the board below, add a line to
-the Progress log in CLAUDE.md, and add a Decision log entry for any choice
-you made that someone would otherwise have to rediscover. Leave done tasks
-here for a month after they are done, then delete them.
+was done (and say why any was not), update the board below, **add a file
+under `progress/`** (see [progress/README.md](progress/README.md)), and a file
+under `decisions/` for any choice you made that someone would otherwise have
+to rediscover. **Do not edit `CLAUDE.md`** to record progress or decisions;
+it changes only by a deliberate rules change. Leave done tasks here for a
+month after they are done, then delete them.
 
 **Subtasks:** a large task is an umbrella with subtasks named
 `T-022-A`, `T-022-B` and so on (letters; if one itself needs splitting, use
@@ -44,7 +50,8 @@ self-contained app, not a final check, so it applies at three points:
    later". Add it with the task that uses it.
 3. **Final confirmation.** Before `Status: done`, read the CI size output for
    the release build and the component-enabled build, and put both sizes and
-   the headroom in the Progress log entry. Under 3 MiB of headroom: stop and
+   the headroom in the `size` field of the task's `progress/` file (a test
+   fails if the field is missing). Under 3 MiB of headroom: stop and
    tell Beaux. A task is not done while the size check is red or was skipped.
 
 The CI check also runs weekly (T-035), because build tools that are not
@@ -63,19 +70,20 @@ a queued or in-progress run, or no run at all does not count. In practice:
 - After pushing, wait for the run. Fix a red run on the branch. Never skip,
   delete, loosen or quarantine a test to get green
 - Write the run number and the two size numbers (see Size gate) in the
-  Progress log entry for the task
+  `ci_run` and `size` fields of the task's `progress/` file
+- Before opening or merging a pull request, merge the latest `main` into
+  your branch and read both sides of any conflict (GitHub will enforce this
+  once T-057 is set)
 - After a merge, look at the run on `main`. If it is red, fixing it comes
   before any other work, and say so at the top of your report
 
-**Parallel work (interim rules, until T-053 and T-054 are done).** Several
-agents edit this file and CLAUDE.md at the same time, which is the main source
-of conflicts. Until the documents are split:
-(1) **claim a task by a one-line pull request** that changes only that task's
-status line, merged before any other work, and look at the open pull requests
-first; (2) **before opening or merging a pull request, merge the latest `main`
-into your branch** and read both sides of any conflict in this file; (3) keep
-your edits to this file to your own task's status and boxes, and add your
-progress entry in one block at the very end of the Progress log; (4) **do not
+**Parallel work (until T-054 splits this file too).** Progress and decision
+entries are separate files since T-053, so they no longer collide. This file
+still does:
+(1) claim a task by its own one-line pull request (above); (2) **before
+opening or merging a pull request, merge the latest `main` into your branch**
+and read both sides of any conflict in this file; (3) keep your edits to this
+file to your own task's status, boxes and board row; (4) **do not
 start a task whose "Touches" files another claimed task is changing**; and
 (5) a task named T-052 or T-056 freezes its files: leave them alone until it
 merges. See "Working in parallel without conflicts" below.
@@ -449,7 +457,7 @@ Options to decide between (Claude recommends B):
   the user picks by name. Needs a shell contract change (T-026) and more
   steps for the user
 
-- [ ] Beaux chooses; record it in CLAUDE.md's Decision log
+- [ ] Beaux chooses; record it as a file under `decisions/`
 - [ ] If B or C: renderer (`md_to_word.py`), preview, editor button (a toggle,
       see T-045), importer (`docx_to_markdown.py`, so imported centered text
       stays centered; today it is dropped silently with no warning), field
@@ -584,7 +592,7 @@ app ships is only an optional, editable starting list, never a fixed schema.
       supplies the real list, with invented examples only in the repository)
 - [ ] If (2): "Add the starter fields" in the picker, never re-adding ones the
       user archived; tests
-- [ ] Record the decision in CLAUDE.md
+- [ ] Record the decision as a file under `decisions/`
 
 **Done when (T-043):** a user can insert a stored field, add and reuse a custom
 field, and never has to type a name, from the Components window.
@@ -1412,7 +1420,7 @@ project easier to read and the Actions and branch lists shorter.
       unbolded entries; they are now in date order, newest last
 
 **Done when:** the branch list holds only `main` and branches with open
-work, and the legacy-code decision is written in CLAUDE.md. Size gate: any
+work, and the legacy-code decision is written under `decisions/`. Size gate: any
 removal must leave the size check green.
 
 ### T-029 Component library backup, and Markdown export and import
