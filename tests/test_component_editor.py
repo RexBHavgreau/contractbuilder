@@ -89,3 +89,16 @@ def test_malformed_field_marker_is_reported_with_line_number():
         "A field should look like {{Field Name}}."
     )
     assert malformed_field_message("{{Fee | money}} and {{#if Include}}") is None
+
+
+def test_toolbar_formats_lists_and_decimal_outline_levels():
+    from component_editor import format_markdown_block
+
+    assert format_markdown_block("Clause", "heading", 2) == "## Clause"
+    assert format_markdown_block("Clause", "bullet") == "- Clause"
+    assert format_markdown_block("Clause", "numbered") == "1. Clause"
+    assert format_markdown_block(
+        "1. Child", "indent", previous_text="1. Parent"
+    ) == "    1. Child"
+    assert format_markdown_block("1. First item", "indent") == "1. First item"
+    assert format_markdown_block("    1. Child", "outdent") == "1. Child"
