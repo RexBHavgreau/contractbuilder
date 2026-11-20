@@ -82,12 +82,12 @@ composer. Next free number: **T-035**.
 | ↳ [T-020-E](#t-020-e-warnings-for-everything-else) | Warnings for everything else | done (2026-11-19, [PR #22](https://github.com/RexBHavgreau/contractbuilder/pull/22)) | careful | A |
 | ↳ [T-020-F](#t-020-f-round-trip-docx-markdown-docx) | Round trip DOCX, Markdown, DOCX | open | careful | C, D, T-019-F |
 | ↳ [T-020-G](#t-020-g-markdown-file-import-and-export) | Markdown file import and export | done (2026-11-18, [PR #16](https://github.com/RexBHavgreau/contractbuilder/pull/16)) | any | T-019-B |
-| [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | open | careful | — |
+| [T-021](#t-021-unified-local-database-components-versions-assemblies) | Unified local database (umbrella) | done (2026-11-20, [PR #33](https://github.com/RexBHavgreau/contractbuilder/pull/33)) | careful | — |
 | ↳ [T-021-A](#t-021-a-schema-version-and-safe-upgrade) | Schema version and safe upgrade | done (2026-11-20, [PR #29](https://github.com/RexBHavgreau/contractbuilder/pull/29)) | careful | — |
 | ↳ [T-021-B](#t-021-b-components-and-immutable-versions) | Components and immutable versions | done (2026-11-20, [PR #30](https://github.com/RexBHavgreau/contractbuilder/pull/30)) | careful | T-021-A |
 | ↳ [T-021-C](#t-021-c-assemblies-and-revisions) | Assemblies and revisions | done (2026-11-20, [PR #31](https://github.com/RexBHavgreau/contractbuilder/pull/31)) | careful | T-021-B |
 | ↳ [T-021-D](#t-021-d-archive-instead-of-delete) | Archive instead of delete | done (2026-11-20, [PR #32](https://github.com/RexBHavgreau/contractbuilder/pull/32)) | careful | T-021-B, T-021-C |
-| ↳ [T-021-E](#t-021-e-storage-module-and-tests) | Storage module and tests | claimed (ChatGPT, 2026-11-20) | any | T-021-B, T-021-C, T-021-D |
+| ↳ [T-021-E](#t-021-e-storage-module-and-tests) | Storage module and tests | done (2026-11-20, [PR #33](https://github.com/RexBHavgreau/contractbuilder/pull/33)) | any | T-021-B, T-021-C, T-021-D |
 | [T-022](#t-022-in-app-component-editor) | In-app component editor (umbrella) | open | careful | T-021-E, T-019-A |
 | ↳ T-022-A to T-022-G | Editor window; preview; toolbar; table editor; insert field; source toggle; import review | open | careful | see task |
 | [T-023](#t-023-component-library-and-assembly-builder) | Library browser and assembly builder (umbrella) | open | careful | T-021-E, T-026 |
@@ -878,16 +878,16 @@ publisher profiles are untouched.
 
 ## T-021-E Storage module and tests
 
-- **Status:** claimed (ChatGPT, 2026-11-20)
+- **Status:** done (2026-11-20, [PR #33](https://github.com/RexBHavgreau/contractbuilder/pull/33))
 - **Size:** S
 - **Agent:** any
 - **Needs:** T-021-B, T-021-C, T-021-D
 
-- [ ] A plain module (for example `library.py`) with the functions the UI
+- [x] A plain module (`library.py`) with the functions the UI
       will call: create/list/search components, save a version, create an
       assembly, save a revision, list newer versions available for a pinned
       revision. No Tkinter in it
-- [ ] Tests use a temporary database and invented data
+- [x] Tests use a temporary database and invented data
 
 ### T-022 In-app component editor
 
@@ -907,7 +907,7 @@ save a component, with tables and fields, and see how it will look.
 
 #### T-022-A Editor window shell and save
 
-- **Status:** open
+- **Status:** claimed (ChatGPT, 2026-11-20)
 - **Size:** M
 - **Agent:** careful
 - **Needs:** T-021-E
