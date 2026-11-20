@@ -434,6 +434,20 @@ def test_v3_migration_pins_immutable_assembly_revisions_and_shell_hash(tmp_path,
                 "DELETE FROM assembly_versions WHERE id = ?", (revision_id,)
             )
 
+        empty_draft_id = connection.execute(
+            "INSERT INTO assembly_versions "
+            "(assembly_id, number, shell_path, shell_sha256, created) "
+            "VALUES (?, 2, ?, ?, ?)",
+            (assembly_id, shell_path, shell_hash, "2026-11-20T16:32:00+00:00"),
+        ).lastrowid
+        with pytest.raises(
+            sqlite3.IntegrityError, match="must include a component"
+        ):
+            connection.execute(
+                "UPDATE assembly_versions SET finalized = 1 WHERE id = ?",
+                (empty_draft_id,),
+            )
+
         # The assembly itself remains archivable while its revision is pinned.
         connection.execute(
             "UPDATE assemblies SET status = 'archived' WHERE id = ?", (assembly_id,)
