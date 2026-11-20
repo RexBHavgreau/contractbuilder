@@ -608,7 +608,7 @@ class TableEditorDialog:
             ttk.Button(row_buttons, text=label, command=command).pack(side="left", padx=(0, 5))
         footer = ttk.Frame(outer)
         footer.pack(fill="x", pady=(12, 0))
-        ttk.Button(footer, text="Cancel", command=self.close).pack(side="right")
+        ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
         ttk.Button(footer, text="Use table", command=self.save).pack(side="right", padx=(0, 8))
         self.window.grab_set()
 
@@ -833,7 +833,7 @@ class ImportReviewDialog:
         self.source.bind("<<Modified>>", self._source_modified)
         footer = ttk.Frame(outer)
         footer.pack(fill="x", pady=(8, 0))
-        ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
+        ttk.Button(footer, text="Cancel", command=self.close).pack(side="right")
         ttk.Button(footer, text="Save as component", command=self.save).pack(
             side="right", padx=(0, 8)
         )
