@@ -17,7 +17,7 @@ from markdown_fields import protect_fields
 from md_parse import create_parser
 from publisher_profiles import PROFILE_FIELDS
 from docx_to_markdown import DocxImportError, import_docx
-from component_preview import render_markdown_preview
+from component_preview import PREVIEW_KEY, render_markdown_preview
 
 
 _MARKDOWN_SPECIAL = frozenset(
@@ -566,6 +566,27 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
 
 
 
+def save_feedback_text(
+    outcome: str, name: str = "", version: int | None = None,
+    note: str = "", error: str = "",
+) -> str:
+    """Plain-English words shown beside Save version. Outcome: saved, unchanged or failed."""
+    if outcome == "saved":
+        text = f"Saved {name} · version {version}."
+        if note.strip():
+            text += f" Version note: {note.strip()}"
+        return text
+    if outcome == "unchanged":
+        return f"Nothing to save. {name} is already saved as version {version}."
+    if outcome == "failed":
+        return f"Not saved. {error.strip() or 'Something went wrong. Try again.'}"
+    raise ValueError("Unknown save outcome: " + outcome)
+
+
+SAVE_FEEDBACK_COLORS = {"saved": "#1e6b34", "unchanged": "#555555", "failed": "#b00020"}
+SAVE_FEEDBACK_SECONDS = 6
+
+
 class TableEditorDialog:
     """Grid editor that serializes a table without requiring Markdown pipes."""
 
@@ -574,7 +595,7 @@ class TableEditorDialog:
         self.window.title("Edit table")
         self.window.geometry("760x520")
         self.window.minsize(520, 360)
-        self.window.transient(parent)
+        self.window.lift()
         self.on_save = on_save
         self.alignments = list(alignments or [])
         self.rows = [list(row) for row in rows] or [["", ""], ["", ""]]
@@ -760,7 +781,7 @@ class ImportReviewDialog:
         self.window.title("Review Word import")
         self.window.geometry("1080x720")
         self.window.minsize(820, 560)
-        self.window.transient(editor.window)
+        self.window.lift()
         outer = ttk.Frame(self.window, padding=12)
         outer.pack(fill="both", expand=True)
         name_row = ttk.Frame(outer)
@@ -861,6 +882,10 @@ class ImportReviewDialog:
         self.preview.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
         self.preview.tag_configure("field", background="#fff0c2", foreground="#714d00")
         self.preview.tag_configure("list_marker", foreground="#555555")
+        self.preview.tag_configure(
+            "marker", foreground="#4f4f4f", background="#e6e6e6",
+            font=("TkDefaultFont", 9, "italic"),
+        )
         self.preview.tag_configure("table_header", font=("TkDefaultFont", 9, "bold"))
         self.preview.tag_configure("table_cell", font=("TkFixedFont", 9))
         self.preview.tag_configure("table_border", foreground="#777777")
@@ -970,11 +995,18 @@ class ComponentEditorWindow:
         self.window.title("Components")
         self.window.geometry("1060x720")
         self.window.minsize(820, 570)
-        self.window.transient(parent)
         self.window.protocol("WM_DELETE_WINDOW", self.close)
+        self._feedback_after_id = None
+        self._feedback_kind = None
         self._build_widgets()
+        for variable in (
+            self.name_variable, self.category_variable, self.tags_variable,
+            self.description_variable, self.note_variable,
+        ):
+            variable.trace_add("write", lambda *_args: self._refresh_save_state())
         self.refresh_components()
         self.new_component(prompt=False)
+        self.window.lift()
 
     def _build_widgets(self):
         outer = ttk.Frame(self.window, padding=14)
@@ -1049,13 +1081,15 @@ class ComponentEditorWindow:
         filter_row.columnconfigure(1, weight=1)
 
         self.tree = ttk.Treeview(
-            library_frame, columns=("name", "category"), show="headings",
+            library_frame, columns=("name", "category", "version"), show="headings",
             selectmode="browse",
         )
         self.tree.heading("name", text="Name")
         self.tree.heading("category", text="Category")
+        self.tree.heading("version", text="Version")
         self.tree.column("name", width=155, anchor="w")
         self.tree.column("category", width=115, anchor="w")
+        self.tree.column("version", width=60, anchor="center")
         self.tree.grid(row=2, column=0, sticky="nsew")
         self.tree.tag_configure("archived", foreground="#777777")
         tree_scroll = ttk.Scrollbar(
@@ -1118,11 +1152,16 @@ class ComponentEditorWindow:
         panes.add(edit_frame, weight=1)
         panes.add(preview_frame, weight=1)
 
+        # Two short rows, so the toolbar does not force the window to be wider than the screen.
         toolbar = ttk.Frame(edit_frame)
         toolbar.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 5))
-        ttk.Button(toolbar, text="B", width=3, command=lambda: self.apply_format("bold")).pack(side="left", padx=(0, 2))
-        ttk.Button(toolbar, text="I", width=3, command=lambda: self.apply_format("italic")).pack(side="left", padx=(0, 2))
-        heading_button = ttk.Menubutton(toolbar, text="Heading")
+        format_row = ttk.Frame(toolbar)
+        format_row.pack(side="top", anchor="w")
+        insert_row = ttk.Frame(toolbar)
+        insert_row.pack(side="top", anchor="w", pady=(3, 0))
+        ttk.Button(format_row, text="B", width=3, command=lambda: self.apply_format("bold")).pack(side="left", padx=(0, 2))
+        ttk.Button(format_row, text="I", width=3, command=lambda: self.apply_format("italic")).pack(side="left", padx=(0, 2))
+        heading_button = ttk.Menubutton(format_row, text="Heading")
         heading_menu = tk.Menu(heading_button, tearoff=False)
         for level in (1, 2, 3):
             heading_menu.add_command(
@@ -1136,6 +1175,12 @@ class ComponentEditorWindow:
             ("Numbering", "numbered"),
             ("Indent", "indent"),
             ("Outdent", "outdent"),
+        ):
+            ttk.Button(
+                format_row, text=label,
+                command=lambda selected=action: self.apply_format(selected),
+            ).pack(side="left", padx=(0, 2))
+        for label, action in (
             ("Table", "table"),
             ("Field", "field"),
             ("Import Word", "import"),
@@ -1144,20 +1189,18 @@ class ComponentEditorWindow:
                 "table": self.open_table_editor,
                 "field": self.open_field_dialog,
                 "import": self.open_import_dialog,
-            }.get(action)
-            if command is None:
-                command = lambda selected=action: self.apply_format(selected)
-            ttk.Button(toolbar, text=label, command=command).pack(side="left", padx=(0, 2))
+            }[action]
+            ttk.Button(insert_row, text=label, command=command).pack(side="left", padx=(0, 2))
         self.source_view_variable = tk.BooleanVar(master=self.window, value=False)
         ttk.Checkbutton(
-            toolbar,
+            insert_row,
             text="Advanced: show raw text",
             variable=self.source_view_variable,
             command=self.toggle_source_view,
         ).pack(side="left", padx=(5, 0))
 
         self.wording = tk.Text(
-            edit_frame, wrap="word", undo=True, height=18,
+            edit_frame, wrap="word", undo=True, height=18, width=40,
             font="TkDefaultFont", relief="solid", borderwidth=1,
             padx=7, pady=6,
         )
@@ -1174,7 +1217,7 @@ class ComponentEditorWindow:
         self.wording.bind("<Control-i>", lambda _event: self.apply_format("italic"))
 
         self.preview = tk.Text(
-            preview_frame, wrap="word", height=18, state="disabled",
+            preview_frame, wrap="word", height=18, width=40, state="disabled",
             font="TkDefaultFont", relief="solid", borderwidth=1,
             padx=7, pady=6, cursor="arrow",
         )
@@ -1190,6 +1233,9 @@ class ComponentEditorWindow:
             text="Word decides the final page layout",
             foreground="#555555",
         ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        ttk.Label(
+            preview_frame, text=PREVIEW_KEY, foreground="#555555", wraplength=330,
+        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(3, 0))
 
         note_row = ttk.Frame(form)
         note_row.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 0))
@@ -1209,6 +1255,18 @@ class ComponentEditorWindow:
         )
         self.content_notice.grid(
             row=6, column=0, columnspan=2, sticky="w", pady=(8, 0)
+        )
+
+        feedback_row = ttk.Frame(outer)
+        feedback_row.pack(fill="x", pady=(10, 0))
+        self.dirty_label = ttk.Label(
+            feedback_row, text="", foreground="#8a5a00"
+        )
+        self.dirty_label.pack(side="left", padx=(0, 10))
+        self.save_feedback = ttk.Label(feedback_row, text="", foreground="#555555")
+        self.save_feedback.pack(side="left", fill="x", expand=True)
+        self.dismiss_button = ttk.Button(
+            feedback_row, text="Dismiss", command=self._clear_save_feedback
         )
 
         footer = ttk.Frame(outer)
@@ -1466,12 +1524,17 @@ class ComponentEditorWindow:
         self.preview.tag_configure("link", underline=True, foreground="#245a8d")
         self.preview.tag_configure("rule", foreground="#888888")
         self.preview.tag_configure("source_text", foreground="#666666")
+        self.preview.tag_configure(
+            "marker", foreground="#4f4f4f", background="#e6e6e6",
+            font=("TkDefaultFont", 9, "italic"),
+        )
 
     def _on_wording_modified(self, _event=None):
         if not self.wording.edit_modified():
             return
         self.wording.edit_modified(False)
         self._refresh_editor_styling()
+        self._refresh_save_state()
         source = self.wording.get("1.0", "end-1c")
         if not self.editor_markdown_mode:
             source = plain_text_to_markdown(source)
@@ -1609,9 +1672,11 @@ class ComponentEditorWindow:
             for component in components:
                 item_id = str(component["id"])
                 row_tags = ("archived",) if component["status"] == "archived" else ()
+                versions = self.library.list_component_versions(component["id"])
+                latest = str(versions[0]["number"]) if versions else ""
                 self.tree.insert(
                     "", "end", iid=item_id,
-                    values=(component["name"], component["category"]),
+                    values=(component["name"], component["category"], latest),
                     tags=row_tags,
                 )
             target = str(selected_id) if selected_id is not None else None
@@ -1704,7 +1769,9 @@ class ComponentEditorWindow:
             text=f"Editing {component['name']} · version {latest['number']}."
         )
         self._schedule_preview()
-        self.refresh_components(selected_id)
+        # Keep the loaded component selected, so a save shows its new version in the list.
+        self.refresh_components(component_id)
+        self._refresh_save_state()
 
     def new_component(self, prompt: bool = True):
         if prompt and not self._confirm_pending_changes("starting a new component"):
@@ -1735,6 +1802,7 @@ class ComponentEditorWindow:
             finally:
                 self.suspend_selection = False
         self.status.configure(text="New component.")
+        self._refresh_save_state()
         if self.history_button is not None:
             self.history_button.configure(state="disabled")
         if self.save_button is not None:
@@ -1748,17 +1816,25 @@ class ComponentEditorWindow:
         name = self.name_variable.get().strip()
         body = self.wording.get("1.0", "end-1c")
         if not name:
-            messagebox.showerror(
-                "A name is required", "Enter a name for this component.",
-                parent=self.window,
+            self._show_save_feedback(
+                save_feedback_text("failed", error="Enter a name for this component."),
+                "failed",
             )
             return False
         if not body.strip():
-            messagebox.showerror(
-                "Wording is required", "Enter the component wording before saving.",
-                parent=self.window,
+            self._show_save_feedback(
+                save_feedback_text("failed", error="Enter the component wording before saving."),
+                "failed",
             )
             return False
+
+        if self.current_component_id is not None and not self._has_unsaved_changes():
+            versions = self.library.list_component_versions(self.current_component_id)
+            latest = versions[0]["number"] if versions else ""
+            self._show_save_feedback(
+                save_feedback_text("unchanged", name=name, version=latest), "unchanged"
+            )
+            return True
 
         if self.protected_content and body == self.loaded_plain_text:
             markdown = self.loaded_markdown or ""
@@ -1783,6 +1859,7 @@ class ComponentEditorWindow:
             return False
 
         tags = [item.strip() for item in self.tags_variable.get().split(",") if item.strip()]
+        note = self.note_variable.get()
         try:
             result = self.library.save_component(
                 self.current_component_id,
@@ -1791,18 +1868,62 @@ class ComponentEditorWindow:
                 description=self.description_variable.get(),
                 category=self.category_variable.get(),
                 tags=tags,
-                note=self.note_variable.get(),
+                note=note,
             )
         except (ValueError, TypeError, OSError, sqlite3.Error) as exc:
-            messagebox.showerror("Could not save component", str(exc), parent=self.window)
+            self._show_save_feedback(save_feedback_text("failed", error=str(exc)), "failed")
             return False
 
         self.current_component_id = result["component_id"]
         self.note_variable.set("")
         self._load_component(self.current_component_id)
         version_number = result["version"]["number"]
-        self.status.configure(text=f"Saved {name} · version {version_number}.")
+        self._show_save_feedback(
+            save_feedback_text("saved", name=name, version=version_number, note=note),
+            "saved",
+        )
         return True
+
+    def _show_save_feedback(self, text: str, kind: str) -> None:
+        """Show the result beside the footer. Failures stay until dismissed."""
+        if self._feedback_after_id is not None:
+            try:
+                self.window.after_cancel(self._feedback_after_id)
+            except tk.TclError:
+                pass
+            self._feedback_after_id = None
+        self._feedback_kind = kind
+        self.save_feedback.configure(text=text, foreground=SAVE_FEEDBACK_COLORS[kind])
+        if kind == "failed":
+            self.dismiss_button.pack(side="right")
+        else:
+            self.dismiss_button.pack_forget()
+            self._feedback_after_id = self.window.after(
+                SAVE_FEEDBACK_SECONDS * 1000, self._clear_save_feedback
+            )
+
+    def _clear_save_feedback(self) -> None:
+        if self._feedback_after_id is not None:
+            try:
+                self.window.after_cancel(self._feedback_after_id)
+            except tk.TclError:
+                pass
+            self._feedback_after_id = None
+        self._feedback_kind = None
+        self.save_feedback.configure(text="")
+        self.dismiss_button.pack_forget()
+
+    def _refresh_save_state(self) -> None:
+        """Show an Unsaved changes mark in the footer and the window title."""
+        if getattr(self, "dirty_label", None) is None:
+            return
+        dirty = self._has_unsaved_changes()
+        # A "saved" or "nothing to save" message is out of date once the draft changes.
+        # A failure stays until it is dismissed.
+        if dirty and getattr(self, "_feedback_kind", None) in ("saved", "unchanged"):
+            self._clear_save_feedback()
+        self.dirty_label.configure(text="● Unsaved changes" if dirty else "")
+        self.window.title("Components · Unsaved changes" if dirty else "Components")
 
     def open_version_history(self):
         """Show immutable wording versions for the currently selected component."""
@@ -1822,7 +1943,7 @@ class ComponentEditorWindow:
         dialog.title(f"Version history · {component['name']}")
         dialog.geometry("760x560")
         dialog.minsize(560, 400)
-        dialog.transient(self.window)
+        dialog.lift()
         dialog.columnconfigure(0, weight=1)
         dialog.rowconfigure(1, weight=1)
 
@@ -1913,6 +2034,13 @@ class ComponentEditorWindow:
                 self.new_component(prompt=False)
             else:
                 self._load_component(self.current_component_id)
+        if self.assembly_builder_window is not None:
+            try:
+                if self.assembly_builder_window.window.winfo_exists():
+                    self.assembly_builder_window.window.lift()
+                    return
+            except tk.TclError:
+                self.assembly_builder_window = None
         try:
             from assembly_builder import AssemblyBuilderWindow
 

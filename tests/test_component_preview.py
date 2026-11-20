@@ -104,3 +104,64 @@ def test_nested_numbered_preview_uses_computed_decimal_outline():
     assert "1.1.1. Grandchild" in text
     assert "1.2. Next child" in text
     assert "2. Next parent" in text
+
+
+def test_conditional_markers_show_plain_words_not_field_syntax():
+    text, segments = _rendered(
+        "Fees are {{#if Publisher Type = Non-profit}}waived{{else}}due{{/if}} here."
+    )
+    assert "{{" not in text and "}}" not in text
+    assert "If Publisher Type is Non-profit" in text
+    assert "Otherwise" in text
+    assert "End of choice" in text
+    marker_tags = {tag for _value, tags in segments for tag in tags if tag.startswith("marker")}
+    assert {"marker", "marker_if", "marker_else", "marker_end"} <= marker_tags
+    assert "field" not in {tag for _value, tags in segments for tag in tags if _value.startswith("If")}
+
+
+def test_negated_and_filled_in_conditions_have_plain_wording():
+    text, _segments = _rendered(
+        "{{#if not Governing State = Texas}}A{{/if}} {{#if Client Name}}B{{/if}}"
+    )
+    assert "If Governing State is not Texas" in text
+    assert "If Client Name is filled in" in text
+
+
+def test_block_form_marker_is_a_marker_on_its_own_line():
+    text, segments = _rendered(
+        "Intro.\n\n{{#if Include Schedule}}\n\nSchedule text.\n\n{{/if}}\n\nEnd."
+    )
+    assert "If Include Schedule is filled in" in text
+    assert "End of choice" in text
+    assert "Schedule text." in text
+    assert "{{#if" not in text
+
+
+def test_field_inside_conditional_text_stays_a_field():
+    text, segments = _rendered(
+        "{{#if Publisher Type = Non-profit}}Pay {{Fee | money-words}}.{{/if}}"
+    )
+    field_text = [value for value, tags in segments if "field" in tags]
+    assert field_text == ["{{Fee | money-words}}"]
+    marker_text = [value.strip("\u2009") for value, tags in segments if "marker" in tags]
+    assert marker_text == ["If Publisher Type is Non-profit", "End of choice"]
+
+
+def test_optional_clause_in_a_table_cell_is_labelled():
+    text, _segments = _rendered(
+        "| Item | Note |\n| --- | --- |\n| Fee | {{#if Rush}}Rush fee{{/if}} |"
+    )
+    assert "If Rush is filled in" in text
+    assert "{{#if" not in text
+
+
+def test_fields_are_still_highlighted_and_unchanged():
+    text, segments = _rendered("Pay {{Applicable Law}} now.")
+    assert ("{{Applicable Law}}", ("field",)) in segments
+    assert "{{Applicable Law}}" in text
+
+
+def test_preview_key_explains_both_styles():
+    from component_preview import PREVIEW_KEY
+    assert "Highlighted" in PREVIEW_KEY and "Grey tags" in PREVIEW_KEY
+    assert "not printed" in PREVIEW_KEY
