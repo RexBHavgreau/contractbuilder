@@ -1,5 +1,15 @@
 # What's new
 
+## 0.4.0
+
+New Components menu. Write reusable contract wording once, with buttons for bold, italic, headings, lists, numbered clauses, tables and fields, and a preview as you type. Import wording from an existing Word file and check it before saving. Every saved change is kept as a new version.
+
+New Build assembly window. Choose a Word shell for the page layout, pick components, put them in order, leave optional ones out, and see the whole contract before you create it. Fill each field once, load a publisher profile if you like, and save a new Word document. Clause numbers continue from one component to the next.
+
+Save an assembly to build the same contract again later. If a component's wording changes, nothing happens to your saved assembly until you review the changes and choose to update.
+
+Word templates work exactly as before. Components and assemblies stay on this computer.
+
 ## 0.3.1
 
 Automatic update checks now run no more than once every 24 hours. You can still check for updates whenever you like from the Help menu.

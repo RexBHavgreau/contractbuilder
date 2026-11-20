@@ -229,6 +229,69 @@ A note about tracked changes, comments, highlighting, or other unusual Word
 formatting does not necessarily mean the template is invalid. Review such
 notes before relying on the completed document.
 
+COMPONENTS AND ASSEMBLED CONTRACTS
+
+A component is a piece of reusable contract wording, such as a payment clause.
+You can build a contract from components instead of starting from a Word
+template. The Word-template workflow above is unchanged; use whichever suits
+the job.
+
+Writing a component
+
+1. Choose Components > Manage components, then New component.
+2. Give it a name (a category and tags are optional, and are yours to choose).
+3. Type the wording. Use the buttons above the box for bold (B), italic (I),
+   headings, Bullets, Numbering, Indent and Outdent, Table and Field. You do not need to know any special codes. The Preview
+   shows the structure; Word decides the final page layout.
+4. Numbered clauses: use Numbering, then Indent to make 1.1, 1.1.1. The
+   numbers you see in the Preview are the ones that appear in the document.
+   Clause numbers continue from one component to the next, so numbering is
+   correct however you order them. Words such as "see clause 2.1" are plain
+   text and do not change if clauses move.
+5. Fields work as in templates: {{Name}}, {{Fee | money-words}} and so on.
+   The Field button adds one for you.
+6. Click Save version. Nothing you save is ever overwritten: each save is a
+   new version, and Version history shows them all. Contracts that used an
+   earlier version keep that wording.
+
+Importing wording from Word
+
+Click Import Word. ContractBuilder reads the paragraphs,
+headings, bold and italic text, lists and simple tables, in order. It lists
+anything it could not bring across (pictures, comments, merged table cells,
+footnotes and so on) so you can check the result before saving. Page layout,
+headers and footers are not imported: the Word shell supplies those. Your
+original file is never changed.
+
+Building a contract from components
+
+1. In the Components window choose Build assembly.
+2. Choose a Word shell (see the next section) and give the assembly a name.
+3. Add components with "Add selected component". Use Move up, Move down and
+   Remove to set the order. Untick Include to leave out an optional
+   component without removing it.
+4. The preview on the right shows the whole contract in order.
+5. Save assembly keeps this recipe, including the exact version of every
+   component. Open saved brings it back later.
+6. Fill fields and create document asks for each field once, even if several
+   components use it, and can load a saved publisher profile. Check the
+   values, then save. The result is a new Word file; the shell and the
+   components are not changed.
+
+When wording changes later
+
+If you save a newer version of a component, assemblies that already use it do
+not change by themselves. Open the assembly and choose Review updates to see
+the old and new wording side by side, tick the ones you want, and save. That
+creates a new revision; the earlier one is kept.
+
+Where components are kept
+
+Components and assemblies are stored on this computer, in the same user data
+file as the publisher profiles. Nothing is uploaded. There is not yet a backup
+button, so if you replace this computer, copy that file (publisher_profiles.sqlite3
+in your user data folder) to the new one.
+
 WORD SHELLS FOR ASSEMBLED CONTRACTS
 
 A Word shell is a .docx file that supplies the page layout and formatting for
@@ -241,10 +304,9 @@ headers and footers you need. Keep the built-in styles named Normal, Heading
 Grid. You can change how those styles look; do not delete or rename them.
 
 The shell also needs a three-level decimal outline for clauses (1., 1.1,
-1.1.1) and a bullet numbering definition. When the component-builder
-workflow is available, ContractBuilder will check these requirements when
-you select a shell. If a style or numbering definition is missing, it will
-explain the fallback before continuing. A shell that cannot be read or has
+1.1.1) and a bullet numbering definition. ContractBuilder checks these
+requirements when you choose a shell. If a style or numbering definition is
+missing, it explains the fallback before continuing. A shell that cannot be read or has
 no final section properties cannot be used. For the full list of
 requirements, see SHELL-CONTRACT.md in the project repository.
 
