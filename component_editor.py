@@ -1,8 +1,7 @@
-"""Plain-text component editor window.
+"""Markdown-backed component editor with formatting, tables, fields and DOCX import review.
 
-The editor saves a deliberately small plain-text subset as Markdown. It has no
-Word-processing dependency; formatting controls and the live preview are
-separate follow-on features.
+The editor keeps Markdown as the saved source, presents a simplified formatted
+view by default, and uses the existing Markdown and DOCX conversion modules.
 """
 from __future__ import annotations
 
@@ -270,7 +269,6 @@ def find_markdown_table(markdown: str, character_offset: int = 0) -> dict | None
                 "end": end,
                 "rows": rows,
                 "alignments": alignments,
-                "has_header": True,
             }
     return None
 
@@ -290,10 +288,9 @@ def _escape_table_cell(value: str) -> str:
 
 def build_markdown_table(
     rows: list[list[str]],
-    has_header: bool = True,
     alignments: list[str | None] | None = None,
 ) -> str:
-    """Serialize a grid into a pipe table without corrupting field placeholders."""
+    """Serialize a grid whose first row is the header, preserving field placeholders."""
     clean_rows = [
         [str(value or "").strip() for value in row]
         for row in rows
@@ -304,10 +301,7 @@ def build_markdown_table(
     clean_rows = [row + [""] * (width - len(row)) for row in clean_rows]
     if not clean_rows:
         clean_rows = [[""] * width]
-    if has_header:
-        header, body = clean_rows[0], clean_rows[1:]
-    else:
-        header, body = [""] * width, clean_rows
+    header, body = clean_rows[0], clean_rows[1:]
     alignment_values = list(alignments or [])
     alignment_values.extend([None] * (width - len(alignment_values)))
     separators = []
@@ -495,7 +489,7 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
 class TableEditorDialog:
     """Grid editor that serializes a table without requiring Markdown pipes."""
 
-    def __init__(self, parent, rows, alignments, has_header, on_save):
+    def __init__(self, parent, rows, alignments, on_save):
         self.window = tk.Toplevel(parent)
         self.window.title("Edit table")
         self.window.geometry("760x520")
@@ -503,7 +497,6 @@ class TableEditorDialog:
         self.window.transient(parent)
         self.on_save = on_save
         self.alignments = list(alignments or [])
-        self.header_variable = tk.BooleanVar(master=self.window, value=bool(has_header))
         self.rows = [list(row) for row in rows] or [["", ""], ["", ""]]
         width = max((len(row) for row in self.rows), default=2)
         self.rows = [row + [""] * (width - len(row)) for row in self.rows]
@@ -516,10 +509,9 @@ class TableEditorDialog:
             text="Enter text in the cells. ContractBuilder will create the table for you.",
             wraplength=700,
         ).pack(anchor="w", pady=(0, 8))
-        ttk.Checkbutton(
+        ttk.Label(
             outer,
-            text="Use the first row as column headings",
-            variable=self.header_variable,
+            text="The first row is the table's column-heading row.",
         ).pack(anchor="w", pady=(0, 8))
         self.grid_frame = ttk.Frame(outer)
         self.grid_frame.pack(fill="both", expand=True)
@@ -597,7 +589,6 @@ class TableEditorDialog:
         try:
             markdown = build_markdown_table(
                 self._values(),
-                has_header=self.header_variable.get(),
                 alignments=self.alignments,
             )
         except ValueError as exc:
@@ -1274,11 +1265,9 @@ class ComponentEditorWindow:
         if block:
             rows = block["rows"]
             alignments = block["alignments"]
-            has_header = block["has_header"]
         else:
             rows = [["", ""], ["", ""]]
             alignments = [None, None]
-            has_header = True
 
         def save_table(markdown):
             current = self.wording.get("1.0", "end-1c")
@@ -1309,7 +1298,7 @@ class ComponentEditorWindow:
             self._schedule_preview()
             self.wording.focus_set()
 
-        TableEditorDialog(self.window, rows, alignments, has_header, save_table)
+        TableEditorDialog(self.window, rows, alignments, save_table)
 
     def open_import_dialog(self):
         path = filedialog.askopenfilename(
