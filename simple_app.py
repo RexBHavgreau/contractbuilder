@@ -17,7 +17,10 @@ from assembly_document_window import AssemblyDocumentWindow
 from help_windows import HelpWindowsMixin
 from publisher_dialog import PublisherProfileDialog
 from field_matching import FieldMatchingDialog
-from publisher_profiles import PublisherProfileStore, values_for_template
+from publisher_profiles import (
+    PublisherProfileStore, values_for_template,
+    publisher_column_for_field, unmatched_profile_details,
+)
 from start_screen import StartScreenMixin, build_start_row
 from ui_widgets import FieldInput, ScrollableFrame, resource_path  # noqa: F401
 from update_dialogs import UpdateDialogsMixin
@@ -103,10 +106,16 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         )
         self.publisher_combo.pack(side="left", fill="x", expand=True)
         self.load_publisher_button = ttk.Button(
-            publisher_frame, text="Load into fields",
+            publisher_frame, text="Fill all from publisher",
             command=self.load_publisher_profile, state="disabled",
         )
         self.load_publisher_button.pack(side="left", padx=(8, 0))
+        self.auto_fill_publisher = tk.BooleanVar(master=outer, value=False)
+        ttk.Checkbutton(
+            outer, text="Fill automatically when I choose a publisher",
+            variable=self.auto_fill_publisher,
+        ).pack(anchor="w", pady=(0, 8))
+        self.publisher_combo.bind("<<ComboboxSelected>>", self.publisher_selection_changed)
         ttk.Button(
             publisher_frame, text="Manage profiles…",
             command=self.manage_publisher_profiles,
@@ -205,7 +214,15 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         else:
             row = 0
             for field in fields:
-                control = FieldInput(self.scroll.inner, field, row)
+                match_map = self.publisher_store.field_match_map() if self.publisher_store else {}
+                fill_callback = (
+                    lambda name=field.name: self.load_publisher_profile(name)
+                    if publisher_column_for_field(name, match_map) else None
+                )
+                control = FieldInput(
+                    self.scroll.inner, field, row,
+                    on_fill_from_publisher=fill_callback() if publisher_column_for_field(field.name, match_map) else None,
+                )
                 self.inputs.append(control)
                 row += 1 if field.kind == "yesno" else 2
             self.create_button.config(state="normal")
@@ -337,7 +354,11 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             self.root, self.publisher_store, on_close=self.refresh_publisher_profiles
         )
 
-    def load_publisher_profile(self):
+    def publisher_selection_changed(self, _event=None):
+        if self.auto_fill_publisher.get():
+            self.load_publisher_profile()
+
+    def load_publisher_profile(self, field_name=None):
         if self.template is None:
             messagebox.showinfo(
                 "Choose a template first",
@@ -351,6 +372,7 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             return
         try:
             profile = self.publisher_store.get_profile(profile_id)
+            match_map = self.publisher_store.field_match_map()
         except sqlite3.Error as exc:
             messagebox.showerror("Could not load publisher profile", str(exc), parent=self.root)
             return
@@ -364,28 +386,27 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             return
 
         field_names = [control.field.name for control in self.inputs]
-        values = values_for_template(
-            profile, field_names, self.publisher_store.field_match_map()
-        )
+        requested_names = [field_name] if field_name else field_names
+        values = values_for_template(profile, requested_names, match_map)
         if not values:
             messagebox.showinfo(
                 "No matching fields",
-                "This template has no fields recognized by the publisher profile. "
-                "The existing contract fields have not been changed.",
+                (f"No saved publisher value is available for “{field_name}”."
+                 if field_name else
+                 "This template has no fields recognized by the publisher profile. "
+                 "The existing contract fields have not been changed."),
                 parent=self.root,
             )
             return
         overwritten = [
-            field_name for field_name, value in values.items()
-            if any(
-                control.field.name == field_name and str(control.get()).strip()
-                for control in self.inputs
-            )
+            item for item in values
+            if any(control.field.name == item and str(control.get()).strip()
+                   for control in self.inputs)
         ]
         if overwritten and not messagebox.askyesno(
             "Replace existing entries?",
             "Loading this profile will replace these non-empty fields:\n\n"
-            + "\n".join("• " + field for field in overwritten)
+            + "\n".join("• " + item for item in overwritten)
             + "\n\nContinue?",
             parent=self.root,
         ):
@@ -393,13 +414,13 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         for control in self.inputs:
             if control.field.name in values:
                 control.set(values[control.field.name])
-        self.status.config(
-            text=(
-                f"Loaded {len(values)} field(s) from {profile['publisher_name']}. "
-                "Review the remaining contract fields before creating the document."
-            ),
-            foreground="#1b6e2e",
-        )
+        missing = unmatched_profile_details(profile, field_names, match_map)
+        summary = "Filled: " + ", ".join(values)
+        if missing:
+            summary += ". No matching field for: " + ", ".join(missing)
+        else:
+            summary += ". All populated publisher details have a matching field."
+        self.status.config(text=summary, foreground="#1b6e2e")
 
     def collect_values(self):
         return {control.field.name: control.get() for control in self.inputs}
