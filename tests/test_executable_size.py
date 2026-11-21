@@ -45,3 +45,25 @@ def test_file_exactly_at_limit_passes(tmp_path):
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "PASS: 0 bytes" in result.stdout
+
+
+def test_headroom_floor_fails_below_the_minimum(tmp_path):
+    executable = tmp_path / "application.exe"
+    executable.write_bytes(b"x" * 90)
+
+    result = run_check(executable, "--max-bytes", "100", "--min-headroom", "20")
+
+    assert result.returncode == 1
+    assert "only 10 bytes" in result.stdout
+    assert "tell Beaux" in result.stdout
+
+
+def test_headroom_floor_passes_when_there_is_enough_room(tmp_path):
+    executable = tmp_path / "application.exe"
+    executable.write_bytes(b"x" * 50)
+
+    result = run_check(executable, "--max-bytes", "100", "--min-headroom", "20")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "PASS: 50 bytes" in result.stdout
+

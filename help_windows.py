@@ -18,7 +18,7 @@ class HelpWindowsMixin:
             contents = path.read_text(encoding="utf-8")
         except OSError:
             contents = (
-                "Choose a Word template, fill in the fields discovered from its "
+                "Choose a saved assembly, a new assembly or a Word template, fill in the fields discovered from its "
                 "double-braced placeholders, and create a new document. The original "
                 "template is never changed."
             )

@@ -998,6 +998,7 @@ class Renderer:
                 merged[-1][1] = max(merged[-1][1], e)
             else:
                 merged.append([s, e])
+        merged = self._tidy_spaces(text, merged)
         edits = [(s, e, "", False, None) for s, e in merged]
         for start, end, kind, arg in toks:
             if kind == "field" and not any(s <= start < e for s, e in merged):
@@ -1013,6 +1014,33 @@ class Renderer:
                 gap = (p.getprevious(), p.getnext())
                 _drop(p)
                 _close_gap(*gap)
+
+    @staticmethod
+    def _tidy_spaces(text, spans):
+        """
+        Where an inline {{#if}}, {{else}} or {{/if}} part is removed, do not leave
+        two spaces side by side, or a space in front of closing punctuation.
+        "of X, {{#if A}} a phrase {{else}} another {{/if}} next" would otherwise
+        read "of X,  a phrase  next". Only the space touching a removed part is
+        dropped: spaces the author typed elsewhere, and a space at the very
+        start or end of the paragraph, stay as they were.
+        """
+        tidy = []
+        for s, e in spans:
+            before = text[s - 1] if s > 0 else ""
+            after = text[e] if e < len(text) else ""
+            if before == " " and after == " ":
+                e += 1
+            elif before == " " and after and after in ".,;:!?)":
+                s -= 1
+            tidy.append([s, e])
+        merged = []
+        for s, e in sorted(tidy):
+            if merged and s <= merged[-1][1]:
+                merged[-1][1] = max(merged[-1][1], e)
+            else:
+                merged.append([s, e])
+        return merged
 
     @staticmethod
     def _stray(where, text):

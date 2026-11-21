@@ -18,12 +18,13 @@ from help_windows import HelpWindowsMixin
 from publisher_dialog import PublisherProfileDialog
 from field_matching import FieldMatchingDialog
 from publisher_profiles import PublisherProfileStore, values_for_template
+from start_screen import StartScreenMixin, build_start_row
 from ui_widgets import FieldInput, ScrollableFrame, resource_path  # noqa: F401
 from update_dialogs import UpdateDialogsMixin
 from version import APP_NAME, APP_VERSION
 
 
-class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
+class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin):
     def __init__(self, root):
         self.root = root
         self.root.title(f"{APP_NAME} {APP_VERSION}")
@@ -83,23 +84,16 @@ class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
 
         heading = ttk.Label(
             outer,
-            text="Create a Word document from a template",
+            text="Create a contract or Word document",
             font=("TkDefaultFont", 15, "bold"),
         )
         heading.pack(anchor="w")
         ttk.Label(
             outer,
-            text="Choose a template, fill in its fields, and save a completed copy.",
+            text="Choose where to start, fill in the fields, and save a completed copy.",
         ).pack(anchor="w", pady=(3, 12))
 
-        template_row = ttk.Frame(outer)
-        template_row.pack(fill="x", pady=(0, 10))
-        ttk.Label(template_row, text="Word template").pack(side="left")
-        self.template_name = ttk.Label(
-            template_row, text="No template selected", foreground="#666666"
-        )
-        self.template_name.pack(side="left", padx=(10, 10), fill="x", expand=True)
-        ttk.Button(template_row, text="Browse…", command=self.choose_template).pack(side="right")
+        self.template_name = build_start_row(outer, self)
 
         publisher_frame = ttk.LabelFrame(outer, text="Saved publisher", padding=8)
         publisher_frame.pack(fill="x", pady=(0, 10))
@@ -119,7 +113,7 @@ class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
         ).pack(side="left", padx=(8, 0))
 
         self.summary = ttk.Label(
-            outer, text="Select a .docx or .dotx file to begin.", foreground="#555555"
+            outer, text="Choose how to build the contract to begin.", foreground="#555555"
         )
         self.summary.pack(anchor="w", pady=(0, 8))
 
@@ -152,7 +146,7 @@ class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
         ttk.Label(
             self.scroll.inner,
             text=(
-                "Browse for a Word template. The application will find each unique "
+                "Use Existing or New contract assembly to build from saved components, or Word file to browse for a template. The application will find each unique "
                 "placeholder, such as {{Recipient Name}}, and show one field for it. "
                 "The same placeholder can appear more than once in the document."
             ),
