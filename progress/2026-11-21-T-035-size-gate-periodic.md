@@ -2,7 +2,7 @@
 date: 2026-11-21
 task: T-035
 author: Claude
-pull_request: pending (branch claude/kind-keller-847k6d; update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/58
 ci_run: pending (update after the run on the latest commit)
 size: no executable change
 ---
