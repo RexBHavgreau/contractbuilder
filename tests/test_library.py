@@ -490,3 +490,58 @@ def test_field_definitions_validate_and_preserve_fields_used_by_wording(tmp_path
             "SELECT markdown FROM component_versions WHERE component_id = ?",
             (component_id,),
         ).fetchone() == ("Payment is due on {{Payment Date}}.",)
+
+def test_picker_fields_combine_publisher_custom_and_historical_library_fields(tmp_path):
+    library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+    custom_id = library.add_field_definition(
+        "Delivery Window",
+        description="When delivery is expected",
+        group="Dates",
+        default_format="date-short",
+    )
+    component_id = library.create_component(
+        "Old delivery clause",
+        "Use {{Legacy Payment Date}}, {{Publisher name}}, "
+        "{{Delivery Window}}, and {{Option Category | choice: A, B}}.",
+    )
+    library.save_component_version(
+        component_id,
+        "Also record {{Historic Renewal Date}} and {{legacy   payment date}}.",
+    )
+    assert library.archive_component(component_id)
+
+    fields = library.list_picker_fields()
+    groups = list(dict.fromkeys(field["group"] for field in fields))
+    assert groups == [
+        "Publisher",
+        "Fields from your library",
+        "Your fields",
+    ]
+
+    by_name = {core.key(field["name"]): field for field in fields}
+    assert by_name["publisher name"]["publisher_profile_column"] == "publisher_name"
+    assert by_name["contact email"]["publisher_profile_column"] == "contact_email"
+    assert by_name["publisher address"]["publisher_profile_column"] == "formatted_address"
+    assert by_name["publisher address"]["group"] == "Publisher"
+
+    legacy = by_name["legacy payment date"]
+    assert legacy["name"] == "Legacy Payment Date"
+    assert legacy["group"] == "Fields from your library"
+    assert legacy["source"] == "component_version"
+    assert by_name["historic renewal date"]["group"] == "Fields from your library"
+    assert by_name["option category"]["group"] == "Fields from your library"
+
+    delivery = by_name["delivery window"]
+    assert delivery["id"] == custom_id
+    assert delivery["group"] == "Your fields"
+    assert delivery["definition_group"] == "Dates"
+    assert delivery["source"] == "field_definition"
+    assert delivery["default_format"] == "date-short"
+    assert delivery["description"] == "When delivery is expected"
+
+    assert list(by_name).count("legacy payment date") == 1
+    assert len(by_name) == len(fields)
+    assert not any(
+        field["group"] == "Publisher" and "contract type" in field["name"].casefold()
+        for field in fields
+    )

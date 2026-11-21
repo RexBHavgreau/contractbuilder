@@ -19,6 +19,7 @@ from publisher_profiles import (
     PROFILE_FIELDS,
     PublisherProfileStore,
     default_database_path,
+    publisher_profile_field_definitions,
 )
 
 
@@ -462,6 +463,81 @@ class ComponentLibrary:
         with self._connection() as connection:
             rows = connection.execute(query, parameters).fetchall()
             return [_field_definition_from_row(row) for row in rows]
+
+    def list_picker_fields(self) -> list[dict]:
+        """Return the grouped fields available to the reusable field picker.
+
+        Publisher fields are supplied by the saved-profile model, active user
+        definitions are shown under "Your fields", and any other field name
+        already present in a component version is retained under
+        "Fields from your library". Scanning versions directly also preserves
+        names used by archived components and older revisions.
+        """
+        fields = publisher_profile_field_definitions()
+        seen_names = {core.key(str(field["name"])) for field in fields}
+
+        for definition in self.list_field_definitions():
+            name_key = core.key(definition["name"])
+            if name_key in seen_names:
+                continue
+            field = dict(definition)
+            field["definition_group"] = field.pop("group", "")
+            field["group"] = "Your fields"
+            field["source"] = "field_definition"
+            fields.append(field)
+            seen_names.add(name_key)
+
+        component_fields = {}
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT markdown FROM component_versions "
+                "ORDER BY component_id, number, id"
+            ).fetchall()
+
+        for row in rows:
+            for match in core.TOKEN.finditer(row["markdown"] or ""):
+                kind, argument = core.classify(match.group(1))
+                if kind != "field":
+                    continue
+                name, _format_name, _options = core.parse_field(argument)
+                if not name:
+                    continue
+                name_key = core.key(name)
+                if name_key in seen_names:
+                    continue
+                component_fields.setdefault(
+                    name_key,
+                    {
+                        "id": None,
+                        "name": core.tidy_name(name),
+                        "name_key": name_key,
+                        "description": "",
+                        "group": "Fields from your library",
+                        "default_format": "",
+                        "default_options": [],
+                        "allowed_values": [],
+                        "publisher_profile_column": None,
+                        "publisher_detail_name": None,
+                        "source": "component_version",
+                    },
+                )
+                seen_names.add(name_key)
+
+        fields.extend(component_fields.values())
+        group_order = {
+            "Publisher": 0,
+            "Fields from your library": 1,
+            "Your fields": 2,
+        }
+        for field in fields:
+            field.setdefault("name_key", core.key(str(field["name"])))
+        return sorted(
+            fields,
+            key=lambda field: (
+                group_order.get(field["group"], 99),
+                str(field["name"]).casefold(),
+            ),
+        )
 
     def get_field_definition(self, field_id: int) -> dict | None:
         """Return one field definition, including an archived definition."""
