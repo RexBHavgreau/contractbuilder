@@ -410,7 +410,7 @@ class FieldCreatorDialog:
         if fmt == "plural":
             kind = "Singular or plural word"
         self.kind.set(kind)
-        self.values_text.insert("1.0", "\\n".join(definition.get("allowed_values") or []))
+        self.values_text.insert("1.0", "\n".join(definition.get("allowed_values") or []))
         options = definition.get("default_options") or []
         if len(options) == 2:
             self.singular.set(options[0])
@@ -462,7 +462,7 @@ class FieldCreatorDialog:
                 if choice.strip() and phrase.strip():
                     entries.append(choice.strip() + " → " + phrase.strip())
         if entries:
-            separator = " " if self.placement.get() == "Inside a sentence" else "\\n\\n"
+            separator = " " if self.placement.get() == "Inside a sentence" else "\n\n"
             preview_text = ("Sentence: " if separator == " " else "Paragraphs: ")
             self.preview.configure(text=preview_text + separator.join(entries))
         else:
