@@ -114,7 +114,7 @@ def build_created_field(definition: dict, kind: str, wording: str = "") -> str:
             )
         return "\n\n".join(blocks)
     options = definition.get("default_options") or definition.get("allowed_values") or []
-    separator = "/" if any("," in str(value) for value in options) else ", "
+    separator = " / " if any("," in str(value) for value in options) else ", "
     return make_field_placeholder(name, fmt, separator.join(str(value) for value in options))
 
 
@@ -128,8 +128,8 @@ class FieldPickerDialog:
         self.window.title("Insert a field")
         self.window.geometry("760x540")
         self.window.minsize(590, 400)
-        self.window.transient(parent)
         self.window.grab_set()
+        self.window.lift()
 
         outer = ttk.Frame(self.window, padding=12)
         outer.pack(fill="both", expand=True)
@@ -322,8 +322,8 @@ class FieldCreatorDialog:
         self.window.title("Edit field" if existing else "New field")
         self.window.geometry("700x650")
         self.window.minsize(570, 480)
-        self.window.transient(parent)
         self.window.grab_set()
+        self.window.lift()
         outer = ttk.Frame(self.window, padding=14)
         outer.pack(fill="both", expand=True)
         outer.columnconfigure(1, weight=1)
