@@ -42,7 +42,7 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
         if not visible:
             offset += len(line)
             continue
-        for match in re.finditer(r"(?<!\\)\\[([^]\\n]+)\\]\\((<[^>\\n]+>|[^)\\s]+)\\)", visible):
+        for match in re.finditer(r"(?<!\\)\[([^\]\n]+)\]\((<[^>\n]+>|[^)\s]+)\)", visible):
             raw_target = match.group(2)
             target = raw_target[1:-1] if raw_target.startswith("<") and raw_target.endswith(">") else raw_target
             style = "link" if safe_hyperlink_target(target) else "link_warning"
