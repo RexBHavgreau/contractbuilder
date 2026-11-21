@@ -135,8 +135,14 @@ T-056) freezes it: leave that file alone until the split merges. See
 **To add a task:** reserve its number with `python scripts/claim.py --new`
 (two agents asking at once get different numbers; `board.py --next` only shows
 what is free right now), create `tasks/T-NNN.md` with every field below, and write the acceptance check so
-someone else can tell, without asking, whether it is done. The board picks it
-up by itself.
+someone else can tell, without asking, whether it is done. Then run:
+
+    python scripts/task_links.py --write
+
+That fills in the **Needed by** line and the "(also …)" lists on every open
+task that the new one affects. The test suite runs `task_links.py --check` and
+fails until the files are up to date, so commit the files it changed too. The
+board picks the task up by itself.
 
 Fields (bullets directly under the `# T-NNN title` heading of the file):
 
@@ -148,8 +154,17 @@ Fields (bullets directly under the `# T-NNN title` heading of the file):
   judgement, a strong model, or Windows/macOS hardware), `human` (only a
   person can do it)
 - **Needs:** anything that must happen first, such as `Beaux` for a decision
-  or another task
-- **Touches:** the files (or modules) the task will change, from T-055; two
+  or another task. Name the task numbers (`T-043-A, T-043-B`) so the links can
+  be read by a script
+- **Needed by:** written by `python scripts/task_links.py --write`, never by
+  hand. It lists the open tasks whose Needs name this task, so a reader can see
+  what waits on it. Only the direct dependents are listed, first two by number,
+  then "(and N more)". This is the second direction of a dependency: Needs says
+  what a task waits for, Needed by says what waits for it
+- **Touches:** the files (or modules) the task will change, in backticks, from
+  T-055. Each file is followed by "(also T-…)" listing the other open tasks that
+  change it, which `task_links.py --write` adds. Umbrella tasks are left out of
+  the "also" lists, because their Touches is the union of their subtasks. Two
   claimed tasks that share a file are done one after the other
 - **Schema migrations** are numbered in merge order: only one open task adds
   a migration at a time, so a second one never renumbers on top of the first
