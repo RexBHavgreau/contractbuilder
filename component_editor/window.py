@@ -13,7 +13,8 @@ from tkinter import messagebox, ttk
 from component_preview import PREVIEW_KEY, render_markdown_preview
 from library import ComponentLibrary
 
-from .backup_dialog import LibraryBackupDialog\nfrom .fields import malformed_field_message
+from .backup_dialog import LibraryBackupDialog
+from .fields import malformed_field_message
 from .history_dialog import open_version_history_dialog
 from .library_list import LibraryListMixin
 from .styling import configure_preview_tags
