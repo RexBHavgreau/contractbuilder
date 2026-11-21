@@ -409,7 +409,7 @@ def render_markdown(
 
     warnings = [MarkdownWarning(item.code, item.message) for item in shell.warnings]
     protected, replacements = protect_fields(source)
-    tokens = create_parser().parse(protected)
+    tokens = create_parser(allow_unsafe_links=True).parse(protected)
     restore_fields(tokens, replacements)
     style_plan = _paragraph_style_plan(shell_path, paragraph_styles)
     for name in style_plan.unknown:
