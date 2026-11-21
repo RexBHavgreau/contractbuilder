@@ -237,7 +237,7 @@ def render_markdown_preview(
         raise TypeError("Component wording must be text.")
 
     protected, replacements = protect_fields(markdown)
-    parser = create_parser()
+    parser = create_parser(allow_unsafe_links=True)
     tokens = parser.parse(protected)
     restore_fields(tokens, replacements)
 
