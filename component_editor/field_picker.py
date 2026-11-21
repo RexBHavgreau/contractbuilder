@@ -22,10 +22,16 @@ FIELD_KINDS = (
 _KIND_BY_LABEL = {label: (example, kind) for label, example, kind in FIELD_KINDS}
 _FORMAT_LABELS = {
     "": "Text",
+    "upper": "Uppercase",
     "long": "Long text",
     "date": "Date",
+    "date-formal": "Formal date",
+    "date-short": "Short date",
     "money": "Amount of money",
+    "money-words": "Money in words",
+    "money-whole": "Whole dollars",
     "number": "Number",
+    "number-words": "Number in words",
     "list": "List",
     "choice": "Choice",
     "plural": "Singular or plural word",
