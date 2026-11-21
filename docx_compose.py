@@ -13,6 +13,7 @@ import zipfile
 from lxml import etree
 
 from md_to_word import MarkdownWarning, render_markdown
+import shell_styles
 from shell_check import check_shell
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -22,6 +23,8 @@ REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 NUMBERING_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering"
 NUMBERING_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"
+STYLES_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
+STYLES_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"
 _NUMBER_ID = re.compile(r"^rId(\d+)$")
 
 
@@ -31,6 +34,8 @@ class ComposeResult:
 
     output_path: Path
     warnings: Tuple[MarkdownWarning, ...] = ()
+    # Word names of styles the shell lacked and the new document now defines.
+    added_styles: Tuple[str, ...] = ()
 
 
 def _parse_xml(data: bytes, part_name: str):
@@ -198,6 +203,29 @@ def _ensure_numbering_relationship(rels_root) -> None:
     relation.set("Target", "numbering.xml")
 
 
+def _ensure_relationship(rels_root, rel_type: str, target: str) -> None:
+    relationships = rels_root.findall("{%s}Relationship" % REL_NS)
+    if any(item.get("Type") == rel_type for item in relationships):
+        return
+    next_id = max(
+        [int(match.group(1)) for item in relationships
+         if (match := _NUMBER_ID.match(item.get("Id", "")))] or [0]
+    ) + 1
+    relation = etree.SubElement(rels_root, "{%s}Relationship" % REL_NS)
+    relation.set("Id", "rId%d" % next_id)
+    relation.set("Type", rel_type)
+    relation.set("Target", target)
+
+
+def _ensure_content_type(types_root, part_name: str, content_type: str) -> None:
+    overrides = types_root.findall("{%s}Override" % CT_NS)
+    if any(item.get("PartName") == part_name for item in overrides):
+        return
+    override = etree.SubElement(types_root, "{%s}Override" % CT_NS)
+    override.set("PartName", part_name)
+    override.set("ContentType", content_type)
+
+
 def _ensure_numbering_content_type(types_root) -> None:
     overrides = types_root.findall("{%s}Override" % CT_NS)
     if any(item.get("PartName") == "/word/numbering.xml" for item in overrides):
@@ -230,7 +258,7 @@ def compose_document(
     if any(not isinstance(item, str) for item in component_texts):
         raise TypeError("Each component must be Markdown text.")
 
-    shell_check = check_shell(shell)
+    shell_check = check_shell(shell, supply_missing=True)
     if not shell_check.can_generate:
         details = " ".join(item.message for item in shell_check.errors)
         raise ValueError("The selected Word shell cannot be used. " + details)
@@ -272,6 +300,18 @@ def compose_document(
             if has_numbering:
                 replacements["word/numbering.xml"] = _xml_bytes(numbering_root)
 
+            # Styles the shell lacks are defined in the new document only.
+            styles_name = "word/styles.xml"
+            if styles_name in names:
+                styles_root = _parse_xml(source_package.read(styles_name), styles_name)
+            else:
+                styles_root = shell_styles.new_styles_root()
+            added_ids = shell_styles.add_missing_styles(styles_root)
+            if added_ids or styles_name not in names:
+                replacements[styles_name] = _xml_bytes(styles_root)
+            added_styles = tuple(shell_styles.SUPPLIABLE[i][1] for i in added_ids)
+
+            if has_numbering or styles_name in replacements:
                 rels_name = "word/_rels/document.xml.rels"
                 if rels_name in names:
                     rels_root = _parse_xml(source_package.read(rels_name), rels_name)
@@ -279,13 +319,16 @@ def compose_document(
                     rels_root = etree.Element(
                         "{%s}Relationships" % REL_NS, nsmap={None: REL_NS}
                     )
-                _ensure_numbering_relationship(rels_root)
-                replacements[rels_name] = _xml_bytes(rels_root)
-
                 types_root = _parse_xml(
                     source_package.read("[Content_Types].xml"), "[Content_Types].xml"
                 )
-                _ensure_numbering_content_type(types_root)
+                if has_numbering:
+                    _ensure_numbering_relationship(rels_root)
+                    _ensure_numbering_content_type(types_root)
+                if styles_name not in names:
+                    _ensure_relationship(rels_root, STYLES_REL, "styles.xml")
+                    _ensure_content_type(types_root, "/word/styles.xml", STYLES_TYPE)
+                replacements[rels_name] = _xml_bytes(rels_root)
                 replacements["[Content_Types].xml"] = _xml_bytes(types_root)
 
             document_root = _parse_xml(
@@ -310,7 +353,7 @@ def compose_document(
                     if data is None:
                         data = source_package.read(info.filename)
                     target.writestr(info, data)
-                for name in ("word/numbering.xml", "word/_rels/document.xml.rels"):
+                for name in ("word/numbering.xml", "word/styles.xml", "word/_rels/document.xml.rels"):
                     if name in replacements and name not in names:
                         target.writestr(name, replacements[name], compress_type=zipfile.ZIP_DEFLATED)
 
@@ -329,4 +372,4 @@ def compose_document(
         if key not in seen:
             seen.add(key)
             unique_warnings.append(warning)
-    return ComposeResult(output, tuple(unique_warnings))
+    return ComposeResult(output, tuple(unique_warnings), added_styles)

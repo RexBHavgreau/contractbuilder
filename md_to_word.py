@@ -337,7 +337,7 @@ def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRender
     """
     if not isinstance(source, str):
         raise TypeError("Markdown component source must be text")
-    shell = check_shell(shell_path)
+    shell = check_shell(shell_path, supply_missing=True)
     if not shell.can_generate:
         return MarkdownRenderResult((), (), shell.errors)
 
