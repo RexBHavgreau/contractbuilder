@@ -743,3 +743,29 @@ def test_schema_v4_upgrade_adds_field_matches_table(tmp_path, monkeypatch):
     assert _user_version(path) == 5
     current.save_field_match("Legacy Publisher", "publisher_name")
     assert current.field_match_map() == {"Legacy Publisher": "publisher_name"}
+
+
+def test_field_definition_profile_link_is_used_and_explicit_alias_wins(tmp_path):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    store = profiles.PublisherProfileStore(path)
+    library = ComponentLibrary(path)
+    library.add_field_definition(
+        "Rights Contact",
+        publisher_profile_column="contact_name",
+    )
+    assert store.field_match_map() == {"Rights Contact": "contact_name"}
+    profile = sample_profile()
+    assert profiles.values_for_template(
+        profile, ["Rights Contact", "Unknown Field"], store.field_match_map()
+    ) == {"Rights Contact": profile["contact_name"]}
+
+    store.save_field_match("Rights Contact", "contact_email")
+    assert profiles.values_for_template(
+        profile, ["Rights Contact"], store.field_match_map()
+    ) == {"Rights Contact": profile["contact_email"]}
+
+
+def test_unknown_field_names_are_skipped_without_error():
+    assert profiles.values_for_template(
+        sample_profile(), ["A field nobody mapped", "Another unknown"]
+    ) == {}
