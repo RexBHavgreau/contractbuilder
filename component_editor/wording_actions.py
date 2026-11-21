@@ -159,6 +159,30 @@ class WordingActionsMixin:
 
         _package.FieldInsertDialog(self.window, self.library, insert)
 
+    def open_choice_wording(self):
+        if self.protected_content:
+            messagebox.showinfo(
+                "This wording is protected",
+                "Create a new component before inserting conditional wording here.",
+                parent=self.window,
+            )
+            return
+        self._ensure_markdown_mode()
+
+        def insert(value):
+            selected = self.wording.tag_ranges("sel")
+            start, end = (str(selected[0]), str(selected[1])) if selected else (
+                self.wording.index("insert"), self.wording.index("insert")
+            )
+            self.wording.delete(start, end)
+            self.wording.insert(start, value)
+            self.wording.mark_set("insert", f"{start} + {len(value)} chars")
+            self._refresh_editor_styling()
+            self._schedule_preview()
+            self.wording.focus_set()
+
+        _package.ConditionalWordingDialog(self.window, self.library, insert)
+
     def open_table_editor(self):
         if self.protected_content:
             messagebox.showinfo(
