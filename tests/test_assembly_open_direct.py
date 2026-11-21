@@ -1,5 +1,4 @@
 """Direct opening of saved assemblies from the main start screen."""
-import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -81,7 +80,7 @@ def test_changed_or_missing_shell_can_be_reselected_without_changing_saved_revis
     document.save(replacement)
 
     monkeypatch.setattr(
-        assembly_open_dialog.messagebox, "askyesno", lambda *a, **k: True
+        "tkinter.messagebox.askyesno", lambda *a, **k: True
     )
     monkeypatch.setattr(
         assembly_open_dialog.filedialog,
@@ -123,7 +122,3 @@ def test_empty_saved_assembly_library_reports_a_plain_language_message(monkeypat
     assert "No saved contract assemblies" in seen[0][0][1]
 
 
-pytestmark = pytest.mark.skipif(
-    os.name != "nt" and not os.environ.get("DISPLAY"),
-    reason="Tk window tests need a display; CI runs them under xvfb-run.",
-)
