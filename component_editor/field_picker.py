@@ -149,21 +149,31 @@ class FieldPickerDialog:
         entry = ttk.Entry(outer, textvariable=self.search)
         entry.pack(fill="x", pady=(3, 8))
         entry.bind("<KeyRelease>", lambda _event: self.refresh())
-        one_off = ttk.Frame(outer)
+        one_off = ttk.LabelFrame(outer, text="One-off field", padding=8)
         one_off.pack(fill="x", pady=(0, 8))
+        one_off.columnconfigure(1, weight=1)
+        ttk.Label(one_off, text="Field name").grid(row=0, column=0, sticky="w")
         self.one_off_name = tk.StringVar(master=self.window)
-        ttk.Label(one_off, text="Or type a one-off field").pack(side="left")
-        ttk.Entry(one_off, textvariable=self.one_off_name, width=28).pack(side="left", padx=6)
+        ttk.Entry(one_off, textvariable=self.one_off_name).grid(
+            row=0, column=1, sticky="ew", padx=(8, 0), pady=2
+        )
+        ttk.Label(one_off, text="Format").grid(row=1, column=0, sticky="w")
         self.one_off_format = tk.StringVar(master=self.window, value="Plain text")
         self.one_off_format_values = {label: value for label, value in _FIELD_FORMATS}
         ttk.Combobox(
-            one_off, textvariable=self.one_off_format, state="readonly", width=18,
+            one_off, textvariable=self.one_off_format, state="readonly",
             values=list(self.one_off_format_values),
-        ).pack(side="left")
-        ttk.Label(one_off, text="Options").pack(side="left", padx=(6, 2))
+        ).grid(row=1, column=1, sticky="ew", padx=(8, 0), pady=2)
+        ttk.Label(one_off, text="Options (choice / singular-plural)").grid(
+            row=2, column=0, sticky="w"
+        )
         self.one_off_options = tk.StringVar(master=self.window)
-        ttk.Entry(one_off, textvariable=self.one_off_options, width=22).pack(side="left")
-        ttk.Button(one_off, text="Insert one-off", command=self.insert_one_off).pack(side="left", padx=6)
+        ttk.Entry(one_off, textvariable=self.one_off_options).grid(
+            row=2, column=1, sticky="ew", padx=(8, 0), pady=2
+        )
+        ttk.Button(
+            one_off, text="Insert one-off", command=self.insert_one_off
+        ).grid(row=3, column=1, sticky="e", pady=(4, 0))
         self.one_off_status = ttk.Label(outer, text="", foreground="#8a5a00")
         self.one_off_status.pack(anchor="w")
         self.tree = ttk.Treeview(
