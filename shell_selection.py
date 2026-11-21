@@ -31,6 +31,11 @@ class ShellSelection:
     lines: Tuple[str, ...]
     result: shell_check.ShellCheckResult
 
+    @property
+    def needs_review(self) -> bool:
+        """True when there is something to read before using the file."""
+        return bool(self.result.warnings)
+
 
 def settings_path() -> Path:
     """Beside the publisher profiles and update settings, per user."""
@@ -77,22 +82,54 @@ def _remember(shell: Path, path: Optional[Path]) -> bool:
     return True
 
 
+def _join(items) -> str:
+    items = list(items)
+    if len(items) <= 2:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def _supplied_line(notes) -> str:
+    """One calm sentence for what the app will add (T-060-B)."""
+    things = []
+    for note in notes:
+        if note.code.startswith("shell.style."):
+            name = shell_check.DISPLAY_NAMES.get(note.code.rsplit(".", 1)[1])
+            if name:
+                things.append("the %s style" % name)
+        elif note.code == "shell.numbering.decimal_outline":
+            things.append("the numbering for clauses (1., 1.1, 1.1.1)")
+        elif note.code == "shell.numbering.bullets":
+            things.append("the setup for bulleted lists")
+    return (
+        "This file is missing %s. The app will add %s to your new document. "
+        "Your file is not changed."
+        % (_join(things), "it" if len(things) == 1 else "them")
+    )
+
+
 def describe(result: shell_check.ShellCheckResult) -> Tuple[str, ...]:
-    """Plain-English lines for a checker result, without internal codes."""
+    """Plain-English lines for a checker result, without internal codes.
+
+    A file that only lacks things the app can add gets one calm line and no
+    question. Anything else the user should know comes as its own line.
+    """
     if not result.can_generate:
         messages = [item.message for item in result.errors]
         return tuple(
-            ["This file cannot be used as a shell, so it has not been chosen."] + messages
+            ["This file cannot be used as the page layout, so it has not been chosen."] + messages
         )
     if not result.findings:
-        return ("This shell is ready to use. No problems were found.",)
-    count = len(result.warnings)
-    noun = "warning" if count == 1 else "warnings"
-    lines = [
-        "This shell can be used, but it has %d %s. Read them before creating documents."
-        % (count, noun)
-    ]
-    lines.extend("Warning: " + item.message for item in result.warnings)
+        return ("This page layout file is ready to use.",)
+    lines = []
+    if result.notes:
+        lines.append(_supplied_line(result.notes))
+    if result.warnings:
+        lines.append(
+            "Please read this before you continue:" if len(result.warnings) == 1
+            else "Please read these before you continue:"
+        )
+        lines.extend(item.message for item in result.warnings)
     return tuple(lines)
 
 
@@ -108,7 +145,7 @@ def choose_shell(
     is told about the warnings and can still choose to continue.
     """
     shell = Path(path)
-    result = shell_check.check_shell(shell)
+    result = shell_check.check_shell(shell, supply_missing=True)
     lines = list(describe(result))
     usable = result.can_generate
     remembered = False
@@ -117,8 +154,8 @@ def choose_shell(
         remembered = _remember(shell, settings_file)
         if not remembered:
             lines.append(
-                "This shell can be used for now, but it could not be remembered. "
-                "You will need to pick it again next time."
+                "This file can be used for now, but it could not be remembered. "
+                "You will need to choose it again next time."
             )
     return ShellSelection(
         path=shell,

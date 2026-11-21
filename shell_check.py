@@ -187,7 +187,7 @@ def check_shell(path: Union[str, Path], supply_missing: bool = False) -> ShellCh
         return ShellCheckResult(
             shell_path,
             (ShellFinding("shell.not_found", "error",
-                          "The selected shell file could not be found."),),
+                          "That file could not be found. Choose it again."),),
             fallbacks,
         )
     try:
@@ -198,11 +198,12 @@ def check_shell(path: Union[str, Path], supply_missing: bool = False) -> ShellCh
             document = _parse_member(package, "word/document.xml")
             styles = _parse_member(package, "word/styles.xml") if "word/styles.xml" in names else None
             numbering = _parse_member(package, "word/numbering.xml") if "word/numbering.xml" in names else None
-    except (OSError, zipfile.BadZipFile, RuntimeError, ValueError) as exc:
+    except (OSError, zipfile.BadZipFile, RuntimeError, ValueError):
         return ShellCheckResult(
             shell_path,
             (ShellFinding("shell.unreadable", "error",
-                          "This file cannot be used as a Word shell: %s" % exc),),
+                          "This file could not be read as a Word document (.docx or .dotx). "
+                          "Choose a different file, or open it in Word and save it again."),),
             fallbacks,
         )
 
@@ -210,7 +211,8 @@ def check_shell(path: Union[str, Path], supply_missing: bool = False) -> ShellCh
     if body is None:
         findings.append(ShellFinding(
             "shell.no_body", "error",
-            "This Word file has no document body, so it cannot be used as a shell.",
+            "This Word file has no document body, so its page layout cannot be used. "
+            "Open it in Word and save it again, or choose another file.",
         ))
         return ShellCheckResult(shell_path, tuple(findings), fallbacks)
 
@@ -222,18 +224,19 @@ def check_shell(path: Union[str, Path], supply_missing: bool = False) -> ShellCh
     if final_sect is None:
         findings.append(ShellFinding(
             "shell.no_final_section", "error",
-            "This shell has no final section properties. Open it in Word, set its page layout, and save it again.",
+            "This file has no page settings (size and margins). Open it in Word, set the page "
+            "layout under Layout, Size and Margins, and save it; or choose another file.",
         ))
     else:
         if final_sect.find("w:pgSz", NS) is None:
             findings.append(ShellFinding(
                 "shell.no_page_size", "warning",
-                "This shell does not specify a page size. Word's default page size will be used.",
+                "This file does not set a page size, so Word's default page size will be used.",
             ))
         if final_sect.find("w:pgMar", NS) is None:
             findings.append(ShellFinding(
                 "shell.no_page_margins", "warning",
-                "This shell does not specify page margins. Word's default margins will be used.",
+                "This file does not set page margins, so Word's default margins will be used.",
             ))
 
     styles_by_id = _style_ids(styles)

@@ -227,7 +227,9 @@ def test_invalid_file_returns_plain_english_error(tmp_path):
     result = shell_check.check_shell(path)
     assert not result.can_generate
     assert result.errors[0].code == "shell.unreadable"
-    assert "cannot be used as a Word shell" in result.errors[0].message
+    message = result.errors[0].message
+    assert "could not be read as a Word document" in message
+    assert "shell" not in message.lower()
 
 
 

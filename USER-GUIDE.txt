@@ -426,17 +426,18 @@ A Word shell is a .docx file that supplies the page layout and formatting for
 an assembled contract. Its original body wording is not included in the new
 contract. The shell is copied; the original file is never changed.
 
-Create the shell in Word. Set the page size, orientation and margins. Add any
-headers and footers you need. Keep the built-in styles named Normal, Heading
-1, Heading 2, Heading 3, List Paragraph, List Bullet, List Number and Table
-Grid. You can change how those styles look; do not delete or rename them.
+Create the file in Word. Set the page size, orientation and margins. Add any
+headers and footers you need. You do not have to create special styles: if
+the file has no Heading 1 to 3, List Paragraph, List Bullet, List Number or
+Table Grid style, or no numbering for clauses (1., 1.1, 1.1.1) and bullets,
+the new document gets them added, and a short line tells you so. Your own
+file is not changed. If the file already has a style with one of those names,
+it is used as it is, so you can make them look the way you like.
 
-The shell also needs a three-level decimal outline for clauses (1., 1.1,
-1.1.1) and a bullet numbering definition. ContractBuilder checks these
-requirements when you choose a shell. If a style or numbering definition is
-missing, it explains the fallback before continuing. A shell that cannot be read or has
-no final section properties cannot be used. For the full list of
-requirements, see SHELL-CONTRACT.md in the project repository.
+If the file has no page settings, or cannot be read as a Word document,
+ContractBuilder explains what to do. When something is worth reading first,
+you choose Use this file or Choose another. For the technical details, see
+SHELL-CONTRACT.md in the project repository.
 
 UPDATES
 

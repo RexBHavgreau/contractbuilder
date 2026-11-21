@@ -10,6 +10,14 @@ import shell_selection  # noqa: E402
 from test_shell_check import _remove_style, _rewrite_member, make_shell  # noqa: E402
 
 
+def _remove_page_settings(*names):
+    def transform(root):
+        section = root.find("w:body/w:sectPr", {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"})
+        for name in names:
+            section.remove(section.find("w:" + name, {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}))
+    return transform
+
+
 def _settings(tmp_path):
     return tmp_path / "app-data" / "shell-settings.json"
 
@@ -20,31 +28,48 @@ def test_complete_shell_is_usable_and_remembered(tmp_path):
     selection = shell_selection.choose_shell(shell, settings=settings)
     assert selection.usable
     assert selection.remembered
-    assert selection.lines == ("This shell is ready to use. No problems were found.",)
+    assert not selection.needs_review
+    assert selection.lines == ("This page layout file is ready to use.",)
     assert shell_selection.last_shell(settings) == shell
 
 
-def test_warnings_are_shown_in_plain_english_and_shell_is_still_remembered(tmp_path):
+def test_missing_styles_give_one_calm_line_and_no_question(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
     _rewrite_member(shell, "word/styles.xml", _remove_style("Heading2"))
+    _rewrite_member(shell, "word/styles.xml", _remove_style("ListNumber"))
     settings = _settings(tmp_path)
     selection = shell_selection.choose_shell(shell, settings=settings)
-    assert selection.usable
-    assert selection.remembered
-    assert selection.lines[0] == (
-        "This shell can be used, but it has 1 warning. Read them before creating documents."
-    )
-    assert any("Heading 2" in line and "Use Heading 1 instead" in line
-               for line in selection.lines[1:])
+    assert selection.usable and selection.remembered
+    assert not selection.needs_review
+    assert len(selection.lines) == 1
+    line = selection.lines[0]
+    assert "Heading 2 style and the List Number style" in line
+    assert "will add them to your new document" in line
+    assert "Your file is not changed" in line
+    for word in ("shell", "fallback", "outline", "style id", "warning"):
+        assert word not in line.lower()
+    assert shell_selection.last_shell(settings) == shell
+
+
+def test_a_real_warning_asks_for_review_in_plain_english(tmp_path):
+    shell = make_shell(tmp_path / "shell.docx")
+    _rewrite_member(shell, "word/document.xml", _remove_page_settings("pgSz"))
+    settings = _settings(tmp_path)
+    selection = shell_selection.choose_shell(shell, settings=settings)
+    assert selection.usable and selection.remembered
+    assert selection.needs_review
+    assert selection.lines[0] == "Please read this before you continue:"
+    assert "does not set a page size" in selection.lines[1]
+    assert "shell" not in " ".join(selection.lines).lower()
     assert shell_selection.last_shell(settings) == shell
 
 
 def test_several_warnings_use_plural_wording(tmp_path):
     shell = make_shell(tmp_path / "shell.docx")
-    _rewrite_member(shell, "word/styles.xml", _remove_style("Heading2"))
-    _rewrite_member(shell, "word/styles.xml", _remove_style("Heading3"))
+    _rewrite_member(shell, "word/document.xml", _remove_page_settings("pgSz", "pgMar"))
     selection = shell_selection.choose_shell(shell, settings=_settings(tmp_path))
-    assert selection.lines[0].startswith("This shell can be used, but it has 2 warnings.")
+    assert selection.lines[0] == "Please read these before you continue:"
+    assert len(selection.lines) == 3
 
 
 def test_unusable_file_is_reported_and_not_remembered(tmp_path):
@@ -58,8 +83,9 @@ def test_unusable_file_is_reported_and_not_remembered(tmp_path):
 
     assert not selection.usable
     assert not selection.remembered
-    assert selection.lines[0] == "This file cannot be used as a shell, so it has not been chosen."
-    assert "cannot be used as a Word shell" in selection.lines[1]
+    assert selection.lines[0] == "This file cannot be used as the page layout, so it has not been chosen."
+    assert "could not be read as a Word document" in selection.lines[1]
+    assert "shell" not in " ".join(selection.lines).lower()
     assert shell_selection.last_shell(settings) == good
 
 
