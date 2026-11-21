@@ -58,7 +58,7 @@ def parse_conditional_text(text):
     """Return (field, values, phrases) for a complete explicit-choice block sequence."""
     source = str(text or "").strip()
     pattern = re.compile(
-        r"\\{\\{#if\\s+(.+?)\\s*=\\s*(.+?)\\}\\}(.*?)\\{\\{/if\\}\\}",
+        r"\{\{#if\s+(.+?)\s*=\s*(.+?)\}\}(.*?)\{\{/if\}\}",
         re.S,
     )
     matches = list(pattern.finditer(source))
