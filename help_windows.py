@@ -67,7 +67,7 @@ class HelpWindowsMixin:
             contents = core.CHEAT_SHEET
 
         window = tk.Toplevel(self.root)
-        window.title("How to write a template")
+        window.title("How to write a template and choose fields")
         window.transient(self.root)
         window.geometry("720x620")
         box = scrolledtext.ScrolledText(
