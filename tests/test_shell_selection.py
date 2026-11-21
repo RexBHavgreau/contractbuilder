@@ -179,4 +179,4 @@ def test_unwritable_settings_still_allow_the_shell_to_be_used(tmp_path):
 def test_default_settings_path_is_in_app_folder():
     path = shell_selection.settings_path()
     assert path.name == "shell-settings.json"
-    assert path.parent.name == "TMAI Contract Builder"
+    assert path.parent.name == "Contract Builder"

@@ -69,8 +69,9 @@ To publish a permanent release, raise APP_VERSION in version.py and merge
 the change into main. That is all. When main holds a version that has no
 v-tag yet, GitHub Actions tests the code, builds each platform, tags the
 commit (v0.3.0, say) and publishes a GitHub Release with the applications
-attached. The Windows file is always named Word-Template-Filler-windows-x64.exe;
-the app's updater looks for exactly that name.
+attached. The Windows file is named ContractBuilder-X.Y.Z-windows-x64.exe (from 0.4.5),
+and a copy under the fixed name Word-Template-Filler-windows-x64.exe is attached
+too, because copies of 0.4.x look only for that name. The updater accepts either.
 
 Pushing a matching tag by hand also still publishes. A tag that disagrees
 with APP_VERSION fails the build, which is what happened to v0.2.0: it was

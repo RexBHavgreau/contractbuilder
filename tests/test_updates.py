@@ -39,7 +39,7 @@ def test_check_for_update_parses_latest_release(monkeypatch):
     payload = {
         "tag_name": "v0.2.0",
         "html_url": "https://github.com/RexBHavgreau/contractbuilder/releases/tag/v0.2.0",
-        "name": "Word Template Filler 0.2.0",
+        "name": "Contract Builder 0.2.0",
         "body": "Release notes",
         "published_at": "2026-11-17T00:00:00Z",
     }
@@ -218,8 +218,8 @@ def test_token_saved_privately(tmp_path):
 
 
 def test_leftover_note_is_read_once(tmp_path):
-    exe = tmp_path / "Word Template Filler.exe"
-    note = tmp_path / "Word Template Filler.exe.update-failed.txt"
+    exe = tmp_path / "Contract Builder.exe"
+    note = tmp_path / "Contract Builder.exe.update-failed.txt"
     note.write_text("could not replace")
     assert self_update.leftover_note(exe) == "could not replace"
     assert not note.exists() and self_update.leftover_note(exe) == ""
@@ -238,8 +238,8 @@ def test_cleanup_stale_update_download_only_removes_files_older_than_one_day(tmp
     import os
     import time
 
-    target = tmp_path / "Word Template Filler.exe"
-    leftover = tmp_path / "Word Template Filler.exe.new"
+    target = tmp_path / "Contract Builder.exe"
+    leftover = tmp_path / "Contract Builder.exe.new"
     leftover.write_bytes(b"partial or abandoned update")
     now = time.time()
     os.utime(leftover, (now - age, now - age))
@@ -249,15 +249,15 @@ def test_cleanup_stale_update_download_only_removes_files_older_than_one_day(tmp
 
 
 def test_cleanup_stale_update_download_ignores_missing_file(tmp_path):
-    target = tmp_path / "Word Template Filler.exe"
+    target = tmp_path / "Contract Builder.exe"
     assert not self_update.cleanup_stale_update_download(target, now=10**10)
 
 
 def test_cleanup_stale_update_download_does_not_follow_symlinks(tmp_path):
-    target = tmp_path / "Word Template Filler.exe"
+    target = tmp_path / "Contract Builder.exe"
     outside = tmp_path / "keep.me"
     outside.write_text("keep")
-    leftover = tmp_path / "Word Template Filler.exe.new"
+    leftover = tmp_path / "Contract Builder.exe.new"
     try:
         leftover.symlink_to(outside)
     except (OSError, NotImplementedError):
@@ -382,3 +382,37 @@ def test_start_swap_passes_the_clean_environment(tmp_path, monkeypatch):
     self_update.start_swap(tmp_path / "app.exe", tmp_path / "app.exe.new")
     assert seen["env"]["PYINSTALLER_RESET_ENVIRONMENT"] == "1"
     assert "_PYI_APPLICATION_HOME_DIR" not in seen["env"]
+
+
+class _Release:
+    """Only what windows_download needs: the version and an asset lookup."""
+
+    def __init__(self, version, names):
+        self.latest_version = version
+        self._items = {name: object() for name in names}
+
+    def asset(self, name):
+        return self._items.get(name)
+
+
+def test_windows_download_prefers_the_versioned_name():
+    both = _Release("0.4.5", [self_update.WINDOWS_ASSET, "ContractBuilder-0.4.5-windows-x64.exe"])
+    assert self_update.windows_download(both) is both.asset("ContractBuilder-0.4.5-windows-x64.exe")
+
+
+def test_windows_download_accepts_the_fixed_name_for_older_releases():
+    fixed = _Release("0.4.4", [self_update.WINDOWS_ASSET])
+    assert self_update.windows_download(fixed) is fixed.asset(self_update.WINDOWS_ASSET)
+
+
+def test_windows_download_ignores_a_versioned_name_for_another_version():
+    other = _Release("0.4.5", ["ContractBuilder-0.4.4-windows-x64.exe"])
+    assert self_update.windows_download(other) is None
+
+
+def test_windows_download_is_none_without_a_windows_file():
+    assert self_update.windows_download(_Release("0.4.5", ["macOS.zip"])) is None
+
+
+def test_versioned_name_follows_the_pattern():
+    assert self_update.versioned_windows_asset("0.4.5") == "ContractBuilder-0.4.5-windows-x64.exe"

@@ -1,5 +1,31 @@
 # What's new
 
+## 0.4.4
+
+The app is now called Contract Builder. The window, the Help menu and the downloads use the new name.
+
+Before you open this version for the first time, rename your data folder from TMAI Contract Builder (or Word Template Filler) to Contract Builder, in the same place. The user guide shows where it is. Your publisher details, saved page layout file and update settings are kept there.
+
+The first start upgrades the publisher database. A backup copy is kept beside it, named publisher_profiles.sqlite3.bak-N, where N is the old version number.
+
+The Windows download is now named ContractBuilder-0.4.4-windows-x64.exe. The earlier name is still attached for older copies, and the app accepts either name.
+
+Publishers can now have a type and several parties. Fields can be filled from the publisher profile one at a time, or automatically when a publisher is chosen.
+
+Choosing the right kind of field: a new section of the guide explains when to use Choice, Yes/no clause, Different wording by a value, and Singular or plural.
+
+The Components editor has a four-step builder for "if ... else" wording, so you do not need to type the markers. The preview shows them as plain words.
+
+Saved assemblies open straight to their fields from the start screen, with a searchable list.
+
+Field help text appears under fields in the fill-in form. Paragraph styles such as Title and Body Text can be chosen in the editor.
+
+Missing Word styles are added to the new document, instead of asking you to fix the page layout file.
+
+Components: the toolbar wraps, the formatting buttons switch off again, Save shows a clear result, an Unsaved changes mark appears, and saving with no changes no longer adds a version.
+
+Most window changes were checked on a virtual screen only. Please report any window that looks wrong.
+
 ## 0.4.3
 
 The main window now opens with three clear ways to start: Existing contract assembly, New contract assembly, or Word file. Press Alt and E, N or W as a shortcut.

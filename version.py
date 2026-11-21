@@ -1,5 +1,5 @@
 """Application identity and release metadata."""
 
-APP_NAME = "Word Template Filler"
-APP_VERSION = "0.4.3"
+APP_NAME = "Contract Builder"
+APP_VERSION = "0.4.4"
 GITHUB_REPOSITORY = "RexBHavgreau/contractbuilder"

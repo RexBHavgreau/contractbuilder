@@ -12,11 +12,11 @@ Windows
 
 1. When Windows SmartScreen says "Windows protected your PC", select More
    info.
-2. Check that the app is Word Template Filler, then select Run anyway.
+2. Check that the app is Contract Builder, then select Run anyway.
 
 macOS
 
-1. In Finder, locate Word Template Filler.app. Control-click (or right-click)
+1. In Finder, locate Contract Builder.app. Control-click (or right-click)
    it and choose Open.
 2. When macOS asks you to confirm, choose Open.
 
@@ -30,7 +30,7 @@ real Windows PC; see T-002 in TASKS.md.
 
 WHAT THIS DOES
 
-Word Template Filler reads a Word document containing placeholders, asks you
+Contract Builder reads a Word document containing placeholders, asks you
 to fill in those placeholders, and saves a completed copy as a new .docx file.
 The original template is never changed.
 
@@ -134,9 +134,13 @@ filling in the form and is never put in the document.
 
 Publisher profiles are stored in a local SQLite database in your user data
 directory. On Windows, this is normally under
-%LOCALAPPDATA%\TMAI Contract Builder. On macOS, it is under
-~/Library/Application Support/TMAI Contract Builder. On Linux, it is under
-$XDG_DATA_HOME/TMAI Contract Builder or ~/.local/share/TMAI Contract Builder.
+%LOCALAPPDATA%\Contract Builder. On macOS, it is under
+~/Library/Application Support/Contract Builder. On Linux, it is under
+$XDG_DATA_HOME/Contract Builder or ~/.local/share/Contract Builder.
+If you used an earlier version called Word Template Filler or TMAI Contract
+Builder, rename its folder ("TMAI Contract Builder" or "Word Template Filler")
+to "Contract Builder" in the same place before you open this version, so that
+your publisher profiles, saved shell and update settings are found.
 Back up publisher_profiles.sqlite3 if you need to move your saved profiles to
 another computer or preserve them during a system migration.
 
@@ -509,7 +513,7 @@ SHELL-CONTRACT.md in the project repository.
 
 UPDATES
 
-Word Template Filler checks for a newer published GitHub release when it
+Contract Builder checks for a newer published GitHub release when it
 starts. You can also choose Help > Check for updates.
 
 On Windows, when an update is available, choose Yes to download and install

@@ -23,7 +23,23 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+# The Windows download. Releases from 0.4.5 carry the version in the name; the
+# fixed name is still published for copies of 0.4.x, whose updater looks only
+# for it. Remove the fixed name once no installed copy predates the new updater.
 WINDOWS_ASSET = "Word-Template-Filler-windows-x64.exe"
+
+
+def versioned_windows_asset(version: str) -> str:
+    return f"ContractBuilder-{version}-windows-x64.exe"
+
+
+def windows_download(release):
+    """The Windows download of a release, accepting either name (versioned first)."""
+    for name in (versioned_windows_asset(release.latest_version), WINDOWS_ASSET):
+        item = release.asset(name)
+        if item is not None:
+            return item
+    return None
 CHUNK = 256 * 1024
 
 
@@ -71,7 +87,7 @@ def download_asset(asset, destination: Path, token: str = "", progress=None, tim
         url, headers = asset.api_url, {"Accept": "application/octet-stream"}
     else:
         url, headers = asset.download_url, {}
-    headers["User-Agent"] = "Word-Template-Filler"
+    headers["User-Agent"] = "Contract-Builder"
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
@@ -250,7 +266,7 @@ def settings_path() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
-    return base / "TMAI Contract Builder" / "update-settings.json"
+    return base / "Contract Builder" / "update-settings.json"
 
 
 AUTOMATIC_CHECK_INTERVAL_SECONDS = 24 * 60 * 60

@@ -1,5 +1,5 @@
 """
-TMAI Contract Builder - the engine.
+Contract Builder - the engine.
 Build 3
 
 A contract template is an ordinary Word document. The wording that stays
@@ -26,7 +26,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from lxml import etree
 
 BUILD = "3"
-APP_NAME = "TMAI Contract Builder"
+APP_NAME = "Contract Builder"
 BLANK = "__________"
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"

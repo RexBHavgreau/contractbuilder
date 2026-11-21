@@ -1,4 +1,4 @@
-# CLAUDE.md — Word Template Filler (formerly TMAI Contract Builder)
+# CLAUDE.md — Contract Builder (formerly Word Template Filler and TMAI Contract Builder)
 
 This file holds the project's standing rules: read it before changing
 anything. It is edited rarely, by a deliberate change, not by every pull
@@ -97,8 +97,11 @@ trace.
   non-empty section to `CHANGES.txt`, and merge to `main`. CI checks that
   the current version has notes, extracts that section for the GitHub release
   body, tags `vX.Y.Z`, and publishes the release with
-  `Word-Template-Filler-windows-x64.exe` attached. The updater looks for
-  exactly that file name; do not rename it.
+  `ContractBuilder-X.Y.Z-windows-x64.exe` attached, plus the fixed name
+  `Word-Template-Filler-windows-x64.exe` for copies of 0.4.x, whose updater
+  looks only for that name. The updater accepts either name, preferring the
+  versioned one. Keep publishing the fixed name until no installed copy
+  predates 0.4.5 (see decisions/).
 - `build-windows.bat` must keep CRLF line endings. The Windows CI job
   checks the file's bytes for CRLF (and rejects mixed endings), and parses
   `build-windows.ps1` with Windows PowerShell 5.1 before building. This

@@ -45,7 +45,7 @@ def settings_path() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
-    return base / "TMAI Contract Builder" / SETTINGS_FILE_NAME
+    return base / "Contract Builder" / SETTINGS_FILE_NAME
 
 
 def last_shell(path: Union[str, Path, None] = None) -> Optional[Path]:

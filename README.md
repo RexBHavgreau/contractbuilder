@@ -1,4 +1,4 @@
-# Word Template Filler
+# Contract Builder
 
 A small desktop application for filling placeholders in Word documents. Choose a
 `.docx` or `.dotx` template, and the application discovers its unique fields

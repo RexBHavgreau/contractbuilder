@@ -1,4 +1,4 @@
-"""Compatibility entry point for Word Template Filler.
+"""Compatibility entry point for Contract Builder.
 
 The earlier contract-oriented interface is preserved in advanced_app.py, but
 the normal application entry point now exposes only the focused workflow.
