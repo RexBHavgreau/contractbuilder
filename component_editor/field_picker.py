@@ -41,6 +41,8 @@ def field_kind_definition(
     plural: str = "",
 ) -> dict:
     """Translate the creator's plain-language kind into a stored field definition."""
+    if not str(name or "").strip():
+        raise ValueError("Enter a field name.")
     labels = {label.casefold(): (example, value) for label, example, value in FIELD_KINDS}
     selected = labels.get(str(kind).strip().casefold())
     if selected is None:
@@ -56,6 +58,8 @@ def field_kind_definition(
         allowed = [str(value).strip() for value in values if str(value).strip()]
         if len(allowed) < 2:
             raise ValueError("Enter at least two choices for conditional wording.")
+        if any("{{" in value or "}}" in value or "\n" in value for value in allowed):
+            raise ValueError("Each choice must be a single line without braces.")
         field_kind = "choice"
     elif field_kind == "plural":
         singular = str(singular or "").strip()
@@ -109,8 +113,9 @@ def build_created_field(definition: dict, kind: str, wording: str = "") -> str:
                 + "{{/if}}"
             )
         return "\n\n".join(blocks)
-    options = definition.get("default_options") or []
-    return make_field_placeholder(name, fmt, ", ".join(options))
+    options = definition.get("default_options") or definition.get("allowed_values") or []
+    separator = "/" if any("," in str(value) for value in options) else ", "
+    return make_field_placeholder(name, fmt, separator.join(str(value) for value in options))
 
 
 class FieldPickerDialog:
