@@ -1,5 +1,13 @@
 # What's new
 
+## 0.4.3
+
+The main window now opens with three clear ways to start: Existing contract assembly, New contract assembly, or Word file. Press Alt and E, N or W as a shortcut.
+
+Fixes in the Build an assembly window: the Save assembly button and the others no longer disappear when a long warning is shown (the warning now wraps), and the Assembly name box is no longer hidden in a short window. The Word "shell" is now called the page layout file, with a line explaining what it is.
+
+Alternative wording written inside a sentence no longer leaves a doubled space or a stray space before a comma or full stop when a phrase is left out.
+
 ## 0.4.2
 
 Choose contract fields from a searchable, grouped picker instead of retyping names. Create reusable text, long-text, date, money, number, list and choice fields, or guided optional and conditional wording and singular/plural wording. Keep the picker open to insert several fields in a row, and edit or archive fields you have created.
