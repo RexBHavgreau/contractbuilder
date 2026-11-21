@@ -85,6 +85,11 @@ from .field_picker import (  # noqa: F401,E402
 )
 # Preserve the public dialog hook used by existing integrations and tests.
 FieldInsertDialog = FieldPickerDialog
+from .conditional_walkthrough import (  # noqa: F401,E402
+    ConditionalWordingDialog,
+    build_conditional_text,
+    build_optional_text,
+)
 from .history_dialog import open_version_history_dialog  # noqa: F401,E402
 from .import_dialog import ImportReviewDialog  # noqa: F401,E402
 from .table_dialog import TableEditorDialog  # noqa: F401,E402
