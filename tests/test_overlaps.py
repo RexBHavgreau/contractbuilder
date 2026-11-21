@@ -107,7 +107,7 @@ def test_the_real_task_files_parse_and_every_open_task_has_touches():
     missing = [
         t["id"] for t in tasks
         if overlaps.is_open(t["status"]) and "umbrella" not in t["status"].lower()
-        and not t["touches"]
+        and not t["touches"] and not t["id"].startswith("UT-")   # checks edit no files
     ]
     assert missing == []
 

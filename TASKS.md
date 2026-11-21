@@ -20,13 +20,27 @@ file is laid out. This file holds only the rules.
 
   After each merge to `main` a workflow publishes it as the run summary and
   as a downloadable artifact (and as `BOARD.md` if the repository variable
-  `BOARD_BOT_COMMIT` is set to `true`; see T-054 and T-057).
-- **The next free task number:** `python scripts/board.py --next`
+  `BOARD_BOT_COMMIT` is set to `true`; see T-054 and UT-004).
+- **The next free task number:** `python scripts/board.py --next` (for a user check,
+  `--next-ut`)
 - **A check** that every file is well formed and in the right folder runs in
   the tests (`python scripts/board.py --check` shows the same).
 - **Suggested order and standing notes:** [tasks/notes/suggested-order.md](tasks/notes/suggested-order.md).
 
 ## How to use this file
+
+**Checks only a person can do (`UT-NNN`).** A hand check on Windows or in real
+Word, a confirmation that something worked, a GitHub setting: these are
+**user tasks**, files named `tasks/UT-NNN.md`, shown in their own table on the
+board ("Waiting on you"). They have the same fields as a task plus `Checks`
+(the work they verify). **They never block a coding task:** a task is done when
+its code, tests and CI size check pass; any hand check in it is copied into a
+UT task (an existing one, or a new one) and its box ticked "moved to UT-NNN".
+Agents do not claim UT tasks (`claim.py` refuses them), and a coding task must
+not list one in `Needs` (`board.py --check` fails); in the rare real
+dependency write `UT-NNN [blocks]` and say why in the task. A fault a check finds
+becomes a new T- task. Decisions an agent needs from the owner stay as
+`Needs: Beaux` on the coding task, since they genuinely block it.
 
 **To take a task:** look at the open pull requests, then claim it with
 `python scripts/claim.py T-043-A --who "your name or agent id"` (list claims
@@ -103,7 +117,7 @@ a queued or in-progress run, or no run at all does not count. In practice:
   `ci_run` and `size` fields of the task's `progress/` file
 - Before opening or merging a pull request, merge the latest `main` into
   your branch and read both sides of any conflict (GitHub will enforce this
-  once T-057 is set)
+  once UT-004 is set)
 - After a merge, look at the run on `main`. If it is red, fixing it comes
   before any other work, and say so at the top of your report
 

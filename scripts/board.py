@@ -24,15 +24,20 @@ BANNER = (
 )
 
 
-def next_free(tasks) -> str:
-    numbers = [int(t.id[2:5]) for t in tasks if t.id]
-    return "T-%03d" % (max(numbers, default=0) + 1)
+def next_free(tasks, prefix: str = "T") -> str:
+    """The next free number for coding tasks (T) or for user checks (UT)."""
+    numbers = [
+        int(t.id[len(prefix) + 1:len(prefix) + 4]) for t in tasks
+        if t.id.startswith(prefix + "-")
+    ]
+    return "%s-%03d" % (prefix, max(numbers, default=0) + 1)
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="list malformed files and exit")
     parser.add_argument("--next", action="store_true", help="print the next free task number")
+    parser.add_argument("--next-ut", action="store_true", help="print the next free user-check number")
     parser.add_argument("--markdown", action="store_true", help="include the page heading")
     args = parser.parse_args(argv)
     tasks = task_files.load()
@@ -44,7 +49,16 @@ def main(argv=None) -> int:
     if args.next:
         print(next_free(tasks))
         return 0
-    sys.stdout.write((BANNER if args.markdown else "") + task_files.build_board(tasks))
+    if args.next_ut:
+        print(next_free(tasks, "UT"))
+        return 0
+    sys.stdout.write(
+        (BANNER if args.markdown else "")
+        + task_files.build_board(tasks)
+        + "\n## Waiting on you\n\n"
+        "Checks and confirmations only a person can do. They never block a coding task.\n\n"
+        + task_files.build_user_checks(tasks)
+    )
     return 0
 
 
