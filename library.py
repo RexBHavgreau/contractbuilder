@@ -10,10 +10,16 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 import sqlite3
 from typing import Iterator, Mapping, Sequence
 
-from publisher_profiles import PublisherProfileStore, default_database_path
+import core
+from publisher_profiles import (
+    PROFILE_FIELDS,
+    PublisherProfileStore,
+    default_database_path,
+)
 
 
 def _tags_json(tags: Sequence[str] | None) -> str:
@@ -44,6 +50,137 @@ def _component_from_row(row: sqlite3.Row | dict) -> dict:
         tags = []
     component["tags"] = tags if isinstance(tags, list) else []
     return component
+
+
+def _field_name(name: object) -> tuple[str, str]:
+    """Apply the field parser's own rules and return its display/key forms."""
+    clean = core.tidy_name(name or "")
+    if not clean:
+        raise ValueError("Enter a field name.")
+
+    placeholder = "{{" + clean + "}}"
+    match = core.TOKEN.fullmatch(placeholder)
+    if match is None or core.classify(match.group(1))[0] != "field":
+        raise ValueError(
+            "Enter a plain field name without braces, a format separator, or a conditional marker."
+        )
+    parsed_name, parsed_format, parsed_options = core.parse_field(match.group(1))
+    if (
+        not parsed_name
+        or core.key(parsed_name) != core.key(clean)
+        or parsed_format
+        or parsed_options
+    ):
+        raise ValueError(
+            "Enter a plain field name without braces or a format separator."
+        )
+    return clean, core.key(clean)
+
+
+def _field_labels(values: Sequence[str] | None, label: str) -> list[str]:
+    """Clean and de-duplicate a list of field options using core's name rules."""
+    if values is None:
+        return []
+    if isinstance(values, str):
+        values = [values]
+    if not isinstance(values, Sequence):
+        raise TypeError(f"{label} must be a list of text values.")
+
+    result = []
+    seen = set()
+    for value in values:
+        if not isinstance(value, str):
+            raise TypeError(f"{label} must contain only text values.")
+        clean = core.tidy_name(value)
+        normalized = core.key(clean)
+        if clean and normalized not in seen:
+            result.append(clean)
+            seen.add(normalized)
+    return result
+
+
+def _field_definition_values(
+    name: object,
+    description: object = "",
+    group: object = "Your fields",
+    default_format: object = "",
+    default_options: Sequence[str] | None = None,
+    allowed_values: Sequence[str] | None = None,
+    publisher_profile_column: object = None,
+    publisher_detail_name: object = None,
+) -> dict:
+    clean_name, name_key = _field_name(name)
+    format_key = re.sub(
+        r"[\\s_]+", "-", str(default_format or "").strip().lower()
+    )
+    if format_key not in core.FORMAT_ALIASES:
+        raise ValueError("Choose a field format supported by ContractBuilder.")
+    normalized_format = core.FORMAT_ALIASES[format_key]
+
+    options = _field_labels(default_options, "Default options")
+    choices = _field_labels(allowed_values, "Allowed values")
+    if normalized_format == "plural":
+        if len(options) != 2:
+            raise ValueError(
+                "A singular-or-plural field needs exactly two default wordings."
+            )
+    elif options:
+        raise ValueError("Default options are only used for singular-or-plural fields.")
+
+    if normalized_format == "choice":
+        if not choices:
+            raise ValueError("A choice field needs at least one allowed value.")
+    elif choices:
+        raise ValueError("Allowed values are only used for choice fields.")
+
+    column = str(publisher_profile_column or "").strip() or None
+    detail = str(publisher_detail_name or "").strip() or None
+    if column and detail:
+        raise ValueError("Link a field to a publisher-profile column or a detail, not both.")
+    if column and column not in (*PROFILE_FIELDS, "formatted_address"):
+        raise ValueError("Choose a known publisher-profile field.")
+    if detail:
+        detail = core.tidy_name(detail)
+
+    return {
+        "name": clean_name,
+        "name_key": name_key,
+        "description": str(description or "").strip(),
+        "field_group": str(group or "").strip(),
+        "default_format": normalized_format,
+        "default_options": json.dumps(options, ensure_ascii=False),
+        "allowed_values": json.dumps(choices, ensure_ascii=False),
+        "publisher_profile_column": column,
+        "publisher_detail_name": detail,
+    }
+
+
+def _field_definition_from_row(row: sqlite3.Row | dict) -> dict:
+    definition = dict(row)
+    definition["group"] = definition.pop("field_group", "")
+    for column in ("default_options", "allowed_values"):
+        try:
+            values = json.loads(definition.get(column) or "[]")
+        except (TypeError, ValueError):
+            values = []
+        definition[column] = values if isinstance(values, list) else []
+    return definition
+
+
+def _field_name_is_used(connection: sqlite3.Connection, name_key: str) -> bool:
+    """Search all immutable wording versions, including archived components."""
+    rows = connection.execute(
+        "SELECT markdown FROM component_versions"
+    ).fetchall()
+    for row in rows:
+        for match in core.TOKEN.finditer(row["markdown"] or ""):
+            kind, argument = core.classify(match.group(1))
+            if kind != "field":
+                continue
+            name, _format_name, _options = core.parse_field(argument)
+            if name and core.key(name) == name_key:
+                return True
+    return False
 
 
 class ComponentLibrary:
@@ -307,9 +444,158 @@ class ComponentLibrary:
             connection.execute("BEGIN IMMEDIATE")
             return self._insert_version(connection, component_id, markdown, note)
 
+    def list_field_definitions(
+        self, include_archived: bool = False, group: str | None = None
+    ) -> list[dict]:
+        """List reusable field definitions, ordered by group and display name."""
+        query = "SELECT * FROM field_definitions"
+        conditions = []
+        parameters = []
+        if not include_archived:
+            conditions.append("status = 'active'")
+        if group is not None:
+            conditions.append("field_group = ? COLLATE NOCASE")
+            parameters.append(str(group).strip())
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += " ORDER BY field_group COLLATE NOCASE, name COLLATE NOCASE, id"
+        with self._connection() as connection:
+            rows = connection.execute(query, parameters).fetchall()
+            return [_field_definition_from_row(row) for row in rows]
+
+    def get_field_definition(self, field_id: int) -> dict | None:
+        """Return one field definition, including an archived definition."""
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM field_definitions WHERE id = ?",
+                (int(field_id),),
+            ).fetchone()
+            return _field_definition_from_row(row) if row is not None else None
+
+    def add_field_definition(
+        self,
+        name: str,
+        description: str = "",
+        group: str = "Your fields",
+        default_format: str = "",
+        default_options: Sequence[str] | None = None,
+        allowed_values: Sequence[str] | None = None,
+        publisher_profile_column: str | None = None,
+        publisher_detail_name: str | None = None,
+    ) -> int:
+        """Create a reusable field definition and return its database ID."""
+        values = _field_definition_values(
+            name, description, group, default_format, default_options,
+            allowed_values, publisher_profile_column, publisher_detail_name,
+        )
+        columns = (
+            "name", "name_key", "description", "field_group", "default_format",
+            "default_options", "allowed_values", "publisher_profile_column",
+            "publisher_detail_name",
+        )
+        try:
+            with self._connection() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                duplicate = connection.execute(
+                    "SELECT 1 FROM field_definitions WHERE name_key = ?",
+                    (values["name_key"],),
+                ).fetchone()
+                if duplicate is not None:
+                    raise ValueError(f"A field named '{values['name']}' already exists.")
+                placeholders = ", ".join("?" for _ in columns)
+                cursor = connection.execute(
+                    f"INSERT INTO field_definitions ({', '.join(columns)}) "
+                    f"VALUES ({placeholders})",
+                    tuple(values[column] for column in columns),
+                )
+                return int(cursor.lastrowid)
+        except sqlite3.IntegrityError as exc:
+            if "name_key" in str(exc):
+                raise ValueError(
+                    f"A field named '{values['name']}' already exists."
+                ) from exc
+            raise
+
+    def edit_field_definition(
+        self,
+        field_id: int,
+        name: str,
+        description: str = "",
+        group: str = "Your fields",
+        default_format: str = "",
+        default_options: Sequence[str] | None = None,
+        allowed_values: Sequence[str] | None = None,
+        publisher_profile_column: str | None = None,
+        publisher_detail_name: str | None = None,
+    ) -> dict:
+        """Update a definition without renaming a field already used in wording."""
+        values = _field_definition_values(
+            name, description, group, default_format, default_options,
+            allowed_values, publisher_profile_column, publisher_detail_name,
+        )
+        assignments = (
+            "name = ?, name_key = ?, description = ?, field_group = ?, "
+            "default_format = ?, default_options = ?, allowed_values = ?, "
+            "publisher_profile_column = ?, publisher_detail_name = ?"
+        )
+        parameters = tuple(
+            values[column] for column in (
+                "name", "name_key", "description", "field_group", "default_format",
+                "default_options", "allowed_values", "publisher_profile_column",
+                "publisher_detail_name",
+            )
+        )
+        try:
+            with self._connection() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                existing = connection.execute(
+                    "SELECT name_key FROM field_definitions WHERE id = ?",
+                    (int(field_id),),
+                ).fetchone()
+                if existing is None:
+                    raise ValueError("That field definition no longer exists.")
+                if (
+                    values["name_key"] != existing["name_key"]
+                    and _field_name_is_used(connection, existing["name_key"])
+                ):
+                    raise ValueError(
+                        "This field name is used in saved component wording. "
+                        "Create a new field instead of renaming it."
+                    )
+                duplicate = connection.execute(
+                    "SELECT 1 FROM field_definitions "
+                    "WHERE name_key = ? AND id != ?",
+                    (values["name_key"], int(field_id)),
+                ).fetchone()
+                if duplicate is not None:
+                    raise ValueError(f"A field named '{values['name']}' already exists.")
+                connection.execute(
+                    f"UPDATE field_definitions SET {assignments} WHERE id = ?",
+                    (*parameters, int(field_id)),
+                )
+                row = connection.execute(
+                    "SELECT * FROM field_definitions WHERE id = ?",
+                    (int(field_id),),
+                ).fetchone()
+                return _field_definition_from_row(row)
+        except sqlite3.IntegrityError as exc:
+            if "name_key" in str(exc):
+                raise ValueError(
+                    f"A field named '{values['name']}' already exists."
+                ) from exc
+            raise
+
+    def archive_field_definition(self, field_id: int) -> bool:
+        """Archive a field without deleting its definition or saved references."""
+        return self._set_status("field_definitions", field_id, "archived")
+
+    def restore_field_definition(self, field_id: int) -> bool:
+        """Restore a previously archived field definition."""
+        return self._set_status("field_definitions", field_id, "active")
+
     def _set_status(self, table: str, record_id: int, status: str) -> bool:
         """Change only the lifecycle status of a component or assembly."""
-        if table not in {"components", "assemblies"}:
+        if table not in {"components", "assemblies", "field_definitions"}:
             raise ValueError("Unsupported archive record type.")
         if status not in {"active", "archived"}:
             raise ValueError("Unsupported archive status.")
