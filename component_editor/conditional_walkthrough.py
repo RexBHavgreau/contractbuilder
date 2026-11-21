@@ -71,7 +71,7 @@ def parse_conditional_text(text):
     values = [match.group(2).strip() for match in matches]
     phrases = [match.group(3).strip() for match in matches]
     if len(values) < 2 or len({value.casefold() for value in values}) != len(values):
-        raise ValueError("The selected blocks do not form a complete choice set.")
+        raise ValueError("The selected blocks do not form a complete choice-wording block set.")
     return field_name, values, phrases
 
 
