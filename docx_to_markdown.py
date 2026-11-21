@@ -12,8 +12,13 @@ import zipfile
 
 from lxml import etree
 
+from safe_hyperlinks import safe_hyperlink_target
+
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+PKG_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+HYPERLINK_REL = R_NS + "/hyperlink"
 NS = {"w": W_NS}
 W = f"{{{W_NS}}}"
 M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
@@ -253,30 +258,76 @@ def _run_flag(run, styles: dict, property_name: str) -> bool:
     return _enabled(inherited)
 
 
-def _paragraph_segments(paragraph, styles: dict):
-    """Read visible text as runs with effective bold/italic flags."""
+def _read_relationships(xml: bytes | None) -> dict:
+    """Index the main document's package relationships by ID."""
+    if not xml:
+        return {}
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
+    root = etree.fromstring(xml, parser)
+    relationships = {}
+    for item in root.findall("{%s}Relationship" % PKG_REL_NS):
+        relationship_id = item.get("Id")
+        if relationship_id:
+            relationships[relationship_id] = {
+                "type": item.get("Type"),
+                "target": item.get("Target"),
+                "mode": item.get("TargetMode"),
+            }
+    return relationships
+
+
+def _paragraph_segments(
+    paragraph, styles: dict, relationships: dict | None = None,
+    warnings: list | None = None, location: str = "paragraph",
+):
+    """Read visible text with effective emphasis and safe hyperlink targets."""
+    relationships = relationships or {}
     segments = []
+    warned_links = set()
 
-    def add(value, flags):
+    def add(value, flags, link_target):
         if value:
-            segments.append({"text": value, "bold": flags[0], "italic": flags[1]})
+            segments.append({
+                "text": value, "bold": flags[0], "italic": flags[1],
+                "link": link_target,
+            })
 
-    def visit(node, flags=(False, False)):
+    def visit(node, flags=(False, False), link_target=None):
         if node.tag in {W + "del", W + "moveFrom", W + "delText", W + "instrText"}:
             return
+        if node.tag == W + "hyperlink":
+            relationship_id = node.get("{%s}id" % R_NS)
+            relationship = relationships.get(relationship_id)
+            target = (
+                relationship.get("target")
+                if relationship
+                and relationship.get("type") == HYPERLINK_REL
+                and relationship.get("mode") == "External"
+                else None
+            )
+            link_target = safe_hyperlink_target(target)
+            if link_target is None and warnings is not None:
+                key = relationship_id or id(node)
+                if key not in warned_links:
+                    warned_links.add(key)
+                    warnings.append(DocxImportWarning(
+                        "This Word hyperlink has an unsupported, unsafe or missing external target. "
+                        "Its visible text is kept as plain text; only http, https and mailto links are imported.",
+                        location,
+                    ))
         if node.tag == W + "r":
             flags = (_run_flag(node, styles, "b"), _run_flag(node, styles, "i"))
         if node.tag == W + "t":
-            add(node.text or "", flags)
+            add(node.text or "", flags, link_target)
             return
         if node.tag == W + "tab":
-            add("\t", flags)
+            add("\t", flags, link_target)
             return
         if node.tag in {W + "br", W + "cr"}:
-            add("\n", flags)
+            add("\n", flags, link_target)
             return
         for child in node:
-            visit(child, flags)
+            visit(child, flags, link_target)
 
     visit(paragraph)
     return segments
@@ -301,15 +352,18 @@ def _wrap_emphasis(text: str, bold: bool, italic: bool) -> str:
     return text[:left] + marker + content + marker + text[right:]
 
 
-def _inline_markdown(paragraph, styles: dict, escape_pipe=False) -> str:
-    """Convert a paragraph's run formatting without losing split field tokens."""
-    segments = _paragraph_segments(paragraph, styles)
+def _inline_markdown(
+    paragraph, styles: dict, escape_pipe=False, relationships: dict | None = None,
+    warnings: list | None = None, location: str = "paragraph",
+) -> str:
+    """Convert run formatting and safe hyperlinks without losing split fields."""
+    segments = _paragraph_segments(paragraph, styles, relationships, warnings, location)
     raw_parts = []
     flags = []
     for segment in segments:
         value = segment["text"]
         raw_parts.append(value)
-        flags.extend([(segment["bold"], segment["italic"])] * len(value))
+        flags.extend([(segment["bold"], segment["italic"], segment["link"])] * len(value))
     raw = "".join(raw_parts)
     if not raw:
         return ""
@@ -331,7 +385,9 @@ def _inline_markdown(paragraph, styles: dict, escape_pipe=False) -> str:
             # across differently formatted runs. Use its first run's marks.
             value = raw[position:end]
             marked = value.replace("|", r"\|") if escape_pipe else value
-            output.append(_wrap_emphasis(marked, *flags[position]))
+            bold, italic, link_target = flags[position]
+            marked = _wrap_emphasis(marked, bold, italic)
+            output.append("[{}](<{}>)".format(marked, link_target) if link_target else marked)
             position = end
             continue
 
@@ -340,8 +396,10 @@ def _inline_markdown(paragraph, styles: dict, escape_pipe=False) -> str:
         next_field = min((start for start in fields if start > position), default=len(raw))
         while end < next_field and flags[end] == current_flags:
             end += 1
+        bold, italic, link_target = current_flags
         value = _escape_markdown(raw[position:end])
-        output.append(_wrap_emphasis(value, *current_flags))
+        marked = _wrap_emphasis(value, bold, italic)
+        output.append("[{}](<{}>)".format(marked, link_target) if link_target else marked)
         position = end
     return "".join(output)
 
@@ -351,12 +409,13 @@ def _formatting_warnings(paragraph, location: str, warnings: list, styles: dict)
     for run in paragraph.iter(W + "r"):
         rpr = run.find("w:rPr", NS)
         style_id = _value(rpr, "rStyle")
+        is_hyperlink = run.getparent() is not None and run.getparent().tag == W + "hyperlink"
 
         def prop(name):
             direct = rpr.find("w:" + name, NS) if rpr is not None else None
             return direct if direct is not None else _style_property(styles, style_id, name)
 
-        if _enabled(prop("u")):
+        if not is_hyperlink and _enabled(prop("u")):
             dropped.add("underlining")
         if _enabled(prop("strike")) or _enabled(prop("dstrike")):
             dropped.add("strikethrough")
@@ -368,7 +427,7 @@ def _formatting_warnings(paragraph, location: str, warnings: list, styles: dict)
         if prop("sz") is not None or prop("szCs") is not None:
             dropped.add("font-size changes")
         color = prop("color")
-        if color is not None and color.get(W + "val", "auto").lower() != "auto":
+        if not is_hyperlink and color is not None and color.get(W + "val", "auto").lower() != "auto":
             dropped.add("text-colour changes")
 
     if dropped:
@@ -384,11 +443,16 @@ def _paragraph_text(paragraph) -> str:
     return "".join(segment["text"] for segment in _paragraph_segments(paragraph, {}))
 
 
-def _paragraph_markdown(paragraph, styles: dict, warnings: list, location: str,
-                         *, in_table=False) -> str:
+def _paragraph_markdown(
+    paragraph, styles: dict, warnings: list, location: str, *,
+    in_table=False, relationships: dict | None = None,
+) -> str:
     _scan_paragraph(paragraph, location, warnings)
     _formatting_warnings(paragraph, location, warnings, styles)
-    value = _inline_markdown(paragraph, styles, escape_pipe=in_table)
+    value = _inline_markdown(
+        paragraph, styles, escape_pipe=in_table, relationships=relationships,
+        warnings=warnings, location=location,
+    )
     if not value or in_table:
         return value
     level = _heading_level(paragraph, styles)
@@ -466,7 +530,10 @@ def _scan_paragraph(paragraph, location: str, warnings: list):
         ))
 
 
-def _table_markdown(table, table_number: int, styles: dict, numbering: dict, warnings: list) -> str:
+def _table_markdown(
+    table, table_number: int, styles: dict, numbering: dict, warnings: list,
+    relationships: dict | None = None,
+) -> str:
     rows = table.findall("w:tr", NS)
     if not rows:
         return ""
@@ -513,7 +580,10 @@ def _table_markdown(table, table_number: int, styles: dict, numbering: dict, war
                         "This cell contains a Word list. Its text is kept, but the list structure is flattened inside the table cell.",
                         paragraph_location,
                     ))
-                value = _inline_markdown(paragraph, styles, escape_pipe=True)
+                value = _inline_markdown(
+                    paragraph, styles, escape_pipe=True, relationships=relationships,
+                    warnings=warnings, location=paragraph_location,
+                )
                 if value:
                     pieces.append(value)
             rendered_cells.append(" / ".join(pieces).replace("\n", " ").replace("\t", " "))
@@ -569,10 +639,15 @@ def import_docx(path: str | Path) -> DocxImport:
             xml = package.read("word/document.xml")
             styles_xml = package.read("word/styles.xml") if "word/styles.xml" in names else None
             numbering_xml = package.read("word/numbering.xml") if "word/numbering.xml" in names else None
+            relationships_xml = (
+                package.read("word/_rels/document.xml.rels")
+                if "word/_rels/document.xml.rels" in names else None
+            )
             package_warnings = list(_part_warnings(package, names))
         root = etree.fromstring(xml)
         styles = _read_styles(styles_xml)
         numbering = _numbering_maps(numbering_xml)
+        relationships = _read_relationships(relationships_xml)
     except (OSError, KeyError, zipfile.BadZipFile, etree.XMLSyntaxError, ValueError) as exc:
         raise DocxImportError(
             f"Could not read '{source.name}' as a valid Word .docx file. "
@@ -602,7 +677,9 @@ def import_docx(path: str | Path) -> DocxImport:
             paragraph_number += 1
             location = f"paragraph {paragraph_number}"
             list_info = _list_info(child, styles, numbering)
-            value = _paragraph_markdown(child, styles, warnings, location)
+            value = _paragraph_markdown(
+                child, styles, warnings, location, relationships=relationships
+            )
             if list_info is not None:
                 if active_list_id is not None and list_info["num_id"] != active_list_id:
                     _flush_list(list_items, blocks)
@@ -661,7 +738,9 @@ def import_docx(path: str | Path) -> DocxImport:
             active_list_id = None
             previous_level = 0
             table_number += 1
-            value = _table_markdown(child, table_number, styles, numbering, warnings)
+            value = _table_markdown(
+                child, table_number, styles, numbering, warnings, relationships
+            )
             if value:
                 blocks.append(value)
 

@@ -297,3 +297,37 @@ def test_pure_editor_modules_load_without_tkinter():
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "ok"
+
+
+
+def test_editor_styles_supported_and_unsupported_markdown_links():
+    from component_editor.styling import _style_markdown_widget
+
+    class FakeText:
+        def __init__(self, value):
+            self.value = value
+            self.added = []
+            self.configured = {}
+
+        def tag_remove(self, *_args):
+            pass
+
+        def tag_configure(self, name, **options):
+            self.configured[name] = options
+
+        def get(self, *_args):
+            return self.value
+
+        def tag_add(self, name, start, end):
+            self.added.append((name, start, end))
+
+    widget = FakeText(
+        "[Official site](https://example.com/terms) and "
+        "[legacy link](ftp://example.com/file)"
+    )
+    _style_markdown_widget(widget)
+
+    assert any(name == "link" for name, _start, _end in widget.added)
+    assert any(name == "link_warning" for name, _start, _end in widget.added)
+    assert widget.configured["link"]["underline"] is True
+    assert widget.configured["link_warning"]["underline"] is True

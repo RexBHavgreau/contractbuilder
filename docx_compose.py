@@ -20,6 +20,8 @@ W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{%s}" % W_NS
 NS = {"w": W_NS}
 REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+HYPERLINK_REL = R_NS + "/hyperlink"
 CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 NUMBERING_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering"
 NUMBERING_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"
@@ -200,6 +202,62 @@ def _merge_numbering(numbering_root, results) -> bool:
         numbering_root.append(instance)
     return True
 
+def _merge_hyperlinks(rels_root, results) -> bool:
+    """Give generated hyperlinks unique document relationship IDs.
+
+    Existing external hyperlink relationships are reused when their targets
+    match. Component-local IDs never leak into the final package.
+    """
+    relationship_tag = "{%s}Relationship" % REL_NS
+    relationships = rels_root.findall(relationship_tag)
+    used_ids = {item.get("Id") for item in relationships if item.get("Id")}
+    target_ids = {
+        item.get("Target"): item.get("Id")
+        for item in relationships
+        if item.get("Type") == HYPERLINK_REL
+        and item.get("TargetMode") == "External"
+        and item.get("Target")
+        and item.get("Id")
+    }
+    next_id = max(
+        [int(match.group(1)) for item in relationships
+         if (match := _NUMBER_ID.match(item.get("Id", "")))] or [0]
+    ) + 1
+    found = False
+
+    for result in results:
+        if not result.hyperlinks:
+            continue
+        remapped = {}
+        for local_id, target in result.hyperlinks:
+            actual_id = target_ids.get(target)
+            if actual_id is None:
+                while "rId%d" % next_id in used_ids:
+                    next_id += 1
+                actual_id = "rId%d" % next_id
+                next_id += 1
+                relation = etree.SubElement(rels_root, relationship_tag)
+                relation.set("Id", actual_id)
+                relation.set("Type", HYPERLINK_REL)
+                relation.set("Target", target)
+                relation.set("TargetMode", "External")
+                used_ids.add(actual_id)
+                target_ids[target] = actual_id
+            remapped[local_id] = actual_id
+
+        references = 0
+        for element in result.elements:
+            for hyperlink in element.iter(W + "hyperlink"):
+                local_id = hyperlink.get("{%s}id" % R_NS)
+                if local_id in remapped:
+                    hyperlink.set("{%s}id" % R_NS, remapped[local_id])
+                    references += 1
+        if remapped and references == 0:
+            raise ValueError("Generated hyperlinks could not be linked to their Word relationships.")
+        found = found or bool(remapped)
+    return found
+
+
 def _ensure_numbering_relationship(rels_root) -> None:
     relationships = rels_root.findall("{%s}Relationship" % REL_NS)
     if any(item.get("Type") == NUMBERING_REL for item in relationships):
@@ -332,7 +390,8 @@ def compose_document(
                 replacements[styles_name] = _xml_bytes(styles_root)
             added_styles = tuple(shell_styles.SUPPLIABLE[i][1] for i in added_ids) + tuple(added_names)
 
-            if has_numbering or styles_name in replacements:
+            has_hyperlinks = any(item.hyperlinks for item in rendered)
+            if has_numbering or has_hyperlinks or styles_name in replacements:
                 rels_name = "word/_rels/document.xml.rels"
                 if rels_name in names:
                     rels_root = _parse_xml(source_package.read(rels_name), rels_name)
@@ -343,6 +402,8 @@ def compose_document(
                 types_root = _parse_xml(
                     source_package.read("[Content_Types].xml"), "[Content_Types].xml"
                 )
+                if has_hyperlinks:
+                    _merge_hyperlinks(rels_root, rendered)
                 if has_numbering:
                     _ensure_numbering_relationship(rels_root)
                     _ensure_numbering_content_type(types_root)

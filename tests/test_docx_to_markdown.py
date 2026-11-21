@@ -522,3 +522,47 @@ def test_supported_docx_markdown_docx_round_trip_is_stable(tmp_path):
     assert "Second clause" in second_import.markdown
     assert "Bullet clause" in second_import.markdown
     assert "Within thirty days" in second_import.markdown
+
+
+
+def test_import_keeps_unsupported_word_hyperlinks_as_plain_text_with_warning(tmp_path):
+    doc = Document()
+    paragraph = doc.add_paragraph("Before ")
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), "rId88")
+    run = OxmlElement("w:r")
+    text = OxmlElement("w:t")
+    text.text = "unsafe destination"
+    run.append(text)
+    hyperlink.append(run)
+    paragraph._p.append(hyperlink)
+    paragraph.add_run(" after")
+    path = tmp_path / "unsafe-link.docx"
+    doc.save(path)
+
+    with zipfile.ZipFile(path, "r") as package:
+        relationships = etree.fromstring(
+            package.read("word/_rels/document.xml.rels")
+        )
+    relationship = etree.SubElement(
+        relationships,
+        "{http://schemas.openxmlformats.org/package/2006/relationships}Relationship",
+    )
+    relationship.set("Id", "rId88")
+    relationship.set(
+        "Type",
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+    )
+    relationship.set("Target", "javascript:alert(1)")
+    relationship.set("TargetMode", "External")
+    _rewrite_package(path, {
+        "word/_rels/document.xml.rels": etree.tostring(
+            relationships, xml_declaration=True, encoding="UTF-8", standalone=True
+        )
+    })
+
+    result = import_docx(path)
+
+    assert result.markdown == "Before unsafe destination after"
+    warning = next(item for item in result.warnings if "unsupported, unsafe" in item.message)
+    assert warning.location == "paragraph 1"

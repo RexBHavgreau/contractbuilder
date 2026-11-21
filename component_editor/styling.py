@@ -11,6 +11,7 @@ import core
 from component_preview import configure_paragraph_style_tags
 
 from .tables import _is_markdown_table_separator
+from safe_hyperlinks import safe_hyperlink_target
 
 if TYPE_CHECKING:
     import tkinter as tk
@@ -18,7 +19,10 @@ if TYPE_CHECKING:
 
 def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
     """Show a simple formatted editing surface while retaining Markdown in the Text buffer."""
-    for name in ("syntax", "heading_1", "heading_2", "heading_3", "bold", "italic", "field"):
+    for name in (
+        "syntax", "heading_1", "heading_2", "heading_3", "bold", "italic",
+        "field", "link", "link_warning",
+    ):
         widget.tag_remove(name, "1.0", "end")
     widget.tag_configure("syntax", elide=not raw_view)
     widget.tag_configure("heading_1", font=("TkDefaultFont", 16, "bold"))
@@ -27,6 +31,8 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
     widget.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
     widget.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
     widget.tag_configure("field", background="#fff0c2", foreground="#714d00")
+    widget.tag_configure("link", underline=True, foreground="#245a8d")
+    widget.tag_configure("link_warning", underline=True, foreground="#a05a00")
 
     source = widget.get("1.0", "end-1c")
     offset = 0
@@ -36,6 +42,26 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
         if not visible:
             offset += len(line)
             continue
+        for match in re.finditer(r"(?<!\\)\[([^\]\n]+)\]\((<[^>\n]+>|[^)\s]+)\)", visible):
+            raw_target = match.group(2)
+            target = raw_target[1:-1] if raw_target.startswith("<") and raw_target.endswith(">") else raw_target
+            style = "link" if safe_hyperlink_target(target) else "link_warning"
+            widget.tag_add(
+                style,
+                f"1.0 + {line_start + match.start(1)} chars",
+                f"1.0 + {line_start + match.end(1)} chars",
+            )
+            widget.tag_add(
+                "syntax",
+                f"1.0 + {line_start + match.start()} chars",
+                f"1.0 + {line_start + match.start(1)} chars",
+            )
+            widget.tag_add(
+                "syntax",
+                f"1.0 + {line_start + match.end(1)} chars",
+                f"1.0 + {line_start + match.end()} chars",
+            )
+
         heading = re.match(r"^(#{1,3})[ \t]+", visible)
         if heading:
             widget.tag_add(
@@ -183,6 +209,7 @@ def configure_preview_tags(widget) -> None:
     )
     widget.tag_configure("blockquote", foreground="#555555", lmargin1=12)
     widget.tag_configure("link", underline=True, foreground="#245a8d")
+    widget.tag_configure("link_warning", underline=True, foreground="#a05a00")
     widget.tag_configure("rule", foreground="#888888")
     widget.tag_configure("source_text", foreground="#666666")
     configure_paragraph_style_tags(widget)
