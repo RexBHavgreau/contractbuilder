@@ -38,6 +38,22 @@ PROFILE_FIELDS = (
     "notes",
 )
 
+_PUBLISHER_FIELD_LABELS = {
+    "publisher_name": ("Publisher name", "Name of the publisher in the saved profile."),
+    "contact_name": ("Contact name", "Name of the primary contact in the saved profile."),
+    "contact_title": ("Contact title", "Role or title of the publisher contact."),
+    "contact_email": ("Contact email", "Email address of the publisher contact."),
+    "contact_phone": ("Contact phone", "Phone number of the publisher contact."),
+    "website": ("Website", "Publisher website."),
+    "address_line1": ("Address line 1", "First line of the publisher mailing address."),
+    "address_line2": ("Address line 2", "Second line of the publisher mailing address."),
+    "city": ("City", "City in the publisher mailing address."),
+    "region": ("State / province / region", "State, province, or region in the address."),
+    "postal_code": ("Postal code", "Postal or ZIP code in the address."),
+    "country": ("Country", "Country in the publisher mailing address."),
+    "notes": ("Publisher notes", "Notes saved with the publisher profile."),
+}
+
 _FIELD_ALIASES = {
     "international publisher name": "publisher_name",
     "publisher name": "publisher_name",
@@ -85,8 +101,12 @@ _FIELD_ALIASES = {
     "publisher state": "region",
     "publisher province": "region",
     "state province": "region",
+    "state province region": "region",
+    "region": "region",
     "state": "region",
     "province": "region",
+    "publisher notes": "notes",
+    "notes": "notes",
     "international publisher postal code": "postal_code",
     "international publisher zip code": "postal_code",
     "publisher postal code": "postal_code",
@@ -112,6 +132,48 @@ def default_database_path() -> Path:
 def _normalize_field_name(value: str) -> str:
     value = re.sub(r"['’]s\b", "", str(value).casefold())
     return re.sub(r"[^a-z0-9]+", " ", value).strip()
+
+
+def publisher_profile_field_definitions() -> list[dict[str, object]]:
+    """Return the app's built-in publisher fields with explicit profile links.
+
+    These are field-picker entries, not a contract schema. The only built-ins
+    are the columns already stored in the publisher profile plus its combined
+    mailing address.
+    """
+    fields = []
+    for column in PROFILE_FIELDS:
+        label, description = _PUBLISHER_FIELD_LABELS[column]
+        fields.append(
+            {
+                "id": None,
+                "name": label,
+                "description": description,
+                "group": "Publisher",
+                "default_format": "",
+                "default_options": [],
+                "allowed_values": [],
+                "publisher_profile_column": column,
+                "publisher_detail_name": None,
+                "source": "publisher_profile",
+            }
+        )
+
+    fields.append(
+        {
+            "id": None,
+            "name": "Publisher address",
+            "description": "Combined mailing address from the saved publisher profile.",
+            "group": "Publisher",
+            "default_format": "",
+            "default_options": [],
+            "allowed_values": [],
+            "publisher_profile_column": "formatted_address",
+            "publisher_detail_name": None,
+            "source": "publisher_profile",
+        }
+    )
+    return fields
 
 
 def format_address(profile: Mapping[str, object]) -> str:
