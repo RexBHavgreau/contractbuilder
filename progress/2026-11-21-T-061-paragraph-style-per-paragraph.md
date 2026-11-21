@@ -2,7 +2,7 @@
 date: 2026-11-21
 task: T-061
 author: Claude
-pull_request: pending (update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/76
 ci_run: pending (update after the run on the latest commit)
 size: pending; adds paragraph_styles.py, component_editor/paragraph_style_control.py and a few hundred lines in existing modules, no dependency; confirm release and component-enabled sizes from the CI summary
 ---
