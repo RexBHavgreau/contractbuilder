@@ -300,44 +300,10 @@ def test_make_template(tmp_path):
     assert {"$5,000.00", "January 2, 2027"} <= found
 
 
-def test_spreadsheet_round_trip(template, tmp_path):
-    from openpyxl import load_workbook
-    sheet = tmp_path / "batch.xlsx"
-    core.blank_sheet(template, sheet)
-    wb = load_workbook(sheet)
-    ws = wb.active
-    headers = [c.value for c in ws[1]]
-    assert headers[-1] == core.FILE_NAME_COLUMN
-    for row in (dict(VALUES, **{"Include Non-Compete": "Yes", "Effective Date": datetime.datetime(2026, 10, 5)}),
-                dict(VALUES, **{"Client Name": "Beta LLC", "Total Fee": 900, core.FILE_NAME_COLUMN: "Beta"}),
-                dict(VALUES, **{"Client Name": "Bad Co", "Total Fee": "lots"})):
-        ws.append([row.get(h, "") for h in headers])
-    wb.save(sheet)
-    out = tmp_path / "out"
-    out.mkdir()
-    lines = []
-    made, skipped = core.batch(template, sheet, out, say=lines.append)
-    assert (made, skipped) == (2, 1), lines
-    names = sorted(p.name for p in out.iterdir())
-    assert names == ["Beta.docx", "Sample - Acme Widgets, Inc.docx"]
-    assert "Non-Solicitation" in text_of(out / names[1])
-    assert "$900.00" in text_of(out / "Beta.docx")
 
 
-def test_csv(template, tmp_path):
-    sheet = tmp_path / "b.csv"
-    sheet.write_text("Client Name,Effective Date,Unknown Column\nAcme,10/5/2026,x\n", encoding="utf-8")
-    lines = []
-    made, _ = core.batch(template, sheet, tmp_path, say=lines.append)
-    assert made == 1
-    assert any("Unknown Column" in l for l in lines)
 
 
-def test_answers_round_trip(template, tmp_path):
-    path = tmp_path / "a.json"
-    core.save_answers(template, {"client name": "Acme", "Include Non-Compete": True}, path)
-    data = core.load_answers(path)
-    assert data["values"] == {"Client Name": "Acme", "Include Non-Compete": True}
 
 
 # ------------------------------------- lessons from the sample MOU (Oct 2026) ---

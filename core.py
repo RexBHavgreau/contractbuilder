@@ -12,14 +12,10 @@ Everything is done on the Word file's own XML, so fonts, numbering,
 tables, headers and footers come through exactly as the template has them.
 """
 import copy
-import csv
 import datetime
 import io
-import json
 import pathlib
 import re
-import sys
-import tempfile
 import zipfile
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
@@ -1328,77 +1324,10 @@ def _inside_token(text, pos):
     return False
 
 
-# ----------------------------------------------------------- spreadsheets ---
-
-FILE_NAME_COLUMN = "File Name"
 
 
-def blank_sheet(template, out_path):
-    """A spreadsheet with one column per field, ready for many contracts at once."""
-    from openpyxl import Workbook
-    from openpyxl.comments import Comment
-    from openpyxl.styles import Font, PatternFill
-    from openpyxl.worksheet.datavalidation import DataValidation
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Contracts"
-    fields = template.field_list()
-    headers = [f.name for f in fields] + [FILE_NAME_COLUMN]
-    ws.append(headers)
-    for col, name in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col)
-        cell.font = Font(bold=True)
-        cell.fill = PatternFill("solid", fgColor="DDEBF7")
-        letter = cell.column_letter
-        ws.column_dimensions[letter].width = max(14, min(40, len(name) + 4))
-        if col > len(fields):
-            cell.comment = Comment("Optional. The name for this contract's file. "
-                                   "Left empty, one is made up from the template and the first column.", APP_NAME)
-            continue
-        f = fields[col - 1]
-        note = {"yesno": "Yes or No: include this section?",
-                "date": "A date, such as 10/5/2026.",
-                "money": "An amount, such as 12500.",
-                "number": "A number.",
-                "long": "Several lines allowed: Alt+Enter starts a new line in a cell.",
-                "choice": "One of: " + ", ".join(f.choices)}.get(f.kind, "Text.")
-        cell.comment = Comment(note, APP_NAME)
-        allowed = {"yesno": ["Yes", "No"], "choice": f.choices}.get(f.kind)
-        if allowed and len(",".join(allowed)) < 250 and not any("," in a for a in allowed):
-            dv = DataValidation(type="list", formula1='"' + ",".join(allowed) + '"', allow_blank=True)
-            ws.add_data_validation(dv)
-            dv.add(f"{letter}2:{letter}1000")
-    ws.freeze_panes = "A2"
-    wb.save(out_path)
 
 
-def read_sheet(path):
-    """Rows of a .xlsx or .csv as a list of {header: value}."""
-    path = pathlib.Path(path)
-    if path.suffix.lower() == ".csv":
-        with open(path, newline="", encoding="utf-8-sig") as fh:
-            rows = list(csv.reader(fh))
-    else:
-        from openpyxl import load_workbook
-        wb = load_workbook(path, data_only=True, read_only=True)
-        rows = [list(r) for r in wb.worksheets[0].iter_rows(values_only=True)]
-        wb.close()
-    if not rows:
-        return [], []
-    headers = [tidy_name(h) if h is not None else "" for h in rows[0]]
-    out = []
-    for row in rows[1:]:
-        values = {}
-        for h, v in zip(headers, row):
-            if not h:
-                continue
-            if isinstance(v, float) and v.is_integer():
-                v = int(v)
-            values[h] = "" if v is None else v
-        if any(str(v).strip() for v in values.values()):
-            out.append(values)
-    return headers, out
 
 
 def safe_filename(text):
@@ -1406,14 +1335,6 @@ def safe_filename(text):
     return re.sub(r"\s+", " ", text)[:120] or "Contract"
 
 
-def unique_path(folder, stem, suffix=".docx"):
-    folder = pathlib.Path(folder)
-    candidate = folder / f"{stem}{suffix}"
-    n = 2
-    while candidate.exists():
-        candidate = folder / f"{stem} ({n}){suffix}"
-        n += 1
-    return candidate
 
 
 def suggested_name(template, values):
@@ -1425,117 +1346,26 @@ def suggested_name(template, values):
     return safe_filename(f"{template.name} - {datetime.date.today():%Y-%m-%d}")
 
 
-def batch(template, sheet_path, out_folder, highlight=False, say=print):
-    """One contract per spreadsheet row. Returns (made, skipped)."""
-    headers, rows = read_sheet(sheet_path)
-    known = {f.key for f in template.field_list()} | {key(FILE_NAME_COLUMN)}
-    unknown = [h for h in headers if h and key(h) not in known]
-    if unknown:
-        say("Columns that match nothing in the template, ignored: " + ", ".join(unknown))
-    missing = [f.name for f in template.field_list() if f.key not in {key(h) for h in headers}]
-    if missing:
-        say("Not in the spreadsheet, so left blank or switched off: " + ", ".join(missing))
-    made = skipped = 0
-    for n, row in enumerate(rows, 2):
-        values = {k: v for k, v in row.items() if key(k) != key(FILE_NAME_COLUMN)}
-        label = f"Row {n}"
-        bad = problems_with(template, values)
-        if bad:
-            say(f"{label}: skipped. " + "; ".join(f"{name}: {why}" for name, why in bad))
-            skipped += 1
-            continue
-        chosen = next((v for k, v in row.items() if key(k) == key(FILE_NAME_COLUMN) and str(v).strip()), None)
-        stem = safe_filename(chosen) if chosen else suggested_name(template, values)
-        if stem.lower().endswith(".docx"):
-            stem = stem[:-5]
-        out = unique_path(out_folder, stem)
-        try:
-            report = build_contract(template, values, out, highlight)
-        except TemplateError as exc:
-            say(f"{label}: skipped. {exc}")
-            skipped += 1
-            continue
-        line = f"{label}: wrote {out.name}"
-        if report.blanks:
-            line += f"  (left blank: {', '.join(report.blanks)})"
-        say(line)
-        made += 1
-    return made, skipped
 
 
 # ---------------------------------------------------------------- answers ---
 
-def save_answers(template, values, path):
-    names = {f.key: f.name for f in template.field_list()}
-    data = {
-        "app": APP_NAME, "build": BUILD, "template": template.path.name,
-        "saved": datetime.datetime.now().isoformat(timespec="minutes"),
-        "values": {names.get(key(k), k): v for k, v in values.items()},
-    }
-    pathlib.Path(path).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def load_answers(path):
-    data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not isinstance(data.get("values"), dict):
-        raise ValueError("this is not a saved answers file")
-    return data
 
 
 # --------------------------------------------------------------- settings ---
 
-SETTINGS_FILE = pathlib.Path.home() / ".tmai-contract-builder.json"
 
 
-def load_settings():
-    try:
-        return json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
-    except Exception:                                      # noqa: BLE001
-        return {}
 
 
-def save_settings(data):
-    try:
-        SETTINGS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        return True
-    except Exception:                                      # noqa: BLE001
-        return False
 
 
-def remember(**items):
-    data = load_settings()
-    data.update({k: (str(v) if isinstance(v, pathlib.Path) else v) for k, v in items.items()})
-    save_settings(data)
 
 
-def templates_in(folder):
-    folder = pathlib.Path(folder)
-    if not folder.is_dir():
-        return []
-    found = [p for p in folder.iterdir()
-             if p.suffix.lower() in (".docx", ".dotx") and not p.name.startswith("~$")]
-    return sorted(found, key=lambda p: p.name.lower())
 
 
-def running_from_temp():
-    """
-    True when loose source files were launched from inside a zip, which cannot
-    work because the other files are not really there. A built app is exempt:
-    PyInstaller unpacks itself to a temporary folder every time.
-    """
-    if getattr(sys, "frozen", False):
-        return False
-    try:
-        here = pathlib.Path(__file__).resolve().parent
-    except NameError:
-        return False
-    temp = pathlib.Path(tempfile.gettempdir()).resolve()
-    try:
-        here.relative_to(temp)
-        return True
-    except ValueError:
-        pass
-    return bool(re.match(r"(?i)^Temp\d*_", here.name))
 
 
 CHEAT_SHEET = """\

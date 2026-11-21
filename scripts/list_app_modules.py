@@ -18,8 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # app.py is the launcher, simple_app.py is the build's own entry point, and
-# advanced_app.py is the earlier window that is not packaged (tasks/T-036.md).
-EXCLUDED = frozenset({"app", "advanced_app", "simple_app"})
+EXCLUDED = frozenset({"app", "simple_app"})
 # Folders at the top level that are not part of the application.
 NOT_APP_FOLDERS = frozenset({"tests", "scripts", "progress", "decisions", "tasks"})
 

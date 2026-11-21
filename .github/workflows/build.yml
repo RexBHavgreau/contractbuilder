@@ -83,7 +83,7 @@ jobs:
           cache: pip
 
       - name: Install test dependencies
-        run: python -m pip install --upgrade pip lxml openpyxl pytest python-docx markdown-it-py==3.0.0 mdurl==0.1.2
+        run: python -m pip install --upgrade pip lxml pytest python-docx markdown-it-py==3.0.0 mdurl==0.1.2
 
       - name: Install virtual display
         run: |

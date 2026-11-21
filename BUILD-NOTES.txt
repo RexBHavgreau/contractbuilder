@@ -1,9 +1,8 @@
 BUILDING WORD TEMPLATE FILLER
 =============================
 
-The normal application is simple_app.py. app.py is a small compatibility
-launcher for the same focused interface. The earlier contract-oriented GUI
-has been retained separately in advanced_app.py and is not packaged.
+The application is simple_app.py. app.py is a small launcher for the same
+interface.
 
 REQUIREMENTS
 ============
