@@ -11,6 +11,7 @@ from typing import Iterable, Sequence
 from core import TOKEN, classify, parse_condition
 from markdown_fields import protect_fields, restore_fields
 from md_parse import create_parser
+from safe_hyperlinks import safe_hyperlink_target
 
 
 Segment = tuple[str, tuple[str, ...]]
@@ -31,7 +32,8 @@ PREVIEW_KEY = (
     "Highlighted text is a field, filled in when the document is made. "
     "Grey tags are choices in the wording, such as \u201cIf Publisher Type is "
     "Non-profit\u201d, \u201cOtherwise\u201d and \u201cEnd of choice\u201d. "
-    "They are instructions and are not printed."
+    "They are instructions and are not printed. Blue underlined text is a supported link; "
+    "orange underlined text has an unsupported target and will be plain text in Word."
 )
 
 
@@ -78,7 +80,7 @@ def _inline_segments(tokens: Iterable[object], styles: Sequence[str] = ()) -> li
     bold = False
     italic = False
     code = False
-    link = False
+    link_style = None
 
     for token in tokens:
         kind = getattr(token, "type", "")
@@ -94,17 +96,19 @@ def _inline_segments(tokens: Iterable[object], styles: Sequence[str] = ()) -> li
         elif kind == "code_inline":
             result.extend(_field_aware_segments(content, (*styles, "code")))
         elif kind == "link_open":
-            link = True
+            getter = getattr(token, "attrGet", None)
+            target = getter("href") if getter else None
+            link_style = "link" if safe_hyperlink_target(target) else "link_warning"
         elif kind == "link_close":
-            link = False
+            link_style = None
         elif kind == "text":
             effective = list(styles)
             if bold:
                 effective.append("bold")
             if italic:
                 effective.append("italic")
-            if link:
-                effective.append("link")
+            if link_style:
+                effective.append(link_style)
             result.extend(_field_aware_segments(content, effective))
         elif kind == "softbreak":
             _append(result, " ", *styles)
