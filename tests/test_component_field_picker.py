@@ -69,7 +69,7 @@ def test_optional_clause_builds_inline_or_paragraph_markers():
     assert core.classify(core.TOKEN.fullmatch("{{#if Include Guarantee}}").group(1))[0] == "if"
 
 
-def test_conditional_wording_creates_one_tight_block_for_every_choice():
+def test_conditional_wording_creates_tight_blocks_for_sentence_or_paragraph():
     definition = field_kind_definition(
         "Conditional wording", "Publisher Type",
         values=["Non-profit", "Sole proprietor", "Corporation"],
@@ -79,21 +79,24 @@ def test_conditional_wording_creates_one_tight_block_for_every_choice():
         "Sole proprietor | a sole proprietor\n"
         "Non-profit | a non-profit corporation"
     )
-    result = build_created_field(definition, "Conditional wording", wording)
-    assert result == (
+    inline = build_created_field(definition, "Conditional wording", wording)
+    assert inline == (
+        "{{#if Publisher Type = Non-profit}}a non-profit corporation{{/if}} "
+        "{{#if Publisher Type = Sole proprietor}}a sole proprietor{{/if}} "
+        "{{#if Publisher Type = Corporation}}a corporation{{/if}}"
+    )
+    paragraphs = build_created_field(
+        definition, "Conditional wording", wording, placement="As separate paragraphs"
+    )
+    assert paragraphs == (
         "{{#if Publisher Type = Non-profit}}a non-profit corporation{{/if}}\n\n"
         "{{#if Publisher Type = Sole proprietor}}a sole proprietor{{/if}}\n\n"
         "{{#if Publisher Type = Corporation}}a corporation{{/if}}"
     )
-    paragraph_result = build_created_field(
-        definition, "Conditional wording", wording, placement="As separate paragraphs"
-    )
-    assert paragraph_result == result.replace("}} ", "}}\\n\\n")
-    tokens = list(core.TOKEN.finditer(result))
+    tokens = list(core.TOKEN.finditer(inline))
     assert len(tokens) == 6
     assert all("{{#if " in token.group(0) and "}}" in token.group(0) for token in tokens[::2])
     assert all("{{/if}}" == token.group(0) for token in tokens[1::2])
-
 
 def test_conditional_wording_requires_text_for_each_allowed_value():
     definition = field_kind_definition(
