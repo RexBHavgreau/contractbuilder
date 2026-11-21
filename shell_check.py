@@ -13,6 +13,8 @@ import zipfile
 
 from lxml import etree
 
+import shell_styles
+
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 NS = {"w": W_NS}
@@ -57,6 +59,11 @@ class ShellCheckResult:
     @property
     def warnings(self) -> Tuple[ShellFinding, ...]:
         return tuple(item for item in self.findings if item.severity == "warning")
+
+    @property
+    def notes(self) -> Tuple[ShellFinding, ...]:
+        """Things the app will add to the new document; not a problem (T-060-A)."""
+        return tuple(item for item in self.findings if item.severity == "note")
 
 
 def _display(style_id: Optional[str]) -> Optional[str]:
@@ -159,12 +166,19 @@ def _check_numbering(root) -> Tuple[bool, bool]:
     return has_decimal_outline, has_bullet
 
 
-def check_shell(path: Union[str, Path]) -> ShellCheckResult:
+def check_shell(path: Union[str, Path], supply_missing: bool = False) -> ShellCheckResult:
     """Check a DOCX shell read-only and return plain-English findings.
 
     A missing/corrupt document or missing final section properties stops
     generation. Missing styles and numbering features are warnings because
     callers can apply the explicit fallbacks in style_fallbacks.
+
+    With ``supply_missing=True`` (what document composition uses, T-060-A) a
+    style the app can define itself (see ``shell_styles``) is not a problem:
+    it becomes a plain ``note`` saying the new document will get it, and
+    ``style_fallbacks`` points at the style that will exist in the output (an
+    existing style with the same Word name, or the id itself). Missing
+    numbering definitions become notes too, since composition adds them.
     """
     shell_path = Path(path)
     findings = []
@@ -229,9 +243,19 @@ def check_shell(path: Union[str, Path]) -> ShellCheckResult:
         "ListParagraph": "paragraph", "ListBullet": "paragraph",
         "ListNumber": "paragraph", "TableGrid": "table",
     }
+    plan = shell_styles.plan_styles(styles) if supply_missing else None
     for style_id, expected_type in required.items():
         actual_type = styles_by_id.get(style_id)
         if actual_type == expected_type:
+            continue
+        if plan is not None and style_id in shell_styles.SUPPLIABLE and actual_type is None:
+            fallbacks[style_id] = plan.use[style_id]
+            if style_id in plan.add:
+                message = (
+                    "This file has no '%s' style, so the app will add one to the new "
+                    "document. Your file is not changed." % DISPLAY_NAMES[style_id]
+                )
+                findings.append(ShellFinding("shell.style.%s" % style_id, "note", message))
             continue
         fallback = _fallback_for(style_id, styles_by_id)
         fallbacks[style_id] = fallback
@@ -245,18 +269,24 @@ def check_shell(path: Union[str, Path]) -> ShellCheckResult:
                 "This shell has no %s style called '%s'. Use %s instead."
                 % (expected_type, DISPLAY_NAMES[style_id], _display(fallback) or "Word's default formatting")
             )
-        findings.append(ShellFinding("shell.style.%s" % style_id, "warning", message))
+        severity = "note" if plan is not None and style_id == "Normal" and actual_type is None else "warning"
+        findings.append(ShellFinding("shell.style.%s" % style_id, severity, message))
 
     decimal_outline, bullet_definition = _check_numbering(numbering)
+    numbering_severity = "note" if supply_missing else "warning"
     if not decimal_outline:
         findings.append(ShellFinding(
-            "shell.numbering.decimal_outline", "warning",
+            "shell.numbering.decimal_outline", numbering_severity,
+            ("This file has no 1., 1.1, 1.1.1 numbering, so the app will add it to the "
+             "new document. Your file is not changed.") if supply_missing else
             "This shell has no three-level decimal outline definition (1., 1.1, 1.1.1). "
             "Numbered clauses will use the renderer's explicit decimal fallback; numbering may not match this shell.",
         ))
     if not bullet_definition:
         findings.append(ShellFinding(
-            "shell.numbering.bullets", "warning",
+            "shell.numbering.bullets", numbering_severity,
+            ("This file has no bullet list numbering, so the app will add it to the "
+             "new document. Your file is not changed.") if supply_missing else
             "This shell has no bullet numbering definition. Bulleted lists will use the renderer's explicit bullet fallback.",
         ))
     return ShellCheckResult(shell_path, tuple(findings), fallbacks)

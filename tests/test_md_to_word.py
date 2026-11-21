@@ -94,7 +94,12 @@ def test_shell_error_stops_rendering(tmp_path):
     assert result.errors[0].code == "shell.not_found"
 
 
-def test_shell_style_fallback_is_applied_and_warning_returned(tmp_path):
+def test_missing_style_keeps_its_own_id_and_is_not_a_warning(tmp_path):
+    """T-060-A: the new document defines the style, so no fallback and no warning.
+
+    The older fall-back-to-Heading-1 rules are still checked on the shell
+    checker itself (tests/test_shell_check.py).
+    """
     path = make_shell(tmp_path / "shell.docx")
     document = Document(path)
     style = document.styles["Heading 2"]
@@ -102,8 +107,8 @@ def test_shell_style_fallback_is_applied_and_warning_returned(tmp_path):
     document.save(path)
     result = md_to_word.render_markdown("## Heading", path)
     pstyle = result.elements[0].find("w:pPr/w:pStyle", NS)
-    assert pstyle.get("{%s}val" % W) == "Heading1"
-    assert any(item.code == "shell.style.Heading2" for item in result.warnings)
+    assert pstyle.get("{%s}val" % W) == "Heading2"
+    assert not any(item.code == "shell.style.Heading2" for item in result.warnings)
 
 
 def test_raw_html_like_text_is_reported_and_kept_as_text(tmp_path):

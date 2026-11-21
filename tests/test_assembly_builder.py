@@ -204,9 +204,9 @@ def test_assembly_generation_discovers_each_unique_field_once_across_components(
         "Fee": 1,
     })
     assert template.places == 3
-    assert [
-        warning.code for warning in composition.warnings
-    ] == ["shell.numbering.decimal_outline"]
+    # A shell without the decimal outline is not a problem any more: the new
+    # document gets the numbering added (T-060-A).
+    assert [warning.code for warning in composition.warnings] == []
 
     filled, report = core.render(template, {
         "Client Name": "Example Client",
