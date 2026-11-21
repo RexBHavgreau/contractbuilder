@@ -1,6 +1,9 @@
 """List open tasks that name the same file in their Touches field (T-055).
 
-Usage: python scripts/overlaps.py [TASKS.md]
+Usage: python scripts/overlaps.py [tasks-folder | a file of task sections]
+
+By default it reads the task files in tasks/ (T-054). A single Markdown file
+holding task sections, the old TASKS.md layout, is still understood.
 
 Every pair of open tasks that share a file is listed. The script exits with
 status 1 only when two *claimed* tasks share a file: those should be done one
@@ -52,6 +55,17 @@ def parse_tasks(text: str) -> list[dict]:
     return tasks
 
 
+def tasks_from_folder(folder: Path) -> list[dict]:
+    """The same dicts as parse_tasks, from one file per task (T-054)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import task_files
+
+    return [
+        {"id": t.id, "status": t.status, "touches": t.get("touches"), "title": t.title}
+        for t in task_files.load(folder) if t.id
+    ]
+
+
 def touched_files(touches: str) -> set[str]:
     """File names in backticks, e.g. `core.py` or `.github/workflows/build.yml`."""
     names = set()
@@ -84,8 +98,11 @@ def find_overlaps(tasks: list[dict]) -> list[tuple[dict, dict, set[str]]]:
 
 
 def main(argv: list[str]) -> int:
-    path = Path(argv[1]) if len(argv) > 1 else Path(__file__).resolve().parents[1] / "TASKS.md"
-    tasks = parse_tasks(path.read_text(encoding="utf-8"))
+    path = Path(argv[1]) if len(argv) > 1 else Path(__file__).resolve().parents[1] / "tasks"
+    if path.is_dir():
+        tasks = tasks_from_folder(path)
+    else:
+        tasks = parse_tasks(path.read_text(encoding="utf-8"))
     pairs = find_overlaps(tasks)
     if not pairs:
         print("No open tasks share a file.")
@@ -98,7 +115,7 @@ def main(argv: list[str]) -> int:
         print(f"{label}: {first['id']} and {second['id']} both touch {', '.join(sorted(shared))}")
     if failed:
         print("Two claimed tasks share a file. Finish one before starting the other, "
-              "or split the file first (TASKS.md, T-055).")
+              "or split the file first (tasks/T-055.md).")
         return 1
     return 0
 

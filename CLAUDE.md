@@ -6,7 +6,8 @@ request. When you finish a piece of work, add a file under
 [progress/](progress/README.md), and one under
 [decisions/](decisions/README.md) for any choice a later person would
 otherwise have to rediscover; do not add log entries here (T-053). Open work
-lives in [TASKS.md](TASKS.md).
+lives in [tasks/](tasks/README.md), one file per task; the rules are in
+[TASKS.md](TASKS.md) and the board is `python scripts/board.py` (T-054).
 
 ## What it is
 
@@ -41,7 +42,16 @@ trace.
 
 | File | Role |
 | --- | --- |
-| `simple_app.py` | The packaged app: choose a template, fill in its fields, create the document. Publisher profiles, update checks and installs. |
+| `simple_app.py` | The packaged app's entry point and main window (`WordTemplateFiller`): choose a template, fill in its fields, create the document. Keeps its name; build scripts start from it. Re-exports the widgets, dialogs and windows it uses (T-056). |
+| `ui_widgets.py` | `resource_path`, `ScrollableFrame` and `FieldInput`, shared by the main window and the assembly field window. |
+| `publisher_dialog.py` | The publisher profile window (create, edit, delete). |
+| `assembly_document_window.py` | The field-entry window for a contract assembled from components. |
+| `update_dialogs.py` | `UpdateDialogsMixin`: update check, install and update settings for the main window. |
+| `help_windows.py` | `HelpWindowsMixin`: the Help menu windows. |
+| `assembly_builder.py` | The Build assembly window. Re-exports the helpers below. |
+| `assembly_helpers.py` | Pure, Tkinter-free assembly helpers (composition, diff lines, version updates, shell fingerprint). |
+| `assembly_review_dialog.py` | The Review updates window of the assembly builder (`review_updates(builder)`). |
+| `assembly_open_dialog.py` | The Open saved assembly window and `load_revision(builder, revision)`. |
 | `app.py` | Launcher for `simple_app.py`. |
 | `core.py` | The engine. Reads templates, validates values, renders the `.docx` by editing WordprocessingML with lxml. No UI. |
 | `md_parse.py` | Configured CommonMark parser for components; tables are enabled and raw HTML is disabled. |
@@ -58,7 +68,7 @@ trace.
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
 | `version.py` | `APP_NAME`, `APP_VERSION`, `GITHUB_REPOSITORY`. The single source of the version. |
-| `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see TASKS.md. |
+| `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see tasks/T-036.md. |
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
 | `build-mac.command` | Local macOS build. |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases, and side-by-side Windows package-size measurement with and without the component-builder modules, including the DOCX importer. |
@@ -111,7 +121,7 @@ trace.
   states its size effect in its design, and confirms the CI size numbers
   (release build and component-enabled build) before it is called done. See
   TASKS.md "Size gate"; the weekly check is T-035.
-- **Touches.** Each open task in TASKS.md names the files it will change.
+- **Touches.** Each open task file in `tasks/` names the files it will change.
   `python scripts/overlaps.py` lists tasks that share one; two claimed tasks
   never share a file (T-055). A new window or dialog goes in a new module.
 - Work on a branch and open a pull request into `main`. Keep commits small

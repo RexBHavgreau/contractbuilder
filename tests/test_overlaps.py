@@ -98,13 +98,29 @@ def test_tasks_with_disjoint_files_do_not_overlap(tmp_path, capsys):
     assert "No open tasks share a file." in capsys.readouterr().out
 
 
-def test_the_real_task_file_parses_and_every_open_task_has_touches():
+def test_the_real_task_files_parse_and_every_open_task_has_touches():
     """Guards T-055's 'done when': each open task names its files."""
     from pathlib import Path
-    text = (Path(__file__).resolve().parents[1] / "TASKS.md").read_text(encoding="utf-8")
+    folder = Path(__file__).resolve().parents[1] / "tasks"
+    tasks = overlaps.tasks_from_folder(folder)
+    assert tasks, "no task files found"
     missing = [
-        t["id"] for t in overlaps.parse_tasks(text)
+        t["id"] for t in tasks
         if overlaps.is_open(t["status"]) and "umbrella" not in t["status"].lower()
         and not t["touches"]
     ]
     assert missing == []
+
+
+def test_a_folder_of_task_files_is_read_like_the_old_file(tmp_path, capsys):
+    for name, status, touches in (
+        ("T-950.md", "claimed (A, 2026-12-01)", "`one.py`"),
+        ("T-951.md", "claimed (B, 2026-12-01)", "`one.py`"),
+    ):
+        (tmp_path / name).write_text(
+            f"# {name[:-3]} Invented\n\n- **Status:** {status}\n- **Size:** S\n"
+            f"- **Agent:** any\n- **Needs:** none\n- **Touches:** {touches}\n\nText.\n",
+            encoding="utf-8",
+        )
+    assert overlaps.main(["x", str(tmp_path)]) == 1
+    assert "CLAIMED TOGETHER: T-950 and T-951 both touch one.py" in capsys.readouterr().out
