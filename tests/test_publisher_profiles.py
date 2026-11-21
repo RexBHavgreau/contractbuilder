@@ -721,3 +721,25 @@ def test_schema_v4_migrates_to_user_field_matching_without_losing_fields(tmp_pat
         assert older.list_field_matches() == expected
     finally:
         monkeypatch.undo()
+
+def test_schema_v4_upgrade_adds_field_matches_table(tmp_path, monkeypatch):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 4)
+    monkeypatch.setattr(
+        profiles,
+        "_MIGRATIONS",
+        {
+            2: profiles._migrate_components_and_versions,
+            3: profiles._migrate_assemblies_and_revisions,
+            4: profiles._migrate_field_definitions,
+        },
+    )
+    legacy = profiles.PublisherProfileStore(path)
+    legacy.save_profile(sample_profile())
+    assert _user_version(path) == 4
+
+    monkeypatch.undo()
+    current = profiles.PublisherProfileStore(path)
+    assert _user_version(path) == 5
+    current.save_field_match("Legacy Publisher", "publisher_name")
+    assert current.field_match_map() == {"Legacy Publisher": "publisher_name"}
