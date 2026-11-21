@@ -213,8 +213,7 @@ def values_for_template(
         for name, column in (user_matches or {}).items()
     }
     for field_name in field_names:
-        normalized = _normalize_field_name(field_name)
-        property_name = custom.get(normalized) or _FIELD_ALIASES.get(normalized)
+        property_name = publisher_column_for_field(field_name, user_matches)
         if not property_name:
             continue
         if property_name == "formatted_address":
@@ -233,6 +232,44 @@ def values_for_template(
         if value is not None and str(value).strip():
             result[field_name] = str(value).strip()
     return result
+
+
+def publisher_column_for_field(
+    field_name: str, user_matches: Mapping[str, str] | None = None
+) -> str | None:
+    """Return the saved-profile column associated with a placeholder name."""
+    custom = {
+        _normalize_field_name(name): column
+        for name, column in (user_matches or {}).items()
+    }
+    normalized = _normalize_field_name(field_name)
+    return custom.get(normalized) or _FIELD_ALIASES.get(normalized)
+
+
+def unmatched_profile_details(
+    profile: Mapping[str, object],
+    field_names: Sequence[str],
+    user_matches: Mapping[str, str] | None = None,
+) -> list[str]:
+    """List populated profile details for which the form has no matching field."""
+    matched = {
+        publisher_column_for_field(name, user_matches)
+        for name in field_names
+    }
+    matched.discard(None)
+    address_columns = {
+        "address_line1", "address_line2", "city", "region", "postal_code", "country"
+    }
+    if "formatted_address" in matched:
+        matched.update(address_columns)
+    missing = []
+    for column in PROFILE_FIELDS:
+        if column in matched or not str(profile.get(column) or "").strip():
+            continue
+        label = _PUBLISHER_FIELD_LABELS[column][0]
+        missing.append(label)
+    return missing
+
 
 
 def _table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
