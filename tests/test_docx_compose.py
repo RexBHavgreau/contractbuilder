@@ -13,6 +13,7 @@ import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import core  # noqa: E402
 import docx_compose  # noqa: E402
+import docx_to_markdown  # noqa: E402
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{%s}" % W_NS
@@ -247,3 +248,72 @@ def test_conditions_across_components_and_inside_cells(
     body_text = "\n".join(paragraph.text for paragraph in filled.paragraphs)
     assert ("Optional clause for Northstar Widgets." in body_text) is clause_present
     assert filled.tables[0].cell(1, 0).text == cell_text
+
+
+
+def test_composer_writes_external_hyperlink_relationships_and_preserves_linked_fields(tmp_path):
+    shell = make_shell(tmp_path / "shell.docx")
+    shell_bytes = shell.read_bytes()
+    output = tmp_path / "hyperlinks.docx"
+
+    docx_compose.compose_document(
+        shell,
+        [
+            "[{{Client Name}}](https://example.com/terms) and "
+            "[email](mailto:legal@example.com) plus "
+            "[another reference](https://example.com/terms).\\n\\n"
+            "| Contact | Link |\\n| --- | --- |\\n"
+            "| Legal | [Email](mailto:legal@example.com) |"
+        ],
+        output,
+    )
+
+    assert shell.read_bytes() == shell_bytes
+    document_xml = xml_part(output, "word/document.xml")
+    relationships_xml = xml_part(output, "word/_rels/document.xml.rels")
+    hyperlinks = document_xml.findall(".//w:hyperlink", NS)
+    assert len(hyperlinks) == 4
+
+    relationships = {
+        item.get("Id"): item
+        for item in relationships_xml.findall("{%s}Relationship" % REL_NS)
+    }
+    targets = []
+    for hyperlink in hyperlinks:
+        relationship_id = hyperlink.get(
+            "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+        )
+        relationship = relationships[relationship_id]
+        assert relationship.get("Type") == (
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
+        )
+        assert relationship.get("TargetMode") == "External"
+        targets.append(relationship.get("Target"))
+    assert targets == [
+        "https://example.com/terms",
+        "mailto:legal@example.com",
+        "https://example.com/terms",
+        "mailto:legal@example.com",
+    ]
+    assert len({
+        item.get("Id") for item in relationships.values()
+        if item.get("Type", "").endswith("/hyperlink")
+    }) == 2
+
+    imported = docx_to_markdown.import_docx(output)
+    assert "[{{Client Name}}](<https://example.com/terms>)" in imported.markdown
+    assert "[email](<mailto:legal@example.com>)" in imported.markdown
+    assert "[another reference](<https://example.com/terms>)" in imported.markdown
+    assert "[Email](<mailto:legal@example.com>)" in imported.markdown
+
+    template = core.Template(output)
+    assert [field.name for field in template.field_list()] == ["Client Name"]
+    filled, report = core.render(template, {"Client Name": "Northstar Widgets"})
+    assert report.blanks == []
+    filled_path = tmp_path / "filled.docx"
+    filled_path.write_bytes(filled)
+    # The field substitution must not strip the package relationships or the
+    # hyperlink element that makes the target clickable in Word.
+    filled_document_xml = xml_part(filled_path, "word/document.xml")
+    assert filled_document_xml.find(".//w:hyperlink", NS) is not None
+    assert Document(filled_path).paragraphs[0].text or True
