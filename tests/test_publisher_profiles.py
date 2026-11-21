@@ -626,3 +626,35 @@ def test_older_v3_application_uses_profiles_without_changing_v4_tables(
     assert older.get_profile(second_profile_id)["publisher_name"] == (
         "Older application profile"
     )
+
+def test_builtin_publisher_fields_link_to_profile_columns_and_autofill():
+    fields = profiles.publisher_profile_field_definitions()
+    assert [field["publisher_profile_column"] for field in fields] == [
+        *profiles.PROFILE_FIELDS,
+        "formatted_address",
+    ]
+    assert all(field["group"] == "Publisher" for field in fields)
+    assert all(field["source"] == "publisher_profile" for field in fields)
+
+    by_column = {
+        field["publisher_profile_column"]: field["name"] for field in fields
+    }
+    assert by_column["publisher_name"] == "Publisher name"
+    assert by_column["contact_email"] == "Contact email"
+    assert by_column["formatted_address"] == "Publisher address"
+    assert "notes" in by_column
+    assert not any("contract type" in name.casefold() for name in by_column.values())
+
+    profile = sample_profile()
+    mapped = profiles.values_for_template(
+        profile, [field["name"] for field in fields]
+    )
+    expected = {
+        by_column[column]: str(profile[column])
+        for column in profiles.PROFILE_FIELDS
+        if str(profile.get(column) or "").strip()
+    }
+    expected[by_column["formatted_address"]] = ", ".join(
+        profiles.format_address(profile).splitlines()
+    )
+    assert mapped == expected
