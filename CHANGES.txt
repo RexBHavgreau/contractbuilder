@@ -1,5 +1,11 @@
 # What's new
 
+## 0.4.2
+
+Choose contract fields from a searchable, grouped picker instead of retyping names. Create reusable text, long-text, date, money, number, list and choice fields, or guided optional and conditional wording and singular/plural wording. Keep the picker open to insert several fields in a row, and edit or archive fields you have created.
+
+Publisher profiles can now be matched to the field names used in your own contracts. Add custom matches from the Publishers menu; your matches take priority over the built-in names.
+
 ## 0.4.1
 
 Fixes the error message that could appear when the app restarted itself after an automatic update ("Failed to load Python DLL"). The update itself always worked.

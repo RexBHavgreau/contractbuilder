@@ -14,7 +14,8 @@ tests run without a display:
 ``save_feedback``      *pure* words and timing of the Save result
 ``styling``            formatted view of Markdown in a Text widget
 ``table_dialog``       table grid dialog
-``field_dialog``       insert-a-field dialog (T-043's picker lands here)
+``field_dialog``       legacy one-off insert dialog
+``field_picker``       searchable picker and guided field creator
 ``import_dialog``      Word import review dialog
 ``history_dialog``     version history dialog
 ``toolbar``            toolbar buttons, wrapping and state (window mixin)
@@ -74,6 +75,16 @@ from .toolbar_layout import wrap_toolbar_groups  # noqa: F401
 
 # Dialogs and the window last: wording_actions looks the dialogs up here.
 from .field_dialog import FieldInsertDialog  # noqa: F401,E402
+from .field_picker import (  # noqa: F401,E402
+    FIELD_KINDS,
+    FieldCreatorDialog,
+    FieldPickerDialog,
+    build_created_field,
+    field_kind_definition,
+    field_definition_placeholder,
+)
+# Preserve the public dialog hook used by existing integrations and tests.
+FieldInsertDialog = FieldPickerDialog
 from .history_dialog import open_version_history_dialog  # noqa: F401,E402
 from .import_dialog import ImportReviewDialog  # noqa: F401,E402
 from .table_dialog import TableEditorDialog  # noqa: F401,E402
