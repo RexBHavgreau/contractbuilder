@@ -6,6 +6,7 @@ import sys
 import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+import core  # noqa: E402
 from library import ComponentLibrary  # noqa: E402
 
 
@@ -409,6 +410,30 @@ def test_field_definitions_validate_and_preserve_fields_used_by_wording(tmp_path
     assert choice["allowed_values"] == ["Non-profit", "nonprofit", "Sole proprietor"]
     assert choice["publisher_detail_name"] == "Publisher type"
     assert [item["id"] for item in library.list_field_definitions(group="Publisher")] == [choice_id]
+
+    # The picker will place these saved options in a choice placeholder. The
+    # core form validator must accept case/spacing variants but keep hyphens
+    # significant, exactly as it does for choices already in templates.
+    choice_field = core.Field("Publisher Type")
+    choice_field.formats.append(choice["default_format"])
+    choice_field.options.extend(choice["allowed_values"])
+
+    class ChoiceTemplate:
+        def value_fields(self):
+            return [choice_field]
+
+    assert core.problems_with(
+        ChoiceTemplate(), {"Publisher Type": "NON-PROFIT"}
+    ) == []
+    assert core.problems_with(
+        ChoiceTemplate(), {"Publisher Type": "Sole   proprietor"}
+    ) == []
+    assert core.problems_with(
+        ChoiceTemplate(), {"Publisher Type": "non profit"}
+    ) == [("Publisher Type", "must be one of: Non-profit, nonprofit, Sole proprietor")]
+    assert core.problems_with(
+        ChoiceTemplate(), {"Publisher Type": "trust"}
+    ) == [("Publisher Type", "must be one of: Non-profit, nonprofit, Sole proprietor")]
 
     with pytest.raises(ValueError, match="at least one allowed value"):
         library.add_field_definition("Missing Choices", default_format="choice")
