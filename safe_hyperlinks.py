@@ -1,7 +1,7 @@
 """Validation for the external hyperlink schemes supported by Contract Builder."""
 from __future__ import annotations
 
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 
 _ALLOWED_SCHEMES = {"http", "https", "mailto"}
@@ -20,11 +20,19 @@ def safe_hyperlink_target(target: object) -> str | None:
         character.isspace()
         or ord(character) < 32
         or ord(character) == 127
-        or character in '<>"\\'
+        or character in '<>"\\|'
         for character in target
     ):
         return None
     try:
+        decoded = unquote(target)
+        if any(
+            ord(character) < 32
+            or ord(character) == 127
+            or character in '<>"\\'
+            for character in decoded
+        ):
+            return None
         parsed = urlsplit(target)
         scheme = parsed.scheme.lower()
         if scheme not in _ALLOWED_SCHEMES:
