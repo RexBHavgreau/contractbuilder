@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -125,7 +126,7 @@ class LibraryBackupDialog:
                 self.library.path, path,
                 include_publisher_profiles=bool(self.include_profiles.get()),
             )
-        except (OSError, ValueError, TypeError) as exc:
+        except (OSError, ValueError, TypeError, sqlite3.Error) as exc:
             messagebox.showerror("Backup failed", str(exc), parent=self.window)
             return
         count = sum(result["counts"].values())
@@ -178,7 +179,7 @@ class LibraryBackupDialog:
                 self.library.path, path, mode=mode,
                 include_publisher_profiles=include_profiles,
             )
-        except (OSError, ValueError, TypeError, RuntimeError) as exc:
+        except (OSError, ValueError, TypeError, RuntimeError, sqlite3.Error) as exc:
             messagebox.showerror("Import failed", str(exc), parent=self.window)
             return
         inserted = sum(result["inserted"].values())
