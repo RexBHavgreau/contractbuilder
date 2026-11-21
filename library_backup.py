@@ -318,24 +318,14 @@ def _insert_preserving_id(connection: sqlite3.Connection, table: str, row: dict)
 
 def _drop_triggers(connection: sqlite3.Connection, tables: set[str]) -> list[str]:
     rows = connection.execute(
-        "SELECT name, sql FROM sqlite_master WHERE type='trigger' ORDER BY name"
+        "SELECT name, sql, tbl_name FROM sqlite_master "
+        "WHERE type='trigger' ORDER BY name"
     ).fetchall()
-    definitions = [row["sql"] for row in rows if row["sql"] and
-                   connection.execute(
-                       "SELECT tbl_name FROM sqlite_master WHERE type='trigger' AND name=?",
-                       (row["name"],),
-                   ).fetchone()["tbl_name"] in tables]
-    for row in rows:
-        if row["sql"]:
-            table = connection.execute(
-                "SELECT tbl_name FROM sqlite_master WHERE type='trigger' AND name=?",
-                (row["name"],),
-            ).fetchone()["tbl_name"]
-            if table in tables:
-                connection.execute(f'DROP TRIGGER "{row["name"].replace(chr(34), chr(34)*2)}"')
-    return definitions
-
-
+    selected = [row for row in rows if row["tbl_name"] in tables and row["sql"]]
+    for row in selected:
+        safe_name = row["name"].replace('"', '""')
+        connection.execute(f'DROP TRIGGER "{safe_name}"')
+    return [row["sql"] for row in selected]
 def _reset_sequences(connection: sqlite3.Connection, tables: tuple[str, ...]) -> None:
     if not _has_table(connection, "sqlite_sequence"):
         return
@@ -483,7 +473,6 @@ def _merge(connection: sqlite3.Connection, payload: dict, include_profiles: bool
     finally:
         for sql in trigger_sql:
             connection.execute(sql)
-    _reset_sequences(connection, _AUTO_ID_TABLES)
     return {"inserted": inserted, "skipped": skipped}
 
 
