@@ -444,7 +444,14 @@ Writing a component
    edit, so saving it creates a new version. Styles are kept with the
    component, not in its wording, so wording exported as plain text does not
    carry them.
-7. Click Save version. Nothing you save is ever overwritten: each save is a
+7. Copying: Copy and Cut take the wording as you see it, without backslashes,
+   stars or list markers, so it pastes cleanly into Word or an email. Right-click
+   the wording for Copy as stored text (the Markdown) and Copy all wording as
+   text (the whole component, with bullets and numbers). Paste treats what you
+   paste as ordinary typing: stars and brackets stay visible and are never read
+   as formatting. "Show raw text" shows the stored text, where backslashes are
+   normal.
+8. Click Save version. Nothing you save is ever overwritten: each save is a
    new version, and Version history shows them all. Contracts that used an
    earlier version keep that wording.
 

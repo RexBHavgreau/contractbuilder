@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox
 
 import component_editor as _package
 
+from .clipboard_actions import EDIT_FRAME_TEXT, RAW_FRAME_TEXT
 from .fields import available_field_names
 from .styling import _style_markdown_widget
 from .tables import find_markdown_table
@@ -67,6 +68,11 @@ class WordingActionsMixin:
         if self.source_view_variable.get():
             self._ensure_markdown_mode()
         self._refresh_editor_styling()
+        # Say what the raw view shows, so a backslash there is not a surprise.
+        self.edit_frame.configure(
+            text=RAW_FRAME_TEXT if self.source_view_variable.get()
+            else EDIT_FRAME_TEXT
+        )
 
     def apply_format(self, action: str, level: int = 2):
         """Toggle a Markdown style while preserving the selection and source text."""
