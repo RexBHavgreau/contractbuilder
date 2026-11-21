@@ -18,7 +18,8 @@ class AssemblyDocumentWindow:
 
     def __init__(
         self, app, template, temporary_directory, shell_path,
-        assembly_name="", composition_warnings=(),
+        assembly_name="", composition_warnings=(), assembly_revision=None,
+        on_edit_assembly=None, on_review_updates=None,
     ):
         self.app = app
         self.template = template
@@ -26,6 +27,9 @@ class AssemblyDocumentWindow:
         self.shell_path = pathlib.Path(shell_path)
         self.assembly_name = str(assembly_name or "").strip()
         self.composition_warnings = tuple(composition_warnings or ())
+        self.assembly_revision = assembly_revision
+        self.on_edit_assembly = on_edit_assembly
+        self.on_review_updates = on_review_updates
         self.inputs = []
         self.publisher_profile_ids = {}
 
@@ -134,6 +138,18 @@ class AssemblyDocumentWindow:
         ttk.Button(
             footer, text="Create document…", command=self.create_document
         ).pack(side="right", padx=(0, 7))
+        if self.assembly_revision is not None and self.on_edit_assembly is not None:
+            ttk.Button(
+                footer, text="Edit this assembly…", command=self.on_edit_assembly
+            ).pack(side="right", padx=(0, 7))
+        if (
+            self.assembly_revision is not None
+            and self.assembly_revision.get("has_newer_wording")
+            and self.on_review_updates is not None
+        ):
+            ttk.Button(
+                footer, text="Review updates…", command=self.on_review_updates
+            ).pack(side="right", padx=(0, 7))
         self._refresh_publisher_profiles()
 
     def _refresh_publisher_profiles(self):
