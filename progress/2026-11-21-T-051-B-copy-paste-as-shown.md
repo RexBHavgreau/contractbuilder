@@ -2,7 +2,7 @@
 date: 2026-11-21
 task: T-051-B
 author: Claude
-pull_request: pending (update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/101
 ci_run: pending (update after the run on the latest commit)
 size: pending; adds component_editor/clipboard_actions.py (a small Tk mixin, no dependency); confirm release and component-enabled sizes from the CI summary
 ---
