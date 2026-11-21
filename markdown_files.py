@@ -20,7 +20,7 @@ class MarkdownImport:
 
 _FOOTNOTE_REFERENCE = re.compile(r"\[\^[^\]]+\]")
 _FOOTNOTE_DEFINITION = re.compile(r"^\s*\[\^[^\]]+\]:", re.MULTILINE)
-_COMPONENT_HEADER = re.compile(r"\\A---\\r?\\nContractBuilder-Component:\\s*(.+?)\\r?\\n---\\r?\\n(?:\\r?\\n)?")
+_COMPONENT_HEADER = re.compile(r"\A---\r?\nContractBuilder-Component:\s*(.+?)\r?\n---\r?\n(?:\r?\n)?")
 _COMPONENT_FORMAT = "contractbuilder-component"
 _COMPONENT_FORMAT_VERSION = 1
 _HTML_TAG = re.compile(r"</?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*/?>")
