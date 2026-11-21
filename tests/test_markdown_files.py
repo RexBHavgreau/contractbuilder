@@ -40,3 +40,41 @@ def test_export_uses_utf8_without_a_bom(tmp_path):
     path = tmp_path / "export.md"
     write_markdown_file(path, "שלום\n")
     assert path.read_bytes() == "שלום\n".encode("utf-8")
+
+
+def test_component_markdown_metadata_round_trips_without_becoming_visible_wording(tmp_path):
+    from markdown_files import write_component_markdown_file
+
+    source = "## Payment\n\nPayment is due within thirty days.\n"
+    component = {
+        "id": 42, "name": "Payment terms", "description": "Due date",
+        "category": "Commercial", "tags": ["billing"], "status": "archived",
+    }
+    version = {
+        "id": 88, "number": 3, "created": "2026-11-21T10:00:00+00:00",
+        "note": "Clarified timing", "paragraph_styles": ["Normal"],
+    }
+    path = tmp_path / "payment.md"
+    write_component_markdown_file(path, source, component, version)
+
+    imported = read_markdown_file(path)
+    assert imported.text == source
+    assert imported.warnings == ()
+    assert imported.metadata == {
+        "format": "contractbuilder-component",
+        "version": 1,
+        "component": component,
+        "saved_version": version,
+    }
+
+
+def test_component_markdown_keeps_unsupported_content_warning_after_header(tmp_path):
+    from markdown_files import write_component_markdown_file
+
+    path = tmp_path / "component.md"
+    write_component_markdown_file(
+        path, "An image: ![diagram](diagram.png)", {"name": "Illustration"}, {"number": 1}
+    )
+    imported = read_markdown_file(path)
+    assert imported.text == "An image: ![diagram](diagram.png)"
+    assert any("Images" in warning for warning in imported.warnings)
