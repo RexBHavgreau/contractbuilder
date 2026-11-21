@@ -15,13 +15,13 @@ def test_known_modules_are_listed_and_the_three_exclusions_are_not():
     for wanted in ("core", "library", "component_editor", "docx_to_markdown",
                    "markdown_files", "shell_selection", "assembly_builder", "field_matching"):
         assert wanted in names
-    for left_out in ("app", "advanced_app", "simple_app", "tests", "scripts"):
+    for left_out in ("app", "simple_app", "tests", "scripts"):
         assert left_out not in names
 
 
 def test_the_exclusions_are_exactly_the_three_documented_ones():
     # Adding a name here hides a module from the size gate: do it on purpose.
-    assert list_app_modules.EXCLUDED == {"app", "advanced_app", "simple_app"}
+    assert list_app_modules.EXCLUDED == {"app", "simple_app"}
 
 
 def test_every_top_level_module_in_the_repository_is_listed_or_excluded():

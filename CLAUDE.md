@@ -68,7 +68,6 @@ trace.
 | `update_checker.py` | Asks GitHub Releases for the latest version and its attached files. |
 | `self_update.py` | Downloads, verifies and swaps in a new Windows `.exe`; stores an optional per-user update token. |
 | `version.py` | `APP_NAME`, `APP_VERSION`, `GITHUB_REPOSITORY`. The single source of the version. |
-| `advanced_app.py` | The earlier contract-builder window (batch spreadsheets, template maker). Kept, **not packaged** — see tasks/T-036.md. |
 | `build-windows.bat` → `build-windows.ps1` | Local Windows build. |
 | `build-mac.command` | Local macOS build. |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, releases, and side-by-side Windows package-size measurement with and without the component-builder modules, including the DOCX importer. |
@@ -81,7 +80,7 @@ trace.
 
 ## Working on it
 
-- Python 3.9+. `pip install -r requirements.txt pytest python-docx` (the app needs lxml, openpyxl, markdown-it-py and mdurl), then
+- Python 3.9+. `pip install -r requirements.txt pytest python-docx` (the app needs lxml, markdown-it-py and mdurl), then
   `python -m pytest tests`. Every change keeps the suite green and adds
   tests for new behaviour.
 - To see the window on a headless Linux box: install `python3-tk`, run under

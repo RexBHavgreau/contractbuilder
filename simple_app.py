@@ -1,7 +1,6 @@
 """A focused desktop interface for filling Word templates.
 
-The earlier contract-oriented GUI is preserved in advanced_app.py, but the
-packaged application starts here and exposes only the single-document workflow.
+The packaged application starts here and exposes the single-document workflow.
 """
 from __future__ import annotations
 

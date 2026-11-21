@@ -23,9 +23,7 @@ python -m pip install lxml
 python simple_app.py
 ```
 
-`app.py` is also a launcher for the focused application. The earlier
-contract-oriented interface is retained in `advanced_app.py` for reference,
-but it is not included in the packaged application.
+`app.py` is also a launcher for the same application.
 
 ## Build and releases
 
@@ -77,6 +75,5 @@ distribute it with the application.
 | `version.py` | App version and repository settings |
 | `USER-GUIDE.txt` | Instructions shown from the Help menu and bundled with the app |
 | `app.py` | Default launcher for the focused application |
-| `advanced_app.py` | Earlier contract-oriented interface, retained separately and not packaged |
 | `.github/workflows/build.yml` | Tests, Windows/macOS builds, and tagged releases |
 | `tests/` | Automated tests; run with `python -m pytest tests` |
