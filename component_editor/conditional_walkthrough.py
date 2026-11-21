@@ -45,7 +45,7 @@ def build_conditional_text(field_name, values, wording, placement="Inside a sent
         for value in clean_values:
             paragraph_blocks.append(
                 "{{#if " + name + " = " + value + "}}\n"
-                + mapping[value.casefold()] + "\\n{{/if}}"
+                + mapping[value.casefold()] + "\n{{/if}}"
             )
         result = "\n\n".join(paragraph_blocks)
     _validate_with_template(result)
