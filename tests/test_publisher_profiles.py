@@ -658,3 +658,66 @@ def test_builtin_publisher_fields_link_to_profile_columns_and_autofill():
         profiles.format_address(profile).splitlines()
     )
     assert mapped == expected
+
+def test_user_field_matches_are_saved_updated_and_removed(tmp_path):
+    store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
+    first = store.save_field_match("Legal Name", "publisher_name")
+    assert store.field_match_map() == {"Legal Name": "publisher_name"}
+
+    second = store.save_field_match("Legal Name", "contact_name")
+    assert second == first
+    assert len(store.list_field_matches()) == 1
+    assert store.field_match_map() == {"Legal Name": "contact_name"}
+
+    assert store.delete_field_match(first)
+    assert store.field_match_map() == {}
+    assert not store.delete_field_match(first)
+
+
+def test_user_field_matches_override_builtins_and_normalize_names(tmp_path):
+    store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
+    store.save_field_match(" Publisher’s   Name ", "contact_name")
+    profile = sample_profile()
+    values = profiles.values_for_template(
+        profile,
+        ["Publisher's Name", "Publisher Name", "Unknown Field"],
+        store.field_match_map(),
+    )
+    assert values == {
+        "Publisher's Name": profile["contact_name"],
+        "Publisher Name": profile["publisher_name"],
+    }
+
+
+def test_user_field_matches_reject_invalid_columns_and_names(tmp_path):
+    store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
+    with pytest.raises(ValueError, match="valid publisher profile detail"):
+        store.save_field_match("Legal Name", "made_up_column")
+    with pytest.raises(ValueError, match="Enter a field name"):
+        store.save_field_match("   ", "publisher_name")
+    with pytest.raises(ValueError, match="without braces"):
+        store.save_field_match("{{Legal Name}}", "publisher_name")
+
+
+def test_schema_v4_migrates_to_user_field_matching_without_losing_fields(tmp_path):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    store = profiles.PublisherProfileStore(path)
+    store.save_field_match("Legacy field", "publisher_name")
+    expected = store.list_field_matches()
+
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(profiles, "SCHEMA_VERSION", 4)
+        monkeypatch.setattr(
+            profiles,
+            "_MIGRATIONS",
+            {
+                2: profiles._migrate_components_and_versions,
+                3: profiles._migrate_assemblies_and_revisions,
+                4: profiles._migrate_field_definitions,
+            },
+        )
+        older = profiles.PublisherProfileStore(path)
+        assert older.list_field_matches() == expected
+    finally:
+        monkeypatch.undo()
