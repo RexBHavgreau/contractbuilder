@@ -1,7 +1,7 @@
 """Formatting, field, table and Word-import actions on the wording box.
 
 A mixin of ComponentEditorWindow. The dialogs are looked up through the
-package (``component_editor.FieldInsertDialog`` and so on) at the moment they
+package (``component_editor.FieldPickerDialog`` and so on) at the moment they
 open, so a test can substitute one by patching the package.
 """
 from __future__ import annotations
@@ -157,7 +157,7 @@ class WordingActionsMixin:
             self._schedule_preview()
             self.wording.focus_set()
 
-        _package.FieldInsertDialog(self.window, self._available_field_names(), insert)
+        _package.FieldPickerDialog(self.window, self.library, insert)
 
     def open_table_editor(self):
         if self.protected_content:
