@@ -16,6 +16,7 @@ import core
 from assembly_document_window import AssemblyDocumentWindow
 from help_windows import HelpWindowsMixin
 from publisher_dialog import PublisherProfileDialog
+from field_matching import FieldMatchingDialog
 from publisher_profiles import PublisherProfileStore, values_for_template
 from ui_widgets import FieldInput, ScrollableFrame, resource_path  # noqa: F401
 from update_dialogs import UpdateDialogsMixin
@@ -53,6 +54,9 @@ class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
         publisher_menu = tk.Menu(menu, tearoff=False)
         publisher_menu.add_command(
             label="Manage publisher profiles…", command=self.manage_publisher_profiles
+        )
+        publisher_menu.add_command(
+            label="Field matching…", command=self.manage_field_matching
         )
         menu.add_cascade(label="Publishers", menu=publisher_menu)
 
@@ -317,6 +321,16 @@ class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
     def _component_editor_closed(self):
         self.component_editor_window = None
 
+    def manage_field_matching(self):
+        if self.publisher_store is None:
+            messagebox.showerror(
+                "Publisher database unavailable",
+                "Field matching is unavailable because the publisher database could not be opened.",
+                parent=self.root,
+            )
+            return
+        FieldMatchingDialog(self.root, self.publisher_store)
+
     def manage_publisher_profiles(self):
         if self.publisher_store is None:
             messagebox.showerror(
@@ -356,7 +370,9 @@ class WordTemplateFiller(UpdateDialogsMixin, HelpWindowsMixin):
             return
 
         field_names = [control.field.name for control in self.inputs]
-        values = values_for_template(profile, field_names)
+        values = values_for_template(
+            profile, field_names, self.publisher_store.field_match_map()
+        )
         if not values:
             messagebox.showinfo(
                 "No matching fields",
