@@ -540,7 +540,7 @@ def test_v4_migration_preserves_v3_publisher_and_component_data(tmp_path, monkey
     )
     upgraded = profiles.PublisherProfileStore(path)
 
-    assert _user_version(path) == 4
+    assert _user_version(path) == 5
     assert upgraded.list_profiles() == before_profiles
     assert upgraded.get_profile(profile_id) == before_profiles[0]
     assert library.get_component(component_id) == before_component
@@ -574,7 +574,7 @@ def test_v4_migration_preserves_v3_publisher_and_component_data(tmp_path, monkey
         ).fetchone() == (1,)
 
 
-def test_older_v3_application_uses_profiles_without_changing_v4_tables(
+def test_older_v3_application_uses_profiles_without_changing_newer_tables(
     tmp_path, monkeypatch
 ):
     path = tmp_path / "publisher_profiles.sqlite3"
@@ -613,7 +613,7 @@ def test_older_v3_application_uses_profiles_without_changing_v4_tables(
     second_profile_id = older.save_profile(sample_profile("Older application profile"))
 
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone() == (4,)
+        assert connection.execute("PRAGMA user_version").fetchone() == (5,)
         assert connection.execute(
             "SELECT id, name, name_key, allowed_values, status "
             "FROM field_definitions"
@@ -676,15 +676,15 @@ def test_user_field_matches_are_saved_updated_and_removed(tmp_path):
 
 def test_user_field_matches_override_builtins_and_normalize_names(tmp_path):
     store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
-    store.save_field_match(" Publisher’s   Name ", "contact_name")
+    store.save_field_match(" Publisher’s   Legal Name ", "contact_name")
     profile = sample_profile()
     values = profiles.values_for_template(
         profile,
-        ["Publisher's Name", "Publisher Name", "Unknown Field"],
+        ["Publisher's Legal   Name", "Publisher Name", "Unknown Field"],
         store.field_match_map(),
     )
     assert values == {
-        "Publisher's Name": profile["contact_name"],
+        "Publisher's Legal   Name": profile["contact_name"],
         "Publisher Name": profile["publisher_name"],
     }
 
