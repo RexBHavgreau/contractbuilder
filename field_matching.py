@@ -5,7 +5,7 @@ import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from publisher_profiles import PROFILE_FIELDS
+from publisher_profiles import PROFILE_FIELDS, _FIELD_ALIASES
 
 PROFILE_COLUMNS = (*PROFILE_FIELDS, "formatted_address")
 PROFILE_LABELS = {
@@ -46,12 +46,14 @@ class FieldMatchingDialog:
         ).pack(anchor="w", pady=(0, 10))
 
         self.tree = ttk.Treeview(
-            outer, columns=("field", "detail"), show="headings", selectmode="browse"
+            outer, columns=("field", "detail", "source"), show="headings", selectmode="browse"
         )
         self.tree.heading("field", text="Field name in contract")
         self.tree.heading("detail", text="Saved publisher detail")
-        self.tree.column("field", width=280, anchor="w")
-        self.tree.column("detail", width=260, anchor="w")
+        self.tree.heading("source", text="Type")
+        self.tree.column("field", width=260, anchor="w")
+        self.tree.column("detail", width=230, anchor="w")
+        self.tree.column("source", width=100, anchor="center")
         self.tree.pack(fill="both", expand=True)
         self.tree.bind("<<TreeviewSelect>>", self._select)
 
@@ -83,11 +85,17 @@ class FieldMatchingDialog:
 
     def refresh(self, selected=None):
         self.tree.delete(*self.tree.get_children())
+        # Built-in aliases are visible for reference but remain read-only.
+        for alias, column in sorted(_FIELD_ALIASES.items()):
+            self.tree.insert(
+                "", "end", iid="builtin:" + alias,
+                values=(alias, PROFILE_LABELS[column], "Built-in"),
+            )
         for item in self.store.list_field_matches():
             iid = str(item["id"])
             self.tree.insert(
                 "", "end", iid=iid,
-                values=(item["field_name"], PROFILE_LABELS[item["profile_column"]]),
+                values=(item["field_name"], PROFILE_LABELS[item["profile_column"]], "Custom"),
             )
         if selected is not None and self.tree.exists(str(selected)):
             self.tree.selection_set(str(selected))
@@ -117,7 +125,10 @@ class FieldMatchingDialog:
     def remove(self):
         selected = self.tree.selection()
         if not selected:
-            self.status.config(text="Select a match to remove.")
+            self.status.config(text="Select a custom match to remove.")
+            return
+        if selected[0].startswith("builtin:"):
+            self.status.config(text="Built-in aliases cannot be removed; add a custom alias to override one.")
             return
         if self.store.delete_field_match(int(selected[0])):
             self.name.set("")

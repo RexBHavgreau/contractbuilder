@@ -171,7 +171,9 @@ class AssemblyDocumentWindow:
             )
             return
         values = values_for_template(
-            profile, [control.field.name for control in self.inputs]
+            profile,
+            [control.field.name for control in self.inputs],
+            store.field_match_map(),
         )
         if not values:
             messagebox.showinfo(

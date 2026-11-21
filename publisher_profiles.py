@@ -959,10 +959,25 @@ class PublisherProfileStore:
             return cursor.rowcount > 0
 
     def field_match_map(self) -> dict[str, str]:
-        return {
+        """Return reusable field-definition links plus explicit user aliases.
+
+        Explicit aliases take precedence when a field name is linked in both
+        places. These mappings are applied before built-in placeholder aliases.
+        """
+        matches: dict[str, str] = {}
+        with self._connection() as connection:
+            if _table_exists(connection, "field_definitions"):
+                rows = connection.execute(
+                    "SELECT name, publisher_profile_column "
+                    "FROM field_definitions "
+                    "WHERE status = 'active' AND publisher_profile_column IS NOT NULL"
+                ).fetchall()
+                matches.update({row["name"]: row["publisher_profile_column"] for row in rows})
+        matches.update({
             row["field_name"]: row["profile_column"]
             for row in self.list_field_matches()
-        }
+        })
+        return matches
 
     def list_profiles(self) -> list[dict[str, object]]:
         with self._connection() as connection:

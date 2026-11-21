@@ -142,3 +142,14 @@ def test_creator_fields_are_saved_under_your_fields_and_archive_from_picker(tmp_
     assert library.archive_field_definition(field_id)
     assert all(field["name"] != "Publisher Type" for field in library.list_picker_fields())
     assert library.get_field_definition(field_id)["status"] == "archived"
+
+
+def test_field_creator_can_link_a_definition_to_a_publisher_profile_column(tmp_path):
+    definition = field_kind_definition(
+        "Text", "Rights Contact", publisher_profile_column="contact_name"
+    )
+    assert definition["publisher_profile_column"] == "contact_name"
+    library = ComponentLibrary(tmp_path / "fields.sqlite3")
+    field_id = library.add_field_definition(**definition)
+    saved = library.get_field_definition(field_id)
+    assert saved["publisher_profile_column"] == "contact_name"

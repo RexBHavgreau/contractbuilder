@@ -45,6 +45,7 @@ def field_kind_definition(
     values=(),
     singular: str = "",
     plural: str = "",
+    publisher_profile_column: str | None = None,
 ) -> dict:
     """Translate the creator's plain-language kind into a stored field definition."""
     if not str(name or "").strip():
@@ -84,7 +85,7 @@ def field_kind_definition(
         "default_format": field_kind if field_kind not in {"optional"} else "",
         "default_options": options,
         "allowed_values": allowed,
-        "publisher_profile_column": None,
+        "publisher_profile_column": publisher_profile_column or None,
         "publisher_detail_name": None,
     }
 
@@ -378,8 +379,37 @@ class FieldCreatorDialog:
         )
         ttk.Entry(outer, textvariable=self.description).grid(row=3, column=1, sticky="ew", pady=4)
 
+        ttk.Label(outer, text="Fill from saved publisher profile (optional)").grid(
+            row=4, column=0, sticky="w", pady=4
+        )
+        self.profile_column = tk.StringVar(master=self.window, value="Not linked")
+        self.profile_column_values = {
+            "Not linked": None,
+            "Publisher name": "publisher_name",
+            "Contact name": "contact_name",
+            "Contact title": "contact_title",
+            "Contact email": "contact_email",
+            "Contact phone": "contact_phone",
+            "Website": "website",
+            "Address line 1": "address_line1",
+            "Address line 2": "address_line2",
+            "City": "city",
+            "State / province / region": "region",
+            "Postal code": "postal_code",
+            "Country": "country",
+            "Publisher notes": "notes",
+            "Combined mailing address": "formatted_address",
+        }
+        self.profile_column_labels = {
+            value: label for label, value in self.profile_column_values.items()
+        }
+        ttk.Combobox(
+            outer, textvariable=self.profile_column, state="readonly",
+            values=list(self.profile_column_values),
+        ).grid(row=4, column=1, sticky="ew", pady=4)
+
         self.options_frame = ttk.LabelFrame(outer, text="Options", padding=8)
-        self.options_frame.grid(row=4, column=0, columnspan=2, sticky="nsew", pady=8)
+        self.options_frame.grid(row=5, column=0, columnspan=2, sticky="nsew", pady=8)
         self.options_frame.columnconfigure(1, weight=1)
         ttk.Label(self.options_frame, text="Allowed values (one per line)").grid(
             row=0, column=0, sticky="nw"
@@ -415,7 +445,7 @@ class FieldCreatorDialog:
         self.placement_box.bind("<<ComboboxSelected>>", self._update_conditional_preview)
 
         footer = ttk.Frame(outer)
-        footer.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        footer.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
         ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
         ttk.Button(footer, text="Save field", command=self.save).pack(side="right", padx=6)
 
@@ -433,6 +463,8 @@ class FieldCreatorDialog:
         if fmt == "plural":
             kind = "Singular or plural word"
         self.kind.set(kind)
+        linked_column = definition.get("publisher_profile_column")
+        self.profile_column.set(self.profile_column_labels.get(linked_column, "Not linked"))
         self.values_text.insert("1.0", "\n".join(definition.get("allowed_values") or []))
         options = definition.get("default_options") or []
         if len(options) == 2:
@@ -501,6 +533,7 @@ class FieldCreatorDialog:
             definition = field_kind_definition(
                 kind, self.name.get(), self.description.get(), values,
                 self.singular.get(), self.plural.get(),
+                self.profile_column_values.get(self.profile_column.get()),
             )
             if self.existing:
                 definition_id = self.library.edit_field_definition(
