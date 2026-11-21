@@ -280,6 +280,26 @@ def _strip_emphasis(source: str, action: str) -> str:
     return changed
 
 
+def snap_out_of_escapes(markdown: str, start: int, end: int) -> tuple[int, int]:
+    """Move a selection's ends so neither splits a backslash from the character it escapes.
+
+    The formatted view hides the backslash of ``\\(``, so a selection that looks
+    like "proprietor" can end between the hidden backslash and the ``)``. Bold
+    markers put there would turn into ``proprietor\\**)`` and break both. A start
+    inside an escape moves back to include it (the shown text begins with the
+    escaped character); an end inside one moves back to leave it out (the shown
+    text ends before it).
+    """
+    source = str(markdown)
+    for match in re.finditer(r"\\(?:\\|[\x60*_{}\[\]()#+\-.!|>])", source):
+        left, right = match.start(), match.end()
+        if left < start < right:
+            start = left
+        if left < end < right:
+            end = left
+    return start, max(start, end)
+
+
 def toggle_inline_format(
     markdown: str, start: int, end: int, action: str
 ) -> tuple[str, int, int]:
@@ -289,6 +309,7 @@ def toggle_inline_format(
     source = str(markdown)
     start = max(0, min(len(source), int(start)))
     end = max(start, min(len(source), int(end)))
+    start, end = snap_out_of_escapes(source, start, end)
     if start == end:
         return source, start, end
 

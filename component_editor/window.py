@@ -20,13 +20,14 @@ from .library_list import LibraryListMixin
 from .styling import configure_preview_tags
 from .save_feedback import SAVE_FEEDBACK_COLORS, SAVE_FEEDBACK_SECONDS, save_feedback_text
 from .text_rules import _markdown_is_editable, plain_text_to_markdown
+from .clipboard_actions import EDIT_FRAME_TEXT, ClipboardMixin
 from .paragraph_style_control import ParagraphStyleMixin
 from .toolbar import ToolbarMixin
 from .wording_actions import WordingActionsMixin
 
 
 class ComponentEditorWindow(
-    LibraryListMixin, ToolbarMixin, ParagraphStyleMixin, WordingActionsMixin
+    LibraryListMixin, ToolbarMixin, ParagraphStyleMixin, ClipboardMixin, WordingActionsMixin
 ):
     """Manage saved components and create immutable wording versions."""
 
@@ -206,7 +207,8 @@ class ComponentEditorWindow(
 
         panes = ttk.Panedwindow(form, orient="horizontal")
         panes.grid(row=4, column=1, sticky="nsew", pady=(10, 4))
-        edit_frame = ttk.LabelFrame(panes, text="Edit wording", padding=4)
+        edit_frame = ttk.LabelFrame(panes, text=EDIT_FRAME_TEXT, padding=4)
+        self.edit_frame = edit_frame
         preview_frame = ttk.LabelFrame(panes, text="Preview", padding=4)
         edit_frame.columnconfigure(0, weight=1)
         edit_frame.rowconfigure(1, weight=1)
@@ -237,6 +239,7 @@ class ComponentEditorWindow(
         self.wording.bind("<ButtonRelease-1>", self._update_toolbar_state, add="+")
         self.wording.bind("<B1-Motion>", self._update_toolbar_state, add="+")
         self.wording.bind("<FocusIn>", self._update_toolbar_state, add="+")
+        self._bind_clipboard()
         self._schedule_toolbar_layout()
 
         self.preview = tk.Text(

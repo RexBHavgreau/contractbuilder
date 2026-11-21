@@ -93,13 +93,17 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
                 f"1.0 + {line_start + end} chars",
             )
 
+        # An escaped marker (backslash then * or _) is ordinary text, never
+        # emphasis. Without the lookbehinds the stars of typed or pasted "**100**",
+        # stored with a backslash before each star, were read as italic markers
+        # and hidden from view.
         patterns = (
-            (r"\*\*\*(.+?)\*\*\*", 3, 3),
-            (r"\*\*(.+?)\*\*", 2, 2),
-            (r"(?<!\*)\*([^*\n]+)\*(?!\*)", 1, 1),
-            (r"___(.+?)___", 3, 3),
-            (r"__(.+?)__", 2, 2),
-            (r"(?<!_)_([^_\n]+)_(?!_)", 1, 1),
+            (r"(?<!\\)\*\*\*(.+?)(?<!\\)\*\*\*", 3, 3),
+            (r"(?<!\\)\*\*(.+?)(?<!\\)\*\*", 2, 2),
+            (r"(?<!\\)(?<!\*)\*([^*\n]+)(?<!\\)\*(?!\*)", 1, 1),
+            (r"(?<!\\)___(.+?)(?<!\\)___", 3, 3),
+            (r"(?<!\\)__(.+?)(?<!\\)__", 2, 2),
+            (r"(?<!\\)(?<!_)_([^_\n]+)(?<!\\)_(?!_)", 1, 1),
         )
         for pattern, marker_width, style_width in patterns:
             for match in re.finditer(pattern, visible):
