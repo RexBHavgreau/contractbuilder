@@ -6,6 +6,7 @@ be inspected and recovered without Contract Builder.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -61,6 +62,15 @@ def _connect(database_path: str | Path) -> sqlite3.Connection:
     return connection
 
 
+@contextmanager
+def _database_connection(database_path: str | Path):
+    connection = _connect(database_path)
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
 def _table_columns(connection: sqlite3.Connection, table: str) -> list[str]:
     return [row["name"] for row in connection.execute(f'PRAGMA table_info("{table}")')]
 
@@ -79,7 +89,7 @@ def export_library_backup(
     """Write a consistent JSON snapshot of all library records."""
     database_path, destination = Path(database_path), Path(destination)
     tables = APP_TABLES + (PROFILE_TABLES if include_publisher_profiles else ())
-    with _connect(database_path) as connection:
+    with _database_connection(database_path) as connection:
         connection.execute("BEGIN")
         schema_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
         payload_tables = {}
@@ -275,7 +285,7 @@ def preview_library_import(
     payload = _read_backup(source)
     if include_publisher_profiles and not payload.get("includes_publisher_profiles"):
         include_publisher_profiles = False
-    with _connect(database_path) as connection:
+    with _database_connection(database_path) as connection:
         payload = _validated_payload(connection, payload)
         conflicts = _conflict_counts(connection, payload, include_publisher_profiles)
     counts = {
@@ -489,7 +499,7 @@ def import_library_backup(
     )
     payload = _read_backup(source)
     profiles = bool(include_publisher_profiles and payload.get("includes_publisher_profiles"))
-    with _connect(database_path) as connection:
+    with _database_connection(database_path) as connection:
         payload = _validated_payload(connection, payload)
         connection.execute("BEGIN IMMEDIATE")
         try:
