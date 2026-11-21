@@ -540,7 +540,7 @@ def test_v4_migration_preserves_v3_publisher_and_component_data(tmp_path, monkey
     )
     upgraded = profiles.PublisherProfileStore(path)
 
-    assert _user_version(path) == 5
+    assert _user_version(path) == 4
     assert upgraded.list_profiles() == before_profiles
     assert upgraded.get_profile(profile_id) == before_profiles[0]
     assert library.get_component(component_id) == before_component
@@ -597,7 +597,7 @@ def test_older_v3_application_uses_profiles_without_changing_newer_tables(
             "WHERE type = 'table' AND name = 'field_definitions'"
         ).fetchone()[0]
     assert field_before[0][0] == field_id
-    assert _user_version(path) == 4
+    assert _user_version(path) == 5
 
     # Simulate the previous release, which knows schemas only through v3.
     monkeypatch.setattr(profiles, "SCHEMA_VERSION", 3)
