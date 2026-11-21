@@ -447,6 +447,7 @@ class FieldCreatorDialog:
         footer = ttk.Frame(outer)
         footer.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
         ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
+        ttk.Button(footer, text="Choice wording…", command=self.open_choice_wording).pack(side="left")
         ttk.Button(footer, text="Save field", command=self.save).pack(side="right", padx=6)
 
         self.kind_box.bind("<<ComboboxSelected>>", lambda _event: self._update_kind())
@@ -525,6 +526,34 @@ class FieldCreatorDialog:
                 text="Enter one line for each choice as “Choice | wording”. "
                 + ("Choices: " + ", ".join(values) if values else "")
             )
+
+    def open_choice_wording(self):
+        from .conditional_walkthrough import ConditionalWordingDialog
+
+        def inserted(value):
+            try:
+                existing = next((item for item in self.library.list_picker_fields()
+                    if item.get("name", "").casefold() == self.name.get().strip().casefold()
+                    and item.get("source") == "field_definition"), None)
+                if existing:
+                    definition = self.library.get_field_definition(existing["id"])
+                else:
+                    field_id = self.library.add_field_definition(
+                        self.name.get().strip(), default_format="choice",
+                        allowed_values=[
+                            line.strip() for line in self.values_text.get("1.0", "end").splitlines()
+                            if line.strip()
+                        ],
+                    )
+                    definition = self.library.get_field_definition(field_id)
+                self.on_saved(definition, value)
+                self.window.destroy()
+            except (ValueError, TypeError, OSError) as exc:
+                messagebox.showerror("Could not save field", str(exc), parent=self.window)
+
+        ConditionalWordingDialog(
+            self.window, self.library, inserted, initial_text=self.name.get().strip()
+        )
 
     def save(self):
         kind = self.kind.get()
