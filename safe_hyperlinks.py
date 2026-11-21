@@ -58,7 +58,7 @@ def safe_hyperlink_target(target: object) -> str | None:
                 or domain.startswith(".")
                 or domain.endswith(".")
                 or ".." in domain
-                or any(character in local + domain for character in '<>()[]:;"')
+                or any(character in local + domain for character in '<>()[]:;"/')
             ):
                 return None
         return target
