@@ -96,7 +96,6 @@ def build_created_field(
     """Build the exact placeholder or conditional block produced by the creator."""
     name = str(definition["name"])
     field_kind = str(kind).strip().casefold()
-    fmt = str(definition.get("default_format") or "")
     if field_kind == "optional clause":
         clause = str(wording or "").strip()
         if not clause:
@@ -161,8 +160,9 @@ class FieldPickerDialog:
             one_off, textvariable=self.one_off_format, state="readonly", width=18,
             values=list(self.one_off_format_values),
         ).pack(side="left")
+        ttk.Label(one_off, text="Options").pack(side="left", padx=(6, 2))
         self.one_off_options = tk.StringVar(master=self.window)
-        ttk.Entry(one_off, textvariable=self.one_off_options, width=22).pack(side="left", padx=6)
+        ttk.Entry(one_off, textvariable=self.one_off_options, width=22).pack(side="left")
         ttk.Button(one_off, text="Insert one-off", command=self.insert_one_off).pack(side="left", padx=6)
         self.one_off_status = ttk.Label(outer, text="", foreground="#8a5a00")
         self.one_off_status.pack(anchor="w")
