@@ -15,6 +15,7 @@ from lxml import etree
 
 from markdown_fields import protect_fields, restore_fields
 from md_parse import create_parser
+import shell_styles
 from shell_check import ShellFinding, check_shell
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -328,12 +329,34 @@ def _table(tokens: Sequence[object], start: int, style_id: str | None,
     return table, index + 1
 
 
-def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRenderResult:
+def _paragraph_style_plan(shell_path, paragraph_styles):
+    """Resolve the style names used by a component against the shell's styles."""
+    names = [item for item in paragraph_styles if item]
+    if not names:
+        return shell_styles.ParagraphStylePlan()
+    with zipfile.ZipFile(str(shell_path), "r") as package:
+        root = (
+            etree.fromstring(package.read("word/styles.xml"))
+            if "word/styles.xml" in package.namelist() else None
+        )
+    return shell_styles.plan_paragraph_styles(root, names)
+
+
+def render_markdown(
+    source: str,
+    shell_path: Union[str, Path],
+    paragraph_styles: Sequence[str] = (),
+) -> MarkdownRenderResult:
     """Render one Markdown component using styles and numbering from its shell.
 
     The shell is checked read-only. Numbering definitions and instances are
     returned separately; the document composer must merge them into the
     shell's numbering part and remap numIds across component results.
+
+    ``paragraph_styles`` is the per-paragraph choice stored beside the wording
+    (T-061): one name per ordinary top-level paragraph, in order, "" for Normal.
+    A name the shell lacks is added by the composer when it is one of the
+    app's own, and otherwise reported and written as Normal.
     """
     if not isinstance(source, str):
         raise TypeError("Markdown component source must be text")
@@ -345,6 +368,12 @@ def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRender
     protected, replacements = protect_fields(source)
     tokens = create_parser().parse(protected)
     restore_fields(tokens, replacements)
+    style_plan = _paragraph_style_plan(shell_path, paragraph_styles)
+    for name in style_plan.unknown:
+        _warn(warnings, "style.unknown",
+              "This component asks for the paragraph style '%s', which the page layout "
+              "file does not have, so Normal is used for those paragraphs." % name)
+    text_paragraph_index = 0
     decimal_id, bullet_id, next_num_id, numbering_additions = _numbering_source(shell_path)
     numbering = list(numbering_additions)
     elements: List[etree._Element] = []
@@ -400,6 +429,10 @@ def render_markdown(source: str, shell_path: Union[str, Path]) -> MarkdownRender
             else:
                 requested_style = "Normal"
             style_id = shell.style_fallbacks.get(requested_style, requested_style)
+            if requested_style == "Normal" and not is_heading:
+                chosen = paragraph_styles[text_paragraph_index] if text_paragraph_index < len(paragraph_styles) else ""
+                text_paragraph_index += 1
+                style_id = style_plan.ids.get(chosen, style_id) if chosen else style_id
             paragraph = _paragraph(style_id)
             if not is_heading and list_stack and list_stack[-1]["in_item"]:
                 context = list_stack[-1]

@@ -24,6 +24,7 @@ import assembly_review_dialog
 from component_preview import PREVIEW_KEY
 from library import ComponentLibrary
 import shell_selection
+from docx_compose import ComponentText
 from layout_file_dialog import confirm_layout_file
 
 
@@ -400,6 +401,7 @@ class AssemblyBuilderWindow:
                 "component_name": component["name"],
                 "component_version_number": int(latest["number"]),
                 "markdown": latest["markdown"],
+                "paragraph_styles": list(latest.get("paragraph_styles") or []),
                 "included": True,
             }
         )
@@ -509,7 +511,10 @@ class AssemblyBuilderWindow:
         except OSError as exc:
             messagebox.showerror("The shell is unavailable", str(exc), parent=self.window)
             return
-        components = [str(item["markdown"]) for item in self.items if item["included"]]
+        components = [
+            ComponentText(str(item["markdown"]), tuple(item.get("paragraph_styles") or ()))
+            for item in self.items if item["included"]
+        ]
         if not components:
             messagebox.showerror(
                 "Nothing included",
@@ -535,6 +540,7 @@ class AssemblyBuilderWindow:
                     item["included"],
                     item["component_name"],
                     item["markdown"],
+                    tuple(item.get("paragraph_styles") or ()),
                 )
                 for item in self.items
             ),

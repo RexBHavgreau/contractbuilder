@@ -33,6 +33,16 @@ SUPPLIABLE = {
 
 _HEADING_POINTS = {"Heading1": 16, "Heading2": 14, "Heading3": 12}
 
+# Paragraph styles a component can ask for by name (T-061). Unlike SUPPLIABLE
+# these are added only when a component uses them. Title and Subtitle are
+# centered: centering comes from the style, nowhere else (T-042).
+PARAGRAPH_STYLES = {
+    "Title": ("Title", "Title"),
+    "Subtitle": ("Subtitle", "Subtitle"),
+    "Body Text": ("BodyText", "Body Text"),
+    "Block Text": ("BlockText", "Block Text"),
+}
+
 
 @dataclass
 class StylePlan:
@@ -165,4 +175,76 @@ def add_missing_styles(root, plan: Optional[StylePlan] = None) -> List[str]:
     plan = plan or plan_styles(root)
     for style_id in plan.add:
         root.append(_definition(style_id, plan, root))
+    return list(plan.add)
+
+
+@dataclass
+class ParagraphStylePlan:
+    """How the paragraph style names a component asks for resolve in a file."""
+
+    ids: Dict[str, str] = field(default_factory=dict)   # name -> style id to use
+    add: List[str] = field(default_factory=list)        # names whose style is added
+    unknown: List[str] = field(default_factory=list)    # names found nowhere
+
+
+def plan_paragraph_styles(root, names) -> ParagraphStylePlan:
+    """Resolve each requested name: use the file's style, add ours, or give up.
+
+    A name resolves to a paragraph style in the file with that Word name (or
+    id). One of the app's own names (Title, Subtitle, Body Text, Block Text)
+    that is missing is added. Any other name that is missing is unknown, and
+    the caller falls back to Normal with a plain note: nothing is dropped
+    silently. "Normal" resolves to the file's Normal when it has one.
+    """
+    plan = ParagraphStylePlan()
+    styles = [s for s in _styles(root) if s.get(W + "type") == "paragraph"]
+    for name in dict.fromkeys(n for n in names if n and n.casefold() != "normal"):
+        wanted_id, word_name = PARAGRAPH_STYLES.get(name, (None, name))
+        match = [
+            s for s in styles
+            if s.get(W + "styleId") == wanted_id
+            or _name(s).casefold() == word_name.casefold()
+            or s.get(W + "styleId", "").casefold() == name.replace(" ", "").casefold()
+        ]
+        if match:
+            plan.ids[name] = match[0].get(W + "styleId")
+        elif name in PARAGRAPH_STYLES:
+            plan.ids[name] = wanted_id
+            plan.add.append(name)
+        else:
+            plan.unknown.append(name)
+    return plan
+
+
+def _paragraph_definition(name, base):
+    style_id, word_name = PARAGRAPH_STYLES[name]
+    ppr = etree.Element(W + "pPr")
+    rpr = None
+    if name in ("Title", "Subtitle"):
+        _sub(ppr, "keepNext")
+        _sub(ppr, "spacing", before=0, after=240 if name == "Title" else 200)
+        _sub(ppr, "jc", val="center")
+        rpr = etree.Element(W + "rPr")
+        if name == "Title":
+            _sub(rpr, "b")
+            _sub(rpr, "bCs")
+        else:
+            _sub(rpr, "i")
+            _sub(rpr, "iCs")
+        size = 40 if name == "Title" else 28
+        _sub(rpr, "sz", val=size)
+        _sub(rpr, "szCs", val=size)
+    elif name == "Block Text":
+        _sub(ppr, "spacing", after=120)
+        _sub(ppr, "ind", left=720, right=720)
+    else:  # Body Text
+        _sub(ppr, "spacing", after=120)
+    return _paragraph_style(style_id, word_name, base, ppr, rpr)
+
+
+def add_paragraph_styles(root, plan: ParagraphStylePlan) -> List[str]:
+    """Append the app's own definitions the plan lists; return the names added."""
+    base = base_style_id(root)
+    for name in plan.add:
+        root.append(_paragraph_definition(name, base))
     return list(plan.add)

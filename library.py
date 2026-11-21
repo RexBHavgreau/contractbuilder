@@ -15,6 +15,7 @@ import sqlite3
 from typing import Iterator, Mapping, Sequence
 
 import core
+import paragraph_styles
 from publisher_profiles import (
     PROFILE_FIELDS,
     PublisherProfileStore,
@@ -184,6 +185,20 @@ def _field_name_is_used(connection: sqlite3.Connection, name_key: str) -> bool:
     return False
 
 
+def _has_style_column(connection: sqlite3.Connection) -> bool:
+    """True once the schema has per-paragraph styles (v6); older files lack it."""
+    return any(
+        row[1] == "paragraph_styles"
+        for row in connection.execute("PRAGMA table_info(component_versions)")
+    )
+
+
+def _with_styles(row: dict) -> dict:
+    """Decode the stored styles of a version row into a plain list."""
+    row["paragraph_styles"] = paragraph_styles.load(row.get("paragraph_styles"))
+    return row
+
+
 class ComponentLibrary:
     """CRUD access to components and their immutable Markdown versions.
 
@@ -221,6 +236,7 @@ class ComponentLibrary:
         component_id: int,
         markdown: str,
         note: str = "",
+        paragraph_styles_list: Sequence[str] = (),
     ) -> dict:
         component = connection.execute(
             "SELECT status FROM components WHERE id = ?", (int(component_id),)
@@ -236,17 +252,28 @@ class ComponentLibrary:
             (int(component_id),),
         ).fetchone()[0]
         created = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        cursor = connection.execute(
-            "INSERT INTO component_versions "
-            "(component_id, number, markdown, created, note) VALUES (?, ?, ?, ?, ?)",
-            (int(component_id), int(number), markdown, created, str(note or "").strip()),
-        )
+        styled = _has_style_column(connection)
+        if styled:
+            cursor = connection.execute(
+                "INSERT INTO component_versions "
+                "(component_id, number, markdown, created, note, paragraph_styles) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (int(component_id), int(number), markdown, created,
+                 str(note or "").strip(), paragraph_styles.dump(paragraph_styles_list)),
+            )
+        else:
+            cursor = connection.execute(
+                "INSERT INTO component_versions "
+                "(component_id, number, markdown, created, note) VALUES (?, ?, ?, ?, ?)",
+                (int(component_id), int(number), markdown, created, str(note or "").strip()),
+            )
         row = connection.execute(
-            "SELECT id, component_id, number, markdown, created, note "
-            "FROM component_versions WHERE id = ?",
+            "SELECT id, component_id, number, markdown, created, note"
+            + (", paragraph_styles" if styled else "")
+            + " FROM component_versions WHERE id = ?",
             (int(cursor.lastrowid),),
         ).fetchone()
-        return dict(row)
+        return _with_styles(dict(row))
 
     def create_component(
         self,
@@ -256,6 +283,7 @@ class ComponentLibrary:
         category: str = "",
         tags: Sequence[str] | None = None,
         note: str = "",
+        paragraph_styles: Sequence[str] = (),
     ) -> int:
         """Create a component and its first immutable wording version."""
         clean_name = str(name or "").strip()
@@ -277,7 +305,7 @@ class ComponentLibrary:
                 ),
             )
             component_id = int(cursor.lastrowid)
-            self._insert_version(connection, component_id, markdown, note)
+            self._insert_version(connection, component_id, markdown, note, paragraph_styles)
             return component_id
 
 
@@ -290,8 +318,13 @@ class ComponentLibrary:
         category: str = "",
         tags: Sequence[str] | None = None,
         note: str = "",
+        paragraph_styles: Sequence[str] = (),
     ) -> dict:
-        """Atomically save component metadata and one new immutable wording version."""
+        """Atomically save component metadata and one new immutable wording version.
+
+        ``paragraph_styles`` is the per-paragraph style list (T-061) saved with
+        the wording; it is part of the version and never changes afterwards.
+        """
         clean_name = str(name or "").strip()
         if not clean_name:
             raise ValueError("Enter a component name.")
@@ -338,7 +371,7 @@ class ComponentLibrary:
                 )
 
             version = self._insert_version(
-                connection, saved_id, markdown, note
+                connection, saved_id, markdown, note, paragraph_styles
             )
             return {
                 "component_id": saved_id,
@@ -416,25 +449,28 @@ class ComponentLibrary:
     def get_component_version(self, version_id: int) -> dict | None:
         with self._connection() as connection:
             row = connection.execute(
-                "SELECT id, component_id, number, markdown, created, note "
-                "FROM component_versions WHERE id = ?",
+                "SELECT id, component_id, number, markdown, created, note"
+                + (", paragraph_styles" if _has_style_column(connection) else "")
+                + " FROM component_versions WHERE id = ?",
                 (int(version_id),),
             ).fetchone()
-            return dict(row) if row is not None else None
+            return _with_styles(dict(row)) if row is not None else None
 
     def list_component_versions(self, component_id: int) -> list[dict]:
         """Return immutable versions newest first."""
         with self._connection() as connection:
             rows = connection.execute(
-                "SELECT id, component_id, number, markdown, created, note "
-                "FROM component_versions WHERE component_id = ? "
+                "SELECT id, component_id, number, markdown, created, note"
+                + (", paragraph_styles" if _has_style_column(connection) else "")
+                + " FROM component_versions WHERE component_id = ? "
                 "ORDER BY number DESC",
                 (int(component_id),),
             ).fetchall()
-            return [dict(row) for row in rows]
+            return [_with_styles(dict(row)) for row in rows]
 
     def save_component_version(
-        self, component_id: int, markdown: str, note: str = ""
+        self, component_id: int, markdown: str, note: str = "",
+        paragraph_styles: Sequence[str] = (),
     ) -> dict:
         """Save an edit as the next version; never update an existing version."""
         if not isinstance(markdown, str):
@@ -443,7 +479,7 @@ class ComponentLibrary:
             # Serializes version-number allocation across simultaneous app
             # instances, preventing two edits from receiving the same number.
             connection.execute("BEGIN IMMEDIATE")
-            return self._insert_version(connection, component_id, markdown, note)
+            return self._insert_version(connection, component_id, markdown, note, paragraph_styles)
 
     def list_field_definitions(
         self, include_archived: bool = False, group: str | None = None
@@ -874,6 +910,10 @@ class ComponentLibrary:
             if revision is None:
                 return None
 
+            styles_column = (
+                "component_versions.paragraph_styles,"
+                if _has_style_column(connection) else ""
+            )
             rows = connection.execute(
                 """
                 SELECT assembly_components.id,
@@ -882,6 +922,7 @@ class ComponentLibrary:
                        component_versions.id AS component_version_id,
                        component_versions.number AS component_version_number,
                        component_versions.markdown,
+                       """ + styles_column + """
                        component_versions.created AS version_created,
                        component_versions.note AS version_note,
                        components.id AS component_id,
@@ -902,7 +943,7 @@ class ComponentLibrary:
         result["finalized"] = bool(result["finalized"])
         result["components"] = []
         for row in rows:
-            item = dict(row)
+            item = _with_styles(dict(row))
             item["included"] = bool(item["included"])
             result["components"].append(item)
         return result
@@ -957,15 +998,14 @@ class ComponentLibrary:
                 item = dict(pinned)
                 item["included"] = bool(item["included"])
                 newer = connection.execute(
-                    """
-                    SELECT id, number, markdown, created, note
-                    FROM component_versions
-                    WHERE component_id = ? AND number > ?
-                    ORDER BY number
-                    """,
+                    "SELECT id, number, markdown, created, note"
+                    + (", paragraph_styles" if _has_style_column(connection) else "")
+                    + " FROM component_versions"
+                    " WHERE component_id = ? AND number > ?"
+                    " ORDER BY number",
                     (item["component_id"], item["pinned_number"]),
                 ).fetchall()
-                item["newer_versions"] = [dict(row) for row in newer]
+                item["newer_versions"] = [_with_styles(dict(row)) for row in newer]
                 result.append(item)
             return result
 

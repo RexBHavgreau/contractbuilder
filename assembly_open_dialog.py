@@ -136,6 +136,7 @@ def load_revision(builder, revision: Mapping[str, object]):
                 "component_name": str(component["component_name"]),
                 "component_version_number": int(component["component_version_number"]),
                 "markdown": str(component["markdown"]),
+                "paragraph_styles": list(component.get("paragraph_styles") or []),
                 "included": bool(component["included"]),
             }
         )

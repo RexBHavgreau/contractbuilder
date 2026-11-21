@@ -94,6 +94,7 @@ def update_component_items(items, selections):
                 component_version_id=int(selected["id"]),
                 component_version_number=int(selected["number"]),
                 markdown=str(selected["markdown"]),
+                paragraph_styles=list(selected.get("paragraph_styles") or []),
             )
         updated.append(item)
     return updated
