@@ -23,17 +23,9 @@ class HelpWindowsMixin:
                 "template is never changed."
             )
 
-        window = tk.Toplevel(self.root)
-        window.title("User instructions")
-        window.transient(self.root)
-        window.geometry("720x620")
-        box = scrolledtext.ScrolledText(
-            window, wrap="word", font="TkDefaultFont", padx=14, pady=12
-        )
-        box.pack(fill="both", expand=True)
-        box.insert("1.0", contents)
-        box.configure(state="disabled")
-        ttk.Button(window, text="Close", command=window.destroy).pack(pady=8)
+        from user_guide_window import open_user_guide
+
+        open_user_guide(self.root, contents)
 
     def show_third_party_licenses(self):
         """Show the bundled notices for third-party packages."""
