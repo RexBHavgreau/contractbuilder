@@ -358,3 +358,110 @@ def test_assembly_revision_validation_is_atomic_and_respects_archive_state(tmp_p
     with pytest.raises(ValueError, match="revision no longer exists"):
         library.list_newer_versions_for_revision(999999)
 
+def test_field_definitions_validate_and_preserve_fields_used_by_wording(tmp_path):
+    database = tmp_path / "publisher_profiles.sqlite3"
+    library = ComponentLibrary(database)
+    field_id = library.add_field_definition(
+        "Payment  Date",
+        description="When payment is due",
+        group="Dates",
+        default_format="formal-date",
+        publisher_profile_column="country",
+    )
+
+    saved = library.get_field_definition(field_id)
+    assert saved["name"] == "Payment Date"
+    assert saved["name_key"] == "payment date"
+    assert saved["description"] == "When payment is due"
+    assert saved["group"] == "Dates"
+    assert saved["default_format"] == "date-formal"
+    assert saved["default_options"] == []
+    assert saved["allowed_values"] == []
+    assert saved["publisher_profile_column"] == "country"
+    assert saved["publisher_detail_name"] is None
+    assert [item["id"] for item in library.list_field_definitions(group="Dates")] == [field_id]
+
+    with pytest.raises(ValueError, match="already exists"):
+        library.add_field_definition("payment     date")
+    with pytest.raises(ValueError, match="plain field name"):
+        library.add_field_definition("{{Another Field}}")
+    with pytest.raises(ValueError, match="supported"):
+        library.add_field_definition("Unsupported Format", default_format="made-up")
+    with pytest.raises(ValueError, match="known publisher-profile"):
+        library.add_field_definition(
+            "Unknown Profile Link", publisher_profile_column="not_a_profile_field"
+        )
+    with pytest.raises(ValueError, match="not both"):
+        library.add_field_definition(
+            "Ambiguous Link",
+            publisher_profile_column="country",
+            publisher_detail_name="Region",
+        )
+
+    choice_id = library.add_field_definition(
+        "Publisher Type",
+        group="Publisher",
+        default_format="choice",
+        allowed_values=["Non-profit", "nonprofit", "Sole proprietor", "NON-PROFIT"],
+        publisher_detail_name="Publisher type",
+    )
+    choice = library.get_field_definition(choice_id)
+    assert choice["allowed_values"] == ["Non-profit", "nonprofit", "Sole proprietor"]
+    assert choice["publisher_detail_name"] == "Publisher type"
+    assert [item["id"] for item in library.list_field_definitions(group="Publisher")] == [choice_id]
+
+    with pytest.raises(ValueError, match="at least one allowed value"):
+        library.add_field_definition("Missing Choices", default_format="choice")
+    with pytest.raises(ValueError, match="exactly two default wordings"):
+        library.add_field_definition(
+            "Singular Plural", default_format="plural", default_options=["clause"]
+        )
+
+    # A field used in any immutable version cannot be renamed out from under
+    # that wording. Metadata and formatting can still be edited in place.
+    component_id = library.create_component(
+        "Payment terms", "Payment is due on {{Payment Date}}."
+    )
+    edited = library.edit_field_definition(
+        field_id,
+        "Payment Date",
+        description="Updated payment deadline",
+        group="Dates",
+        default_format="date-short",
+        publisher_profile_column="country",
+    )
+    assert edited["description"] == "Updated payment deadline"
+    assert edited["default_format"] == "date-short"
+    with pytest.raises(ValueError, match="used in saved component wording"):
+        library.edit_field_definition(
+            field_id,
+            "Due Date",
+            description="Renamed payment date",
+            group="Dates",
+            default_format="date-short",
+            publisher_profile_column="country",
+        )
+
+    assert library.archive_field_definition(field_id) is True
+    assert library.get_field_definition(field_id)["status"] == "archived"
+    assert field_id not in {item["id"] for item in library.list_field_definitions()}
+    assert field_id in {
+        item["id"] for item in library.list_field_definitions(include_archived=True)
+    }
+    assert library.restore_field_definition(field_id) is True
+    assert library.get_field_definition(field_id)["status"] == "active"
+    assert library.archive_field_definition(404) is False
+    assert library.restore_field_definition(404) is False
+
+    with sqlite3.connect(database) as connection:
+        with pytest.raises(sqlite3.IntegrityError, match="archived, not deleted"):
+            connection.execute(
+                "DELETE FROM field_definitions WHERE id = ?", (field_id,)
+            )
+        assert connection.execute(
+            "SELECT name FROM field_definitions WHERE id = ?", (field_id,)
+        ).fetchone() == ("Payment Date",)
+        assert connection.execute(
+            "SELECT markdown FROM component_versions WHERE component_id = ?",
+            (component_id,),
+        ).fetchone() == ("Payment is due on {{Payment Date}}.",)
