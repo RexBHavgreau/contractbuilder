@@ -85,6 +85,10 @@ def test_conditional_wording_creates_one_tight_block_for_every_choice():
         "{{#if Publisher Type = Sole proprietor}}a sole proprietor{{/if}}\n\n"
         "{{#if Publisher Type = Corporation}}a corporation{{/if}}"
     )
+    paragraph_result = build_created_field(
+        definition, "Conditional wording", wording, placement="As separate paragraphs"
+    )
+    assert paragraph_result == result.replace("}} ", "}}\\n\\n")
     tokens = list(core.TOKEN.finditer(result))
     assert len(tokens) == 6
     assert all("{{#if " in token.group(0) and "}}" in token.group(0) for token in tokens[::2])
