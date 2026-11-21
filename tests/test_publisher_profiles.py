@@ -769,3 +769,31 @@ def test_unknown_field_names_are_skipped_without_error():
     assert profiles.values_for_template(
         sample_profile(), ["A field nobody mapped", "Another unknown"]
     ) == {}
+
+
+def test_profile_column_lookup_exposes_fields_and_custom_aliases_override_builtins():
+    assert profiles.publisher_column_for_field("Publisher Name") == "publisher_name"
+    assert profiles.publisher_column_for_field(
+        "Publisher Name", {" publisher   name ": "contact_email"}
+    ) == "contact_email"
+    assert profiles.publisher_column_for_field("Unrecognized Field") is None
+
+
+def test_unmatched_profile_details_reports_only_populated_unmatched_columns():
+    profile = sample_profile()
+    missing = profiles.unmatched_profile_details(
+        profile,
+        ["Publisher name", "Publisher address", "Contact email"],
+    )
+    assert missing == [
+        "Contact name", "Contact title", "Contact phone", "Website", "Publisher notes"
+    ]
+
+
+def test_combined_address_field_covers_all_populated_address_details():
+    profile = sample_profile()
+    missing = profiles.unmatched_profile_details(
+        profile, ["Publisher address", "Publisher name", "Contact name",
+                  "Contact title", "Contact email", "Contact phone", "Website", "Publisher notes"]
+    )
+    assert missing == []

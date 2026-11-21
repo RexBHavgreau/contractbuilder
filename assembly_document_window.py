@@ -88,9 +88,9 @@ class AssemblyDocumentWindow:
         self.scroll = ScrollableFrame(form)
         self.scroll.pack(fill="both", expand=True)
         row = 0
+        store = self.app.publisher_store
+        match_map = store.field_match_map() if store is not None else {}
         for field in template.field_list():
-            store = self.app.publisher_store
-            match_map = store.field_match_map() if store is not None else {}
             fill_callback = (
                 (lambda name=field.name: self.load_publisher_profile(name))
                 if publisher_column_for_field(field.name, match_map) else None
@@ -173,7 +173,13 @@ class AssemblyDocumentWindow:
         name = self.publisher_variable.get()
         profile_id = self.publisher_profile_ids.get(name)
         store = self.app.publisher_store
-        if profile_id is None or store is None:
+        if store is None:
+            return
+        if profile_id is None:
+            messagebox.showinfo(
+                "Choose a publisher", "Choose a saved publisher before filling fields.",
+                parent=self.window,
+            )
             return
         try:
             profile = store.get_profile(profile_id)
