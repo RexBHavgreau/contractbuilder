@@ -71,6 +71,10 @@ def claim(task_id, who, repo=".", remote="origin", base="main", today=None) -> s
     """Claim `task_id`; returns the claim branch name. Raises ClaimError."""
     repo = Path(repo)
     task_id = task_id.upper()
+    if task_id.startswith("UT-"):
+        raise ClaimError(
+            f"{task_id} is a check for a person (a UT- task), not work for an agent to claim."
+        )
     if not TASK_ID.fullmatch(task_id):
         raise ClaimError(f"{task_id} is not a task number such as T-043 or T-043-A.")
     if git(repo, "status", "--porcelain").stdout.strip():

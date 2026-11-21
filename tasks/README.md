@@ -6,6 +6,7 @@ requests about different tasks never edit the same file.
 ```
 tasks/T-043.md        an umbrella or a standalone task
 tasks/T-043-A.md      a subtask
+tasks/UT-001.md       a check or confirmation only a person can do (never blocks a task)
 tasks/done/           finished tasks, kept for a month, then deleted
 tasks/notes/          background for a group of tasks (not tasks themselves)
 ```

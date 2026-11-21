@@ -114,3 +114,52 @@ def test_the_board_cells_escape_table_bars(tmp_path):
     write(tmp_path, "T-960.md", task("T-960", "Pipes | in a title", needs="a | b"))
     row = task_files.build_board(task_files.load(tmp_path)).splitlines()[2]
     assert "Pipes \\| in a title" in row and "a \\| b" in row
+
+
+# ---- user checks (UT-) ---------------------------------------------------
+
+def ut(tid, title, status="open", checks="T-910"):
+    return (
+        f"# {tid} {title}\n\n- **Status:** {status}\n- **Size:** S\n- **Agent:** human\n"
+        f"- **Needs:** none\n- **Checks:** {checks}\n\nText.\n"
+    )
+
+
+def test_user_checks_are_listed_apart_from_coding_tasks(tmp_path):
+    write(tmp_path, "T-910.md", task("T-910", "Coding work"))
+    write(tmp_path, "UT-001.md", ut("UT-001", "Try it on Windows"))
+    write(tmp_path / "done", "UT-002.md", "# UT-002 Old check\n\n- **Status:** done (2026-12-01)\n")
+    tasks = task_files.load(tmp_path)
+    assert {t.id for t in tasks} == {"T-910", "UT-001", "UT-002"}
+    board_text = task_files.build_board(tasks)
+    assert "T-910" in board_text and "UT-001" not in board_text
+    checks = task_files.build_user_checks(tasks)
+    assert "UT-001" in checks and "T-910" in checks and "UT-002" not in checks
+    assert task_files.problems(tasks) == []
+
+
+def test_numbers_for_user_checks_are_counted_apart(tmp_path):
+    write(tmp_path, "T-910.md", task("T-910", "Coding work"))
+    write(tmp_path, "UT-004.md", ut("UT-004", "A check"))
+    tasks = task_files.load(tmp_path)
+    assert board.next_free(tasks) == "T-911"
+    assert board.next_free(tasks, "UT") == "UT-005"
+
+
+def test_a_coding_task_may_not_wait_for_a_user_check(tmp_path):
+    write(tmp_path, "UT-001.md", ut("UT-001", "A check"))
+    write(tmp_path, "T-920.md", task("T-920", "Waits", needs="UT-001"))
+    found = task_files.problems(task_files.load(tmp_path))
+    assert len(found) == 1
+    assert "UT-001" in found[0] and "must not wait" in found[0] and "[blocks]" in found[0]
+
+
+def test_the_rare_real_dependency_is_allowed_when_marked(tmp_path):
+    write(tmp_path, "UT-001.md", ut("UT-001", "A check"))
+    write(tmp_path, "T-920.md", task("T-920", "Waits", needs="T-900, UT-001 [blocks]"))
+    assert task_files.problems(task_files.load(tmp_path)) == []
+
+
+def test_a_user_check_may_name_what_it_needs(tmp_path):
+    write(tmp_path, "UT-001.md", ut("UT-001", "A check").replace("none", "UT-002"))
+    assert task_files.problems(task_files.load(tmp_path)) == []

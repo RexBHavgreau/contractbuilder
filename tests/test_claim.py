@@ -113,3 +113,10 @@ def test_release_removes_the_claim(repos):
     claim.claim("T-001", "One", repo=one)
     claim.release("T-001", repo=one)
     assert claim.remote_claims(one) == {}
+
+
+def test_a_user_check_cannot_be_claimed_by_an_agent(repos):
+    one, _ = repos
+    with pytest.raises(claim.ClaimError, match="check for a person"):
+        claim.claim("UT-001", "One", repo=one)
+    assert claim.remote_claims(one) == {}

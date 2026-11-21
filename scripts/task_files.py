@@ -25,12 +25,15 @@ from pathlib import Path
 
 TASK_DIR = Path(__file__).resolve().parent.parent / "tasks"
 
-ID = re.compile(r"^T-\d{3}(?:-[A-Z](?:-\d+)?)?$")
-HEADING = re.compile(r"^# (T-\d{3}(?:-[A-Z](?:-\d+)?)?)\b\s*(.*)$")
+# T-NNN are coding tasks. UT-NNN are checks and confirmations only a person can
+# do ("user tasks"); they never block a coding task (see problems()).
+ID = re.compile(r"^(?:UT|T)-\d{3}(?:-[A-Z](?:-\d+)?)?$")
+HEADING = re.compile(r"^# ((?:UT|T)-\d{3}(?:-[A-Z](?:-\d+)?)?)\b\s*(.*)$")
+BLOCKS = "[blocks]"      # written after a UT id in Needs for the rare real dependency
 FIELD_LINE = re.compile(r"^- \*\*([A-Za-z ]+):\*\*\s*(.*)$")
 
 REQUIRED = ("status", "size", "agent", "needs")
-KNOWN = REQUIRED + ("touches", "size gate")
+KNOWN = REQUIRED + ("touches", "size gate", "checks")
 
 # Order on the board: work under way first, then work waiting to be taken.
 STATE_ORDER = ("in progress", "open", "blocked", "waiting", "other")
@@ -52,6 +55,11 @@ class Task:
     @property
     def state(self) -> str:
         return state_of(self.status)
+
+    @property
+    def is_user_check(self) -> bool:
+        """True for a UT- task: something only a person can check or confirm."""
+        return self.id.startswith("UT-")
 
     @property
     def umbrella(self) -> str:
@@ -109,7 +117,11 @@ def parse(path: Path) -> Task:
 
 def load(folder: Path | None = None) -> list:
     folder = Path(folder) if folder else TASK_DIR
-    paths = sorted(folder.glob("T-*.md")) + sorted((folder / "done").glob("T-*.md"))
+    paths = [
+        p for pattern in ("T-*.md", "UT-*.md") for p in sorted(folder.glob(pattern))
+    ] + [
+        p for pattern in ("T-*.md", "UT-*.md") for p in sorted((folder / "done").glob(pattern))
+    ]
     return [parse(p) for p in paths]
 
 
@@ -139,12 +151,20 @@ def problems(tasks) -> list:
             )
         if task.in_done_folder and not done:
             found.append(f"{name}: it is in tasks/done/ but its status does not say done")
+        if not task.is_user_check:
+            for match in re.finditer(r"UT-\d{3}(?!\d)(\s*\[blocks\])?", task.get("needs")):
+                if not match.group(1):
+                    found.append(
+                        f"{name}: Needs names {match.group(0)}, a check only a person can do. "
+                        f"A coding task must not wait for one; remove it, or write "
+                        f"'{match.group(0)} {BLOCKS}' if the dependency is real and rare"
+                    )
     return found
 
 
 def build_board(tasks) -> str:
-    """The open work as one Markdown table, grouped under umbrella tasks."""
-    live = [t for t in tasks if t.id and t.state != "done"]
+    """The open coding work as one Markdown table, grouped under umbrella tasks."""
+    live = [t for t in tasks if t.id and t.state != "done" and not t.is_user_check]
     by_id = {t.id: t for t in live}
     subs = {}
     for t in live:
@@ -174,5 +194,27 @@ def build_board(tasks) -> str:
     head = [
         "| Task | What | Status | Agent | Needs | Touches |",
         "| --- | --- | --- | --- | --- | --- |",
+    ]
+    return "\n".join(head + rows) + "\n"
+
+
+def build_user_checks(tasks) -> str:
+    """The checks and confirmations waiting on a person, as one Markdown table."""
+    live = sorted(
+        (t for t in tasks if t.id and t.is_user_check and t.state != "done"),
+        key=lambda t: t.id,
+    )
+
+    def cell(text):
+        return (text or "—").replace("|", "\\|").replace("\n", " ")
+
+    rows = [
+        f"| [{t.id}](tasks/{t.id}.md) | {cell(t.title)} | {cell(t.status)} "
+        f"| {cell(t.get('checks'))} | {cell(t.get('needs'))} |"
+        for t in live
+    ]
+    head = [
+        "| Check | What | Status | Checks the work of | Needs |",
+        "| --- | --- | --- | --- | --- |",
     ]
     return "\n".join(head + rows) + "\n"
