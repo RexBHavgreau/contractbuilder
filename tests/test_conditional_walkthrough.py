@@ -40,8 +40,8 @@ def test_conditional_wording_can_be_placed_in_a_list_item():
         "Publisher Type", ["Company", "Individual"],
         {"Company": "a company", "Individual": "an individual"},
     )
-    assert "- formed as " + result.startswith("- formed as ") is False if False else True
-    assert result.startswith("{{#if Publisher Type = Company}}")
+    list_item = "- formed as " + result
+    assert list_item.startswith("- formed as {{#if Publisher Type = Company}}")
 
 
 def test_same_field_can_be_used_in_more_than_one_component():
@@ -66,8 +66,8 @@ def test_separate_paragraph_markers_are_on_their_own_lines():
     result = build_conditional_text("Type", ["A", "B"], {"A": "first", "B": "second"},
                                     "As separate paragraphs")
     assert result == (
-        "{{#if Type = A}}first{{/if}}\n\n"
-        "{{#if Type = B}}second{{/if}}"
+        "{{#if Type = A}}\nfirst\n{{/if}}\n\n"
+        "{{#if Type = B}}\nsecond\n{{/if}}"
     )
 
 
