@@ -130,9 +130,13 @@ trace.
   NAME`, which creates the branch `claim/T-NNN`; GitHub refuses a second
   creation, so two agents never hold one task. Full rule: TASKS.md "To take a
   task".
-- **Touches.** Each open task file in `tasks/` names the files it will change.
-  `python scripts/overlaps.py` lists tasks that share one; two claimed tasks
-  never share a file (T-055). A new window or dialog goes in a new module.
+- **Touches and links.** Each open task file in `tasks/` names the files it
+  will change, with "(also T-…)" for other open tasks that change the same file.
+  Each open task also has **Needed by** (the tasks that wait for it). Run
+  `python scripts/task_links.py --write` after adding or changing a task; the
+  tests check it. `python scripts/overlaps.py` lists tasks that share a file;
+  two claimed tasks never share one (T-055). A new window or dialog goes in a
+  new module.
 - Work on a branch and open a pull request into `main`. Keep commits small
   and say why, not only what.
 

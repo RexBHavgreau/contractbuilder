@@ -30,13 +30,23 @@ free text (what it is, the boxes to tick, "Done when").
 - **Size:** M
 - **Agent:** careful
 - **Needs:** none
-- **Touches:** library.py, publisher_profiles.py
+- **Needed by:** T-043-C (and 1 more)
+- **Touches:** `library.py` (also T-046-A), `publisher_profiles.py` (also T-046-C)
 - **Size gate:** yes
 
 Free text...
 
 - [ ] a box to tick
 ```
+
+**Links in both directions.** `Needs` names what this task waits for, by task
+number. `Needed by` names the open tasks that wait for this one, written by
+`python scripts/task_links.py --write`; never type it by hand. Only direct
+dependents are listed, the first two by number, then "(and N more)". Each file
+in `Touches` is followed by "(also …)" naming the other open tasks that change
+it, so an agent can see at once which tasks overlap. Umbrella tasks are left
+out of the "also" lists. After adding or changing a task, run `task_links.py
+--write`; the tests fail until the files are up to date.
 
 - `Status` starts with one of `open`, `claimed`, `blocked`, `waiting`,
   `done`; anything after the first word is free text. A long value may
