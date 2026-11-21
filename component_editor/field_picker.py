@@ -54,6 +54,8 @@ def field_kind_definition(
         allowed = [str(value).strip() for value in values if str(value).strip()]
         if not allowed:
             raise ValueError("Enter at least one choice, one per line.")
+        if any("{{" in value or "}}" in value or "|" in value for value in allowed):
+            raise ValueError("Choices cannot contain braces or a vertical bar.")
     elif field_kind == "conditional":
         allowed = [str(value).strip() for value in values if str(value).strip()]
         if len(allowed) < 2:
