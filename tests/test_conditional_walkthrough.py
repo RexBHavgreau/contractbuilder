@@ -1,4 +1,7 @@
 import pytest
+from docx import Document
+
+import core
 
 from component_editor.conditional_walkthrough import (
     build_conditional_text, build_optional_text,
@@ -35,13 +38,18 @@ def test_two_three_and_four_choice_values(values):
     assert result.count("{{/if}}") == len(values)
 
 
-def test_conditional_wording_can_be_placed_in_a_list_item():
+def test_conditional_wording_can_be_placed_in_a_list_item(tmp_path):
     result = build_conditional_text(
         "Publisher Type", ["Company", "Individual"],
         {"Company": "a company", "Individual": "an individual"},
     )
-    list_item = "- formed as " + result
-    assert list_item.startswith("- formed as {{#if Publisher Type = Company}}")
+    source = tmp_path / "list.docx"
+    document = Document()
+    document.add_paragraph("formed as " + result, style="List Bullet")
+    document.save(source)
+    template = core.Template(source)
+    assert template.problems == []
+    assert "Publisher Type" in template.fields
 
 
 def test_same_field_can_be_used_in_more_than_one_component():
@@ -86,3 +94,24 @@ def test_rejects_missing_or_duplicate_values():
         build_conditional_text("Type", ["A", "a"], {"A": "one", "a": "two"})
     with pytest.raises(ValueError, match="Add wording"):
         build_conditional_text("Type", ["A", "B"], {"A": "one"})
+
+
+@pytest.mark.parametrize("choice, expected", [
+    ("Non-profit", "of Acme, a non-profit corporation organized"),
+    ("Sole proprietor", "of Acme, a sole proprietor organized"),
+])
+def test_each_choice_renders_with_single_spaces(tmp_path, choice, expected):
+    wording = build_conditional_text(
+        "Publisher Type",
+        ["Non-profit", "Sole proprietor"],
+        {"Non-profit": "a non-profit corporation", "Sole proprietor": "a sole proprietor"},
+    )
+    source = tmp_path / "template.docx"
+    document = Document()
+    document.add_paragraph("of Acme, " + wording + " organized")
+    document.save(source)
+    template = core.Template(source)
+    assert template.problems == []
+    output = tmp_path / "filled.docx"
+    core.build_contract(template, {"Publisher Type": choice}, output)
+    assert Document(output).paragraphs[0].text == expected
