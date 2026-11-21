@@ -2,7 +2,7 @@
 date: 2026-11-21
 task: T-040, T-044, T-050
 author: Claude
-pull_request: pending (update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/78
 ci_run: pending (update after the run on the latest commit)
 size: release v0.4.0 18,095,285 bytes; v0.4.3 18,174,209 bytes (17.33 MiB); headroom 13,283,071 bytes (12.67 MiB)
 ---
