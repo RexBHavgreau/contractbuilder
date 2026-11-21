@@ -19,7 +19,7 @@ from typing import Callable, Iterator, Mapping, Sequence
 
 # The existing publisher_profiles.sqlite3 layout is schema version 1.
 # Later component-library changes add one migration per new version.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 _MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 PROFILE_FIELDS = (
@@ -434,6 +434,57 @@ def _migrate_assemblies_and_revisions(connection: sqlite3.Connection) -> None:
 _MIGRATIONS[3] = _migrate_assemblies_and_revisions
 
 
+def _migrate_field_definitions(connection: sqlite3.Connection) -> None:
+    """Add reusable, archive-only definitions for fields used by components."""
+    connection.execute(
+        """
+        CREATE TABLE field_definitions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+            name_key TEXT NOT NULL UNIQUE
+                CHECK (length(trim(name_key)) > 0),
+            description TEXT NOT NULL DEFAULT '',
+            field_group TEXT NOT NULL DEFAULT '',
+            default_format TEXT NOT NULL DEFAULT '',
+            default_options TEXT NOT NULL DEFAULT '[]',
+            allowed_values TEXT NOT NULL DEFAULT '[]',
+            publisher_profile_column TEXT,
+            publisher_detail_name TEXT,
+            status TEXT NOT NULL DEFAULT 'active'
+                CHECK (status IN ('active', 'archived')),
+            CHECK (
+                publisher_profile_column IS NULL
+                OR length(trim(publisher_profile_column)) > 0
+            ),
+            CHECK (
+                publisher_detail_name IS NULL
+                OR length(trim(publisher_detail_name)) > 0
+            ),
+            CHECK (
+                publisher_profile_column IS NULL
+                OR publisher_detail_name IS NULL
+            )
+        )
+        """
+    )
+    connection.execute(
+        "CREATE INDEX idx_field_definitions_group_name "
+        "ON field_definitions(field_group COLLATE NOCASE, name COLLATE NOCASE)"
+    )
+    connection.execute(
+        """
+        CREATE TRIGGER field_definitions_prevent_delete
+        BEFORE DELETE ON field_definitions
+        BEGIN
+            SELECT RAISE(ABORT, 'field definitions are archived, not deleted');
+        END
+        """
+    )
+
+
+_MIGRATIONS[4] = _migrate_field_definitions
+
+
 
 def _verify_publisher_schema(connection: sqlite3.Connection) -> None:
     """Refuse to stamp or migrate a database missing its existing profile data."""
@@ -547,6 +598,38 @@ def _verify_assembly_schema(connection: sqlite3.Connection) -> None:
         )
 
 
+def _verify_field_definition_schema(connection: sqlite3.Connection) -> None:
+    """Verify the version-4 field-definition table and archive-only trigger."""
+    if not _table_exists(connection, "field_definitions"):
+        raise sqlite3.DatabaseError("The field definitions table is missing.")
+    columns = {
+        row[1] for row in connection.execute(
+            "PRAGMA table_info(field_definitions)"
+        ).fetchall()
+    }
+    required = {
+        "id", "name", "name_key", "description", "field_group",
+        "default_format", "default_options", "allowed_values",
+        "publisher_profile_column", "publisher_detail_name", "status",
+    }
+    missing = sorted(required - columns)
+    if missing:
+        raise sqlite3.DatabaseError(
+            "The field definitions table is missing required column(s): "
+            + ", ".join(missing)
+        )
+
+    triggers = {
+        row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'trigger'"
+        ).fetchall()
+    }
+    if "field_definitions_prevent_delete" not in triggers:
+        raise sqlite3.DatabaseError(
+            "The field definitions table is missing its archive-only protection trigger."
+        )
+
+
 def _verify_database(
     connection: sqlite3.Connection, expected_version: int | None
 ) -> None:
@@ -562,6 +645,8 @@ def _verify_database(
         _verify_component_schema(connection)
     if expected_version is not None and expected_version >= 3:
         _verify_assembly_schema(connection)
+    if expected_version is not None and expected_version >= 4:
+        _verify_field_definition_schema(connection)
     integrity = connection.execute("PRAGMA integrity_check").fetchall()
     if integrity != [("ok",)]:
         raise sqlite3.DatabaseError(
