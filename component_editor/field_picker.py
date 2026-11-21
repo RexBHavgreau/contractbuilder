@@ -87,7 +87,7 @@ def build_created_field(definition: dict, kind: str, wording: str = "") -> str:
         if not clause:
             raise ValueError("Enter the wording to include when this option is ticked.")
         if "\n" in clause:
-            return "{{#if " + name + "}}\\n\\n" + clause + "\\n\\n{{/if}}"
+            return "{{#if " + name + "}}\n\n" + clause + "\n\n{{/if}}"
         return "{{#if " + name + "}}" + clause + "{{/if}}"
     if field_kind == "conditional wording":
         lines = [line for line in str(wording or "").splitlines() if line.strip()]
@@ -108,7 +108,7 @@ def build_created_field(definition: dict, kind: str, wording: str = "") -> str:
                 + mapping[str(value).casefold()]
                 + "{{/if}}"
             )
-        return "\\n\\n".join(blocks)
+        return "\n\n".join(blocks)
     options = definition.get("default_options") or []
     return make_field_placeholder(name, fmt, ", ".join(options))
 
@@ -133,6 +133,19 @@ class FieldPickerDialog:
         entry = ttk.Entry(outer, textvariable=self.search)
         entry.pack(fill="x", pady=(3, 8))
         entry.bind("<KeyRelease>", lambda _event: self.refresh())
+        one_off = ttk.Frame(outer)
+        one_off.pack(fill="x", pady=(0, 8))
+        self.one_off_name = tk.StringVar(master=self.window)
+        ttk.Label(one_off, text="Or type a one-off field").pack(side="left")
+        ttk.Entry(one_off, textvariable=self.one_off_name, width=28).pack(side="left", padx=6)
+        self.one_off_format = tk.StringVar(master=self.window, value="Text")
+        ttk.Combobox(
+            one_off, textvariable=self.one_off_format, state="readonly", width=18,
+            values=["Text", "Uppercase", "Long text", "Date", "Money", "Number", "List"],
+        ).pack(side="left")
+        ttk.Button(one_off, text="Insert one-off", command=self.insert_one_off).pack(side="left", padx=6)
+        self.one_off_status = ttk.Label(outer, text="", foreground="#8a5a00")
+        self.one_off_status.pack(anchor="w")
         self.tree = ttk.Treeview(
             outer, columns=("kind", "description"), show="tree headings",
             selectmode="browse",
@@ -200,6 +213,26 @@ class FieldPickerDialog:
                 self.tree.focus(iid)
         for group in groups.values():
             self.tree.item(group, open=True)
+
+    def insert_one_off(self):
+        formats = {
+            "Text": "", "Uppercase": "upper", "Long text": "long",
+            "Date": "date", "Money": "money", "Number": "number", "List": "list",
+        }
+        try:
+            value = make_field_placeholder(
+                self.one_off_name.get(), formats.get(self.one_off_format.get(), "")
+            )
+        except ValueError as exc:
+            self.one_off_status.configure(text=str(exc))
+            return
+        self.on_insert(value)
+        if self.keep_open.get():
+            self.one_off_name.set("")
+            self.window.lift()
+            self.window.focus_force()
+        else:
+            self.window.destroy()
 
     def _selected_field(self):
         selected = self.tree.selection()
@@ -371,11 +404,11 @@ class FieldCreatorDialog:
             for widget in self.options_frame.winfo_children()[:2]:
                 widget.grid()
             if kind == "Conditional wording":
-                for widget in self.options_frame.winfo_children()[5:]:
+                for widget in self.options_frame.winfo_children()[6:]:
                     widget.grid()
                 self.preview.grid()
         elif kind == "Singular or plural word":
-            for widget in self.options_frame.winfo_children()[2:5]:
+            for widget in self.options_frame.winfo_children()[2:6]:
                 widget.grid()
             self.preview.grid_remove()
         elif kind == "Optional clause":
