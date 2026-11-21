@@ -91,7 +91,8 @@ from .conditional_walkthrough import (  # noqa: F401,E402
     build_optional_text,
     parse_conditional_text,
 )
-from .backup_dialog import LibraryBackupDialog  # noqa: F401,E402\nfrom .history_dialog import open_version_history_dialog  # noqa: F401,E402
+from .backup_dialog import LibraryBackupDialog  # noqa: F401,E402
+from .history_dialog import open_version_history_dialog  # noqa: F401,E402
 from .import_dialog import ImportReviewDialog  # noqa: F401,E402
 from .table_dialog import TableEditorDialog  # noqa: F401,E402
 from .window import ComponentEditorWindow  # noqa: F401,E402
