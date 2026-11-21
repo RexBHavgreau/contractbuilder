@@ -50,3 +50,16 @@ def test_rejects_unsupported_or_malformed_targets(target):
 def test_rejects_non_string_targets():
     assert safe_hyperlink_target(None) is None
     assert safe_hyperlink_target(42) is None
+
+
+
+def test_parser_exposes_unsafe_links_only_when_renderer_requests_them():
+    from md_parse import create_parser
+
+    source = "[bad](javascript:alert(1))"
+    normal = create_parser().parseInline(source)[0].children
+    renderer = create_parser(allow_unsafe_links=True).parseInline(source)[0].children
+
+    assert [token.type for token in normal] == ["text"]
+    assert [token.type for token in renderer] == ["link_open", "text", "link_close"]
+    assert renderer[0].attrGet("href") == "javascript:alert(1)"
