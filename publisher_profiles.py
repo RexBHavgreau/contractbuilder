@@ -19,7 +19,7 @@ from typing import Callable, Iterator, Mapping, Sequence
 
 # The existing publisher_profiles.sqlite3 layout is schema version 1.
 # Later component-library changes add one migration per new version.
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 _MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 PROFILE_FIELDS = (
@@ -198,7 +198,9 @@ def format_address(profile: Mapping[str, object]) -> str:
 
 
 def values_for_template(
-    profile: Mapping[str, object], field_names: Sequence[str]
+    profile: Mapping[str, object],
+    field_names: Sequence[str],
+    user_matches: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Return non-empty publisher values keyed by the template's exact field names.
 
@@ -206,8 +208,13 @@ def values_for_template(
     Unrecognized fields are deliberately left untouched for the user to complete.
     """
     result: dict[str, str] = {}
+    custom = {
+        _normalize_field_name(name): column
+        for name, column in (user_matches or {}).items()
+    }
     for field_name in field_names:
-        property_name = _FIELD_ALIASES.get(_normalize_field_name(field_name))
+        normalized = _normalize_field_name(field_name)
+        property_name = custom.get(normalized) or _FIELD_ALIASES.get(normalized)
         if not property_name:
             continue
         if property_name == "formatted_address":
@@ -692,6 +699,47 @@ def _verify_field_definition_schema(connection: sqlite3.Connection) -> None:
         )
 
 
+def _migrate_user_field_matches(connection: sqlite3.Connection) -> None:
+    """Store user-defined names and links to existing publisher columns."""
+    connection.execute("""
+        CREATE TABLE publisher_field_matches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            field_name TEXT NOT NULL CHECK (length(trim(field_name)) > 0),
+            field_name_key TEXT NOT NULL UNIQUE CHECK (length(trim(field_name_key)) > 0),
+            profile_column TEXT NOT NULL CHECK (
+                profile_column IN (
+                    'publisher_name', 'contact_name', 'contact_title',
+                    'contact_email', 'contact_phone', 'website',
+                    'address_line1', 'address_line2', 'city', 'region',
+                    'postal_code', 'country', 'notes', 'formatted_address'
+                )
+            )
+        )
+    """)
+    connection.execute(
+        "CREATE INDEX idx_publisher_field_matches_column "
+        "ON publisher_field_matches(profile_column, field_name COLLATE NOCASE)"
+    )
+
+
+_MIGRATIONS[5] = _migrate_user_field_matches
+
+
+def _verify_user_field_match_schema(connection: sqlite3.Connection) -> None:
+    if not _table_exists(connection, "publisher_field_matches"):
+        raise sqlite3.DatabaseError("The publisher field-matching table is missing.")
+    columns = {row[1] for row in connection.execute(
+        "PRAGMA table_info(publisher_field_matches)"
+    ).fetchall()}
+    required = {"id", "field_name", "field_name_key", "profile_column"}
+    missing = sorted(required - columns)
+    if missing:
+        raise sqlite3.DatabaseError(
+            "The publisher field-matching table is missing required column(s): "
+            + ", ".join(missing)
+        )
+
+
 def _verify_database(
     connection: sqlite3.Connection, expected_version: int | None
 ) -> None:
@@ -709,6 +757,8 @@ def _verify_database(
         _verify_assembly_schema(connection)
     if expected_version is not None and expected_version >= 4:
         _verify_field_definition_schema(connection)
+    if expected_version is not None and expected_version >= 5:
+        _verify_user_field_match_schema(connection)
     integrity = connection.execute("PRAGMA integrity_check").fetchall()
     if integrity != [("ok",)]:
         raise sqlite3.DatabaseError(
@@ -866,6 +916,53 @@ class PublisherProfileStore:
                 _verify_database(connection, SCHEMA_VERSION)
         finally:
             connection.close()
+
+    def list_field_matches(self) -> list[dict[str, object]]:
+        """Return user-defined field names linked to publisher profile columns."""
+        with self._connection() as connection:
+            rows = connection.execute(
+                "SELECT id, field_name, field_name_key, profile_column "
+                "FROM publisher_field_matches ORDER BY profile_column, field_name COLLATE NOCASE"
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def save_field_match(self, field_name: str, profile_column: str) -> int:
+        """Add or update a user-defined template field-to-profile-column match."""
+        clean = " ".join(str(field_name or "").split())
+        key = _normalize_field_name(clean)
+        column = str(profile_column or "").strip()
+        allowed = {*PROFILE_FIELDS, "formatted_address"}
+        if not clean or not key:
+            raise ValueError("Enter a field name.")
+        if "{{" in clean or "}}" in clean or "|" in clean:
+            raise ValueError("Enter the field name without braces or formatting.")
+        if column not in allowed:
+            raise ValueError("Choose a valid publisher profile detail.")
+        with self._connection() as connection:
+            connection.execute(
+                "INSERT INTO publisher_field_matches (field_name, field_name_key, profile_column) "
+                "VALUES (?, ?, ?) ON CONFLICT(field_name_key) DO UPDATE SET "
+                "field_name = excluded.field_name, profile_column = excluded.profile_column",
+                (clean, key, column),
+            )
+            row = connection.execute(
+                "SELECT id FROM publisher_field_matches WHERE field_name_key = ?",
+                (key,),
+            ).fetchone()
+            return int(row["id"])
+
+    def delete_field_match(self, match_id: int) -> bool:
+        with self._connection() as connection:
+            cursor = connection.execute(
+                "DELETE FROM publisher_field_matches WHERE id = ?", (int(match_id),)
+            )
+            return cursor.rowcount > 0
+
+    def field_match_map(self) -> dict[str, str]:
+        return {
+            row["field_name"]: row["profile_column"]
+            for row in self.list_field_matches()
+        }
 
     def list_profiles(self) -> list[dict[str, object]]:
         with self._connection() as connection:
