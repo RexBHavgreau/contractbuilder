@@ -259,11 +259,9 @@ class FieldPickerDialog:
         if field is None:
             return
         try:
-            value = make_field_placeholder(
-                str(field["name"]),
-                str(field.get("default_format") or ""),
-                ", ".join(field.get("default_options") or field.get("allowed_values") or []),
-            )
+            field_format = str(field.get("default_format") or "")
+            kind = _FORMAT_LABELS.get(field_format, "Text")
+            value = build_created_field(field, kind)
         except ValueError as exc:
             messagebox.showerror("Cannot insert this field", str(exc), parent=self.window)
             return
