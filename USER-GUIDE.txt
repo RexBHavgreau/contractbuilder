@@ -178,6 +178,125 @@ instead of a comma if either wording itself contains a comma:
 
     {{Titles | plural: it, as written / them, as written}}
 
+CHOOSING THE RIGHT KIND OF FIELD
+
+Choose a field by asking what information the person filling in the contract
+needs to provide.
+
+- **Plain text**: use this for a name, address, description, or other wording
+  that should appear just as it is entered.
+  
+      {{Client Name}}
+      {{Mailing Address | long}}
+
+- **Date**: use this when the person should enter a date. Choose the format
+  that matches how it should appear in the contract.
+  
+      {{Signing Date | date}}
+      {{Signing Date | date-formal}}
+
+- **Amount**: use this for money. The person enters the amount once; choose
+  the format for how it should appear.
+  
+      {{One-time Fee | money}}
+      {{One-time Fee | money-words}}
+
+- **List**: use this when the person may enter several items, one per line.
+  The application joins the items into a readable list.
+  
+      {{Covered Services | list}}
+
+- **Choice**: use this when the person should select one of several complete
+  wordings. Put the alternatives after `choice:`, separated by commas. If an
+  alternative itself contains a comma, separate the alternatives with a slash.
+  
+      {{One-time Fee Wording | choice: The one-time fee is due with the first installment / No one-time fee is charged}}
+
+  The form shows a drop-down list. The selected wording is inserted where the
+  field appears.
+
+- **Yes/no clause**: use this when a whole phrase or clause should appear only
+  when something is true. Put the wording between `{{#if Field Name}}` and
+  `{{/if}}`. The form shows a check box when the field is used only this way.
+  
+      {{#if One-time Fee Applies}}
+      The one-time fee is due with the first installment.
+      {{else}}
+      No one-time fee is charged.
+      {{/if}}
+
+  The checked wording appears when the box is checked; the `{{else}}` wording
+  appears when it is not. You can also leave out `{{else}}` if nothing should
+  appear when the box is unchecked.
+
+- **Different wording by a value**: use this when the wording depends on
+  which value the person selects. Write a condition with `=` and the value
+  to test.
+  
+      {{#if Payment Method = Check}}
+      Make the payment by check.
+      {{else}}
+      Make the payment by electronic transfer.
+      {{/if}}
+
+  The form shows a drop-down list containing the values in the conditions.
+
+- **Singular or plural**: use this when a word changes according to the number
+  of items. Put the singular and plural forms after `plural:`.
+  
+      {{Covered Services | plural: service, services}}
+
+  The person enters a number or a list, and the application chooses the
+  matching word.
+
+| If the person filling in the form needs to… | Use… |
+| --- | --- |
+| Enter wording that will appear as written | Plain text |
+| Enter a date | Date |
+| Enter an amount of money | Amount |
+| Enter several items, one per line | List |
+| Pick one of several complete phrases | Choice |
+| Say whether a clause applies | Yes/no clause |
+| Choose a value that changes the wording | Different wording by a value |
+| Use a word that changes with the number of items | Singular or plural |
+
+Keep field names short and describe what the person should enter. For
+example, use `{{Signing Deadline}}`, not a whole sentence such as
+`{{What date must the agreement be signed by?}}`. The field name becomes
+the label beside the box in the form.
+
+A worked example
+----------------
+
+Suppose a contract needs to say whether a one-time fee is charged. You can
+write the alternatives as one **Choice** field:
+
+    {{One-time Fee Wording | choice: The one-time fee is due with the first installment / No one-time fee is charged}}
+
+The form shows a drop-down with these two choices:
+
+  - The one-time fee is due with the first installment
+  - No one-time fee is charged
+
+The selected sentence appears in the contract.
+
+Or use a **Yes/no clause** if you want a check box instead:
+
+    {{#if One-time Fee Applies}}
+    The one-time fee is due with the first installment.
+    {{else}}
+    No one-time fee is charged.
+    {{/if}}
+
+The form shows a check box labelled **One-time Fee Applies**. When it is
+checked, the contract says, "The one-time fee is due with the first
+installment." When it is not checked, the contract says, "No one-time fee is
+charged."
+
+Both approaches can produce the same wording. Use Choice when the person
+should select a complete wording from a list; use a Yes/no clause when a
+simple check box is clearer.
+
 OPTIONAL AND ALTERNATIVE WORDING
 
 To include a whole paragraph or group of paragraphs only when a box is
