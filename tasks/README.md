@@ -48,7 +48,9 @@ Free text...
 
 ## Claiming and finishing
 
-Claiming a task is its own one-line pull request that changes only that
-task's `Status` line. Finishing it edits that file again (status, boxes, move
+Claiming a task is `python scripts/claim.py T-043-A --who NAME`, which pushes
+a branch `claim/T-043-A` (only one agent can create it) with the one-line change
+to that task's `Status`; open a pull request from it and merge it at once. It
+changes only that task's `Status` line. Finishing it edits that file again (status, boxes, move
 to `done/`), adds a file under `progress/` and, if a choice was made, one under
 `decisions/`. Nothing else shared is edited, so nothing conflicts.

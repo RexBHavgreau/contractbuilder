@@ -28,15 +28,21 @@ file is laid out. This file holds only the rules.
 
 ## How to use this file
 
-**To take a task:** look at the open pull requests first, then claim the
-task with **its own one-line pull request** that changes only that task's
-file: its `Status` becomes `claimed (your name or agent id, date)`. Merge it
-within minutes and before any other work starts; if someone else's claim
-merged first, pick another task. Two agents then never take the same task.
-Take only tasks marked `Agent: any` unless you are a stronger model or a
-person. Do not take a task marked `Needs: Beaux` until its decision is
+**To take a task:** look at the open pull requests, then claim it with
+`python scripts/claim.py T-043-A --who "your name or agent id"` (list claims
+with `--list`). The script pushes a branch `claim/T-043-A` holding the
+one-line change to that task's `Status` (`claimed (who, date)`). Creating a
+branch either works or is refused, with no gap between looking and taking, so
+two agents can never both get the same task: if the push is refused, someone
+else has it and you pick another. Then open a pull request from the claim
+branch into `main`, change nothing else in it, and merge it within minutes;
+do the real work on a separate branch. When the task is done, delete the
+claim branch (`python scripts/claim.py --release T-043-A`). A claim branch
+with no recent activity is a stale claim: the weekly review puts the task back
+to `open`. Take only tasks marked `Agent: any` unless you are a stronger model
+or a person. Do not take a task marked `Needs: Beaux` until its decision is
 recorded in `decisions/`, and do not take one whose `Needs` names an
-unfinished task.
+unfinished task (the script refuses these).
 
 **While working:** tick boxes in your task's own file. If a task turns out
 bigger than its size, split it: add new task files with the next free number
@@ -102,7 +108,7 @@ a queued or in-progress run, or no run at all does not count. In practice:
 **Parallel work.** Progress entries, decision entries and task files are all
 separate files, so two pull requests about different tasks no longer edit the
 same lines. What is left is code:
-(1) claim a task by its own one-line pull request (above); (2) **before
+(1) claim a task with `scripts/claim.py` and its one-line pull request (above); (2) **before
 opening or merging a pull request, merge the latest `main` into your branch**;
 (3) edit only your own task's file here, plus the new `progress/` and
 `decisions/` files; (4) **do not start a task whose "Touches" files another
@@ -110,8 +116,9 @@ claimed task is changing**; and (5) a task that splits a file (such as T-052 or
 T-056) freezes it: leave that file alone until the split merges. See
 [tasks/notes/working-in-parallel.md](tasks/notes/working-in-parallel.md).
 
-**To add a task:** run `python scripts/board.py --next`, create
-`tasks/T-NNN.md` with every field below, and write the acceptance check so
+**To add a task:** reserve its number with `python scripts/claim.py --new`
+(two agents asking at once get different numbers; `board.py --next` only shows
+what is free right now), create `tasks/T-NNN.md` with every field below, and write the acceptance check so
 someone else can tell, without asking, whether it is done. The board picks it
 up by itself.
 

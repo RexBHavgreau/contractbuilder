@@ -124,6 +124,10 @@ trace.
   build, all-modules build, headroom, growth since the last release, tool
   versions) are in the Windows job's run summary; under 3 MiB of headroom
   fails the job.
+- **Claiming.** Take a task only with `python scripts/claim.py T-NNN --who
+  NAME`, which creates the branch `claim/T-NNN`; GitHub refuses a second
+  creation, so two agents never hold one task. Full rule: TASKS.md "To take a
+  task".
 - **Touches.** Each open task file in `tasks/` names the files it will change.
   `python scripts/overlaps.py` lists tasks that share one; two claimed tasks
   never share a file (T-055). A new window or dialog goes in a new module.
