@@ -1,5 +1,6 @@
 """Direct opening of saved assemblies from the main start screen."""
 import sys
+import tkinter as tk
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -122,3 +123,75 @@ def test_empty_saved_assembly_library_reports_a_plain_language_message(monkeypat
     assert "No saved contract assemblies" in seen[0][0][1]
 
 
+
+
+
+def _find_widget(widget, predicate):
+    for child in widget.winfo_children():
+        if predicate(child):
+            return child
+        found = _find_widget(child, predicate)
+        if found is not None:
+            return found
+    return None
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="Tk picker tests need a display; CI runs window tests under xvfb-run.",
+)
+def test_picker_shows_latest_revision_searches_and_opens_with_enter(monkeypatch):
+    class FakeLibrary:
+        def list_assemblies(self):
+            return [{"id": 4, "name": "Invented searchable assembly"}]
+
+        def list_assembly_revisions(self, _assembly_id):
+            return [
+                {"id": 42, "number": 3, "created": "2026-11-20T12:00:00Z",
+                 "finalized": True, "note": "Latest"},
+                {"id": 41, "number": 2, "created": "2026-11-19T12:00:00Z",
+                 "finalized": True, "note": "Earlier"},
+            ]
+
+        def list_newer_versions_for_revision(self, revision_id):
+            return [{"newer_versions": [{"id": 99}]}] if revision_id == 42 else []
+
+    monkeypatch.setattr("library.ComponentLibrary", FakeLibrary)
+    opened = []
+    monkeypatch.setattr(
+        assembly_open_dialog, "_open_revision_direct",
+        lambda app, library, revision_id, parent: opened.append(revision_id) or object(),
+    )
+    root = tk.Tk()
+    root.withdraw()
+    app = FakeApp()
+    app.root = root
+    dialog = assembly_open_dialog.open_saved_assembly_direct(app)
+    root.update()
+
+    tree = _find_widget(dialog, lambda item: isinstance(item, ttk.Treeview))
+    assert tree is not None
+    row = tree.item("4", "values")
+    assert row == (
+        "Invented searchable assembly", "Revision 3", "2026-11-20",
+        "New wording available",
+    )
+
+    search = _find_widget(dialog, lambda item: isinstance(item, ttk.Entry))
+    search.insert(0, "no match")
+    root.update()
+    assert tree.get_children() == ()
+
+    search.delete(0, "end")
+    root.update()
+    tree.selection_set("4")
+    tree.event_generate("<Return>")
+    root.update()
+    assert opened == [42]
+
+    for child in root.winfo_children():
+        try:
+            child.destroy()
+        except tk.TclError:
+            pass
+    root.destroy()
