@@ -4,7 +4,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from .fields import make_field_placeholder
+from .fields import _FIELD_FORMATS, make_field_placeholder
 
 
 FIELD_KINDS = (
@@ -60,7 +60,7 @@ def field_kind_definition(
         allowed = [str(value).strip() for value in values if str(value).strip()]
         if len(allowed) < 2:
             raise ValueError("Enter at least two choices for conditional wording.")
-        if any("{{" in value or "}}" in value or "\n" in value for value in allowed):
+        if any("{{" in value or "}}" in value or "|" in value or "\n" in value for value in allowed):
             raise ValueError("Each choice must be a single line without braces.")
         field_kind = "choice"
     elif field_kind == "plural":
@@ -81,6 +81,13 @@ def field_kind_definition(
         "publisher_profile_column": None,
         "publisher_detail_name": None,
     }
+
+
+def field_definition_placeholder(definition: dict) -> str:
+    """Build a stored field using its saved default format and options."""
+    name = str(definition["name"])
+    fmt = str(definition.get("default_format") or "")
+    return field_definition_placeholder(definition)
 
 
 def build_created_field(
@@ -148,11 +155,14 @@ class FieldPickerDialog:
         self.one_off_name = tk.StringVar(master=self.window)
         ttk.Label(one_off, text="Or type a one-off field").pack(side="left")
         ttk.Entry(one_off, textvariable=self.one_off_name, width=28).pack(side="left", padx=6)
-        self.one_off_format = tk.StringVar(master=self.window, value="Text")
+        self.one_off_format = tk.StringVar(master=self.window, value="Plain text")
+        self.one_off_format_values = {label: value for label, value in _FIELD_FORMATS}
         ttk.Combobox(
             one_off, textvariable=self.one_off_format, state="readonly", width=18,
-            values=["Text", "Uppercase", "Long text", "Date", "Money", "Number", "List"],
+            values=list(self.one_off_format_values),
         ).pack(side="left")
+        self.one_off_options = tk.StringVar(master=self.window)
+        ttk.Entry(one_off, textvariable=self.one_off_options, width=22).pack(side="left", padx=6)
         ttk.Button(one_off, text="Insert one-off", command=self.insert_one_off).pack(side="left", padx=6)
         self.one_off_status = ttk.Label(outer, text="", foreground="#8a5a00")
         self.one_off_status.pack(anchor="w")
@@ -225,13 +235,11 @@ class FieldPickerDialog:
             self.tree.item(group, open=True)
 
     def insert_one_off(self):
-        formats = {
-            "Text": "", "Uppercase": "upper", "Long text": "long",
-            "Date": "date", "Money": "money", "Number": "number", "List": "list",
-        }
         try:
             value = make_field_placeholder(
-                self.one_off_name.get(), formats.get(self.one_off_format.get(), "")
+                self.one_off_name.get(),
+                self.one_off_format_values.get(self.one_off_format.get(), ""),
+                self.one_off_options.get(),
             )
         except ValueError as exc:
             self.one_off_status.configure(text=str(exc))
@@ -239,6 +247,7 @@ class FieldPickerDialog:
         self.on_insert(value)
         if self.keep_open.get():
             self.one_off_name.set("")
+            self.one_off_options.set("")
             self.window.lift()
             self.window.focus_force()
         else:
@@ -264,9 +273,7 @@ class FieldPickerDialog:
         if field is None:
             return
         try:
-            field_format = str(field.get("default_format") or "")
-            kind = _FORMAT_LABELS.get(field_format, "Text")
-            value = build_created_field(field, kind)
+            value = field_definition_placeholder(field)
         except ValueError as exc:
             messagebox.showerror("Cannot insert this field", str(exc), parent=self.window)
             return
