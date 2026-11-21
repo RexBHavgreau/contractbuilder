@@ -110,3 +110,22 @@ def test_loading_a_word_file_names_it(app, tmp_path):
     document.save(path)
     app.load_template(path)
     assert app.template_name.cget("text") == "Invented Letter.docx"
+
+
+def test_builder_shows_name_box_and_layout_button(app):
+    app.start_buttons[1].invoke()
+    app.root.update()
+    window = app.assembly_builder_window.window
+    window.update()
+    texts = _texts(window)
+    assert "Choose page layout file…" in texts and "Assembly name" in texts
+
+    def visible(widget):
+        return widget.winfo_ismapped() and widget.winfo_height() > 5
+
+    entry = app.assembly_builder_window.name_entry
+    assert visible(entry)
+    # Even in a short window the name box must not be squeezed away.
+    window.geometry("1000x640")
+    window.update()
+    assert visible(entry)
