@@ -306,6 +306,12 @@ def test_composer_writes_external_hyperlink_relationships_and_preserves_linked_f
     assert "[another reference](<https://example.com/terms>)" in imported.markdown
     assert "[Email](<mailto:legal@example.com>)" in imported.markdown
 
+    round_trip_path = tmp_path / "round-trip-links.docx"
+    docx_compose.compose_document(shell, [imported.markdown], round_trip_path)
+    round_trip = docx_to_markdown.import_docx(round_trip_path)
+    assert "[{{Client Name}}](<https://example.com/terms>)" in round_trip.markdown
+    assert "[Email](<mailto:legal@example.com>)" in round_trip.markdown
+
     template = core.Template(output)
     assert [field.name for field in template.field_list()] == ["Client Name"]
     filled, report = core.render(template, {"Client Name": "Northstar Widgets"})
