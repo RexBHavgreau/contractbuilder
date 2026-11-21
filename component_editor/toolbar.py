@@ -69,6 +69,9 @@ class ToolbarMixin:
         self.field_button = ttk.Button(
             toolbar, text="Insert field", command=self.open_field_dialog
         )
+        self.choice_wording_button = ttk.Button(
+            toolbar, text="Choice wording…", command=self.open_choice_wording
+        )
         self.import_button = ttk.Button(
             toolbar, text="Import Word", command=self.open_import_dialog
         )
@@ -90,13 +93,14 @@ class ToolbarMixin:
             "outdent": self.outdent_button,
             "table": self.table_button,
             "field": self.field_button,
+            "choice_wording": self.choice_wording_button,
             "import": self.import_button,
             "source_view": self.source_view_button,
         }
         self.toolbar_groups = [
             ["bold", "italic", "heading", "paragraph_style"],
             ["bullet", "numbered", "indent", "outdent"],
-            ["table", "field", "import"],
+            ["table", "field", "choice_wording", "import"],
             ["source_view"],
         ]
         toolbar.bind("<Configure>", self._schedule_toolbar_layout, add="+")
