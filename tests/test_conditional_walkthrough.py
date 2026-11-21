@@ -4,7 +4,7 @@ from docx import Document
 import core
 
 from component_editor.conditional_walkthrough import (
-    build_conditional_text, build_optional_text,
+    build_conditional_text, build_optional_text, parse_conditional_text,
 )
 
 
@@ -115,3 +115,21 @@ def test_each_choice_renders_with_single_spaces(tmp_path, choice, expected):
     output = tmp_path / "filled.docx"
     core.build_contract(template, {"Publisher Type": choice}, output)
     assert Document(output).paragraphs[0].text == expected
+
+
+def test_existing_explicit_blocks_can_be_reopened():
+    source = (
+        "{{#if Publisher Type = Non-profit}}a non-profit corporation{{/if}} "
+        "{{#if Publisher Type = Sole proprietor}}a sole proprietor{{/if}}"
+    )
+    assert parse_conditional_text(source) == (
+        "Publisher Type",
+        ["Non-profit", "Sole proprietor"],
+        ["a non-profit corporation", "a sole proprietor"],
+    )
+
+
+def test_hand_typed_else_block_is_not_rewritten_as_a_choice_set():
+    source = "{{#if Publisher Type = Non-profit}}a corporation{{else}}a person{{/if}}"
+    with pytest.raises(ValueError, match="complete choice-wording block"):
+        parse_conditional_text(source)
