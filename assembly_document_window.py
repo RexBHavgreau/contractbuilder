@@ -7,7 +7,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 import core
-from publisher_profiles import values_for_template
+from publisher_profiles import (
+    values_for_template, publisher_column_for_field, unmatched_profile_details,
+)
 from ui_widgets import FieldInput, ScrollableFrame
 
 
@@ -56,10 +58,16 @@ class AssemblyDocumentWindow:
         )
         self.publisher_combo.pack(side="left", fill="x", expand=True)
         self.load_publisher_button = ttk.Button(
-            profile_frame, text="Load into fields",
+            profile_frame, text="Fill all from publisher",
             command=self.load_publisher_profile, state="disabled",
         )
         self.load_publisher_button.pack(side="left", padx=(8, 0))
+        self.auto_fill_publisher = tk.BooleanVar(master=self.window, value=False)
+        ttk.Checkbutton(
+            outer, text="Fill automatically when I choose a publisher",
+            variable=self.auto_fill_publisher,
+        ).pack(anchor="w", pady=(0, 8))
+        self.publisher_combo.bind("<<ComboboxSelected>>", self.publisher_selection_changed)
         ttk.Button(
             profile_frame, text="Manage profiles…",
             command=self.app.manage_publisher_profiles,
@@ -81,7 +89,15 @@ class AssemblyDocumentWindow:
         self.scroll.pack(fill="both", expand=True)
         row = 0
         for field in template.field_list():
-            control = FieldInput(self.scroll.inner, field, row)
+            store = self.app.publisher_store
+            match_map = store.field_match_map() if store is not None else {}
+            fill_callback = (
+                (lambda name=field.name: self.load_publisher_profile(name))
+                if publisher_column_for_field(field.name, match_map) else None
+            )
+            control = FieldInput(
+                self.scroll.inner, field, row, on_fill_from_publisher=fill_callback
+            )
             self.inputs.append(control)
             row += 1 if field.kind == "yesno" else 2
         if not self.inputs:
@@ -149,7 +165,11 @@ class AssemblyDocumentWindow:
         )
         self.publisher_variable.set("")
 
-    def load_publisher_profile(self):
+    def publisher_selection_changed(self, _event=None):
+        if self.auto_fill_publisher.get():
+            self.load_publisher_profile()
+
+    def load_publisher_profile(self, field_name=None):
         name = self.publisher_variable.get()
         profile_id = self.publisher_profile_ids.get(name)
         store = self.app.publisher_store
@@ -157,6 +177,7 @@ class AssemblyDocumentWindow:
             return
         try:
             profile = store.get_profile(profile_id)
+            match_map = store.field_match_map()
         except sqlite3.Error as exc:
             messagebox.showerror(
                 "Could not load publisher profile", str(exc), parent=self.window
@@ -170,29 +191,27 @@ class AssemblyDocumentWindow:
                 parent=self.window,
             )
             return
-        values = values_for_template(
-            profile,
-            [control.field.name for control in self.inputs],
-            store.field_match_map(),
-        )
+        field_names = [control.field.name for control in self.inputs]
+        requested_names = [field_name] if field_name else field_names
+        values = values_for_template(profile, requested_names, match_map)
         if not values:
             messagebox.showinfo(
                 "No matching fields",
-                "No fields in this assembly match the saved publisher profile.",
+                (f"No saved publisher value is available for “{field_name}”."
+                 if field_name else
+                 "No fields in this assembly match the saved publisher profile."),
                 parent=self.window,
             )
             return
         overwritten = [
-            field_name for field_name in values
-            if any(
-                control.field.name == field_name and str(control.get()).strip()
-                for control in self.inputs
-            )
+            item for item in values
+            if any(control.field.name == item and str(control.get()).strip()
+                   for control in self.inputs)
         ]
         if overwritten and not messagebox.askyesno(
             "Replace existing entries?",
             "Loading this profile will replace these non-empty fields:\n\n"
-            + "\n".join("• " + field for field in overwritten)
+            + "\n".join("• " + item for item in overwritten)
             + "\n\nContinue?",
             parent=self.window,
         ):
@@ -200,13 +219,13 @@ class AssemblyDocumentWindow:
         for control in self.inputs:
             if control.field.name in values:
                 control.set(values[control.field.name])
-        self.status.configure(
-            text=(
-                f"Loaded {len(values)} field(s) from {profile['publisher_name']}. "
-                "Review the remaining fields before creating the document."
-            ),
-            foreground="#1b6e2e",
-        )
+        missing = unmatched_profile_details(profile, field_names, match_map)
+        summary = "Filled: " + ", ".join(values)
+        if missing:
+            summary += ". No matching field for: " + ", ".join(missing)
+        else:
+            summary += ". All populated publisher details have a matching field."
+        self.status.configure(text=summary, foreground="#1b6e2e")
 
     def collect_values(self):
         return {control.field.name: control.get() for control in self.inputs}

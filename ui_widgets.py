@@ -63,7 +63,7 @@ class ScrollableFrame(ttk.Frame):
 class FieldInput:
     """A basic form control corresponding to one unique placeholder."""
 
-    def __init__(self, parent, field, row):
+    def __init__(self, parent, field, row, on_fill_from_publisher=None):
         self.field = field
         self.variable = None
         self.text = None
@@ -75,6 +75,10 @@ class FieldInput:
                 parent, text=field.name, variable=self.variable
             )
             self.control.grid(row=row, column=0, columnspan=2, sticky="w", pady=5)
+            if on_fill_from_publisher is not None:
+                ttk.Button(
+                    parent, text="From publisher", command=on_fill_from_publisher
+                ).grid(row=row, column=2, sticky="e", padx=(8, 0), pady=5)
             return
 
         ttk.Label(parent, text=field.name).grid(
@@ -105,6 +109,11 @@ class FieldInput:
             else:
                 self.control = ttk.Entry(parent, textvariable=self.variable)
             self.control.grid(row=row, column=1, sticky="ew", pady=(5, 0))
+
+        if on_fill_from_publisher is not None:
+            ttk.Button(
+                parent, text="From publisher", command=on_fill_from_publisher
+            ).grid(row=row, column=2, sticky="e", padx=(8, 0), pady=(5, 0))
 
     def get(self):
         if self.field.kind == "yesno":
