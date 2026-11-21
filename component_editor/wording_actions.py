@@ -181,7 +181,12 @@ class WordingActionsMixin:
             self._schedule_preview()
             self.wording.focus_set()
 
-        _package.ConditionalWordingDialog(self.window, self.library, insert)
+        selected = self.wording.tag_ranges("sel")
+        selected_text = self.wording.get(*selected) if selected else ""
+        initial = selected_text if "{{#if" in selected_text else ""
+        _package.ConditionalWordingDialog(
+            self.window, self.library, insert, initial_text=initial
+        )
 
     def open_table_editor(self):
         if self.protected_content:
