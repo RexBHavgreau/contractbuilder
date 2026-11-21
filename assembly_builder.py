@@ -31,6 +31,11 @@ from layout_file_dialog import confirm_layout_file
 NO_SHELL = "None chosen yet"
 
 
+def _name_key(name: str) -> str:
+    """Names are the same assembly when only capitals or spacing differ."""
+    return " ".join(str(name or "").split()).casefold()
+
+
 class AssemblyBuilderWindow:
     """Arrange components, choose a shell, preview and save immutable revisions."""
 
@@ -87,6 +92,7 @@ class AssemblyBuilderWindow:
         top.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         top.columnconfigure(1, weight=1)
         ttk.Label(top, text="Assembly name").grid(row=0, column=0, sticky="w")
+        self.name_variable.trace_add("write", self._name_changed_hint)
         self.name_entry = ttk.Entry(top, textvariable=self.name_variable)
         self.name_entry.grid(row=0, column=1, sticky="ew", padx=(8, 0))
 
@@ -628,7 +634,15 @@ class AssemblyBuilderWindow:
             }
             for item in self.items
         ]
-        new_assembly = self.assembly_id is None
+        # An existing assembly saved under a different name becomes a NEW assembly
+        # (a copy made from it); the original is left exactly as it was. A change
+        # of capitals or spacing alone is still the same assembly.
+        previous_name = self.assembly_name
+        copy_of_existing = (
+            self.assembly_id is not None
+            and _name_key(name) != _name_key(previous_name)
+        )
+        new_assembly = self.assembly_id is None or copy_of_existing
         try:
             if new_assembly:
                 assembly_id = self.library.create_assembly(name)
@@ -654,10 +668,26 @@ class AssemblyBuilderWindow:
         self.assembly_id = int(assembly_id)
         self.revision_id = int(revision["id"])
         self.assembly_name = name
-        self.name_entry.configure(state="readonly")
         self.saved_snapshot = self._snapshot()
-        self._refresh_newer_versions(f"Saved {name} · revision {revision['number']}.")
+        if copy_of_existing:
+            self._refresh_newer_versions(
+                f"Saved as a new assembly, {name} · revision {revision['number']}. "
+                f"{previous_name} was not changed."
+            )
+        else:
+            self._refresh_newer_versions(f"Saved {name} · revision {revision['number']}.")
         return True
+
+    def _name_changed_hint(self, *_args):
+        """Tell the user, before they save, that a new name makes a new assembly."""
+        if self.assembly_id is None or not hasattr(self, "status"):
+            return
+        name = self.name_variable.get().strip()
+        if name and _name_key(name) != _name_key(self.assembly_name):
+            self.status.configure(
+                text=f"Saving will create a new assembly named {name}; "
+                     f"{self.assembly_name} will stay as it is."
+            )
 
 
     def _refresh_newer_versions(self, prefix: str = ""):

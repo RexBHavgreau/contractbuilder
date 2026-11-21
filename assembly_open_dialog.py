@@ -99,7 +99,6 @@ def load_revision(builder, revision: Mapping[str, object]):
     builder.revision_id = int(revision["id"])
     builder.assembly_name = str(revision["assembly_name"])
     builder.name_variable.set(builder.assembly_name)
-    builder.name_entry.configure(state="readonly")
 
     shell_path = Path(str(revision["shell_path"]))
     expected_digest = str(revision["shell_sha256"])
