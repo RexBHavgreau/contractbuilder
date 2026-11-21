@@ -45,3 +45,14 @@ def test_guide_has_the_starting_a_contract_section():
     section = guide[start:end]
     for words in ("Existing contract assembly", "New contract assembly", "Word file", "Recent", "Remove from list"):
         assert words in section
+
+
+def test_guide_explains_asking_once_for_a_number_inside_the_template_help():
+    guide = GUIDE.read_text(encoding="utf-8")
+    start = guide.index("WRITING A TEMPLATE")
+    end = guide.index("TEMPLATE CHECKS", start)
+    section = guide[guide.index("ASKING ONCE FOR A NUMBER"):]
+    section = section[:section.index("CHOOSING THE RIGHT KIND OF FIELD")]
+    assert start < guide.index("ASKING ONCE FOR A NUMBER") < end
+    assert "{{Copies | number-words}}" in section
+    assert "Not available yet" in section
