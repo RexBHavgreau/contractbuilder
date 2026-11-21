@@ -54,6 +54,23 @@ class AssemblyDocumentWindow:
             wraplength=760,
         ).pack(anchor="w", pady=(3, 10))
 
+        if self.assembly_revision is not None:
+            assembly_actions = ttk.Frame(outer)
+            assembly_actions.pack(fill="x", pady=(0, 8))
+            if self.on_edit_assembly is not None:
+                ttk.Button(
+                    assembly_actions, text="Edit this assembly…",
+                    command=self.on_edit_assembly,
+                ).pack(side="left")
+            if (
+                self.assembly_revision.get("has_newer_wording")
+                and self.on_review_updates is not None
+            ):
+                ttk.Button(
+                    assembly_actions, text="Review updates…",
+                    command=self.on_review_updates,
+                ).pack(side="left", padx=(7, 0))
+
         profile_frame = ttk.LabelFrame(outer, text="Saved publisher", padding=8)
         profile_frame.pack(fill="x", pady=(0, 10))
         self.publisher_variable = tk.StringVar(master=self.window)
@@ -138,18 +155,6 @@ class AssemblyDocumentWindow:
         ttk.Button(
             footer, text="Create document…", command=self.create_document
         ).pack(side="right", padx=(0, 7))
-        if self.assembly_revision is not None and self.on_edit_assembly is not None:
-            ttk.Button(
-                footer, text="Edit this assembly…", command=self.on_edit_assembly
-            ).pack(side="right", padx=(0, 7))
-        if (
-            self.assembly_revision is not None
-            and self.assembly_revision.get("has_newer_wording")
-            and self.on_review_updates is not None
-        ):
-            ttk.Button(
-                footer, text="Review updates…", command=self.on_review_updates
-            ).pack(side="right", padx=(0, 7))
         self._refresh_publisher_profiles()
 
     def _refresh_publisher_profiles(self):
