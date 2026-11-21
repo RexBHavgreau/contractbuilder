@@ -366,7 +366,8 @@ class FieldCreatorDialog:
         ttk.Entry(self.options_frame, textvariable=self.plural).grid(
             row=2, column=1, sticky="ew", padx=(8, 0), pady=3
         )
-        ttk.Label(self.options_frame, text="Wording to include").grid(row=3, column=0, sticky="nw")
+        self.wording_label = ttk.Label(self.options_frame, text="Wording to include")
+        self.wording_label.grid(row=3, column=0, sticky="nw")
         self.wording_text = tk.Text(self.options_frame, height=5, width=45, wrap="word")
         self.wording_text.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=3)
         self.wording_text.bind("<KeyRelease>", self._update_conditional_preview)
@@ -409,6 +410,9 @@ class FieldCreatorDialog:
             for widget in self.options_frame.winfo_children()[:2]:
                 widget.grid()
             if kind == "Conditional wording":
+                self.wording_label.configure(
+                    text="Wording for each choice (one per line: Choice | wording)"
+                )
                 for widget in self.options_frame.winfo_children()[6:]:
                     widget.grid()
                 self.preview.grid()
@@ -417,6 +421,7 @@ class FieldCreatorDialog:
                 widget.grid()
             self.preview.grid_remove()
         elif kind == "Optional clause":
+            self.wording_label.configure(text="Wording to include")
             for widget in self.options_frame.winfo_children()[6:8]:
                 widget.grid()
             self.preview.grid_remove()
@@ -428,8 +433,15 @@ class FieldCreatorDialog:
         if self.kind.get() != "Conditional wording":
             return
         values = [line.strip() for line in self.values_text.get("1.0", "end").splitlines() if line.strip()]
+        entries = []
+        for line in self.wording_text.get("1.0", "end-1c").splitlines():
+            if "|" in line:
+                choice, phrase = line.split("|", 1)
+                if choice.strip() and phrase.strip():
+                    entries.append(choice.strip() + " → " + phrase.strip())
         self.preview.configure(
-            text="For each choice, enter one line below as “Choice | wording”. "
+            text=("Preview: " + " · ".join(entries)) if entries
+            else "Enter one line for each choice as “Choice | wording”. "
             + ("Choices: " + ", ".join(values) if values else "")
         )
 
