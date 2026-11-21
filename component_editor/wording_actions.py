@@ -157,7 +157,7 @@ class WordingActionsMixin:
             self._schedule_preview()
             self.wording.focus_set()
 
-        _package.FieldPickerDialog(self.window, self.library, insert)
+        _package.FieldInsertDialog(self.window, self.library, insert)
 
     def open_table_editor(self):
         if self.protected_content:
