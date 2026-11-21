@@ -56,7 +56,6 @@ def _populate_library(path, with_profiles=True):
         category="Legacy",
     )
     old_version = library.list_component_versions(archived_id)[0]
-    library.archive_component(archived_id)
 
     assembly_id = library.create_assembly(
         "Services agreement", description="Base agreement"
@@ -67,6 +66,7 @@ def _populate_library(path, with_profiles=True):
         note="First assembly revision",
     )
     assert revision["finalized"] is True
+    library.archive_component(archived_id)
     library.archive_assembly(assembly_id)
 
     field_id = library.add_field_definition(
