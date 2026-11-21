@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path
 import re
@@ -19,7 +20,7 @@ from typing import Callable, Iterator, Mapping, Sequence
 
 # The existing publisher_profiles.sqlite3 layout is schema version 1.
 # Later component-library changes add one migration per new version.
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 _MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 PROFILE_FIELDS = (
@@ -789,6 +790,53 @@ def _verify_paragraph_style_schema(connection: sqlite3.Connection) -> None:
         )
 
 
+def _migrate_publisher_details_and_parties(connection: sqlite3.Connection) -> None:
+    """Extra details per publisher, and named parties for multi-publisher contracts.
+
+    A detail (such as Publisher type) is defined as a field definition that
+    carries ``publisher_detail_name`` (T-043-A); this table holds each
+    publisher's value for it. A party (such as "Publisher One") lets one form
+    fill several publishers (T-046-D).
+    """
+    connection.execute("""
+        CREATE TABLE publisher_details (
+            publisher_id INTEGER NOT NULL
+                REFERENCES publishers(id) ON DELETE CASCADE,
+            detail_key TEXT NOT NULL CHECK (length(trim(detail_key)) > 0),
+            detail_name TEXT NOT NULL CHECK (length(trim(detail_name)) > 0),
+            value TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (publisher_id, detail_key)
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE publisher_parties (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL CHECK (length(trim(name)) > 0),
+            name_key TEXT NOT NULL UNIQUE CHECK (length(trim(name_key)) > 0),
+            role TEXT NOT NULL DEFAULT ''
+        )
+    """)
+
+
+_MIGRATIONS[7] = _migrate_publisher_details_and_parties
+
+
+def _verify_details_and_parties_schema(connection: sqlite3.Connection) -> None:
+    required = {
+        "publisher_details": {"publisher_id", "detail_key", "detail_name", "value"},
+        "publisher_parties": {"id", "name", "name_key", "role"},
+    }
+    for table_name, expected in required.items():
+        if not _table_exists(connection, table_name):
+            raise sqlite3.DatabaseError(f"The {table_name} table is missing.")
+        actual = {row[1] for row in connection.execute(f"PRAGMA table_info({table_name})")}
+        missing = sorted(expected - actual)
+        if missing:
+            raise sqlite3.DatabaseError(
+                f"The {table_name} table is missing required column(s): " + ", ".join(missing)
+            )
+
+
 def _verify_user_field_match_schema(connection: sqlite3.Connection) -> None:
     if not _table_exists(connection, "publisher_field_matches"):
         raise sqlite3.DatabaseError("The publisher field-matching table is missing.")
@@ -825,6 +873,8 @@ def _verify_database(
         _verify_user_field_match_schema(connection)
     if expected_version is not None and expected_version >= 6:
         _verify_paragraph_style_schema(connection)
+    if expected_version is not None and expected_version >= 7:
+        _verify_details_and_parties_schema(connection)
     integrity = connection.execute("PRAGMA integrity_check").fetchall()
     if integrity != [("ok",)]:
         raise sqlite3.DatabaseError(
@@ -1059,6 +1109,192 @@ class PublisherProfileStore:
             ).fetchone()
             return dict(row) if row else None
 
+    def get_profile_with_details(self, profile_id: int) -> dict[str, object] | None:
+        """The profile plus its extra details under ``details`` (T-046-C)."""
+        with self._connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM publishers WHERE id = ?", (int(profile_id),)
+            ).fetchone()
+            if not row:
+                return None
+            profile = dict(row)
+            profile["details"] = self._details_for(connection, int(profile_id))
+            return profile
+
+    # -- extra publisher details (T-046-C) ---------------------------------
+
+    @staticmethod
+    def _details_for(connection: sqlite3.Connection, profile_id: int) -> dict[str, str]:
+        """{detail name: value} for one publisher; empty on a pre-v7 database."""
+        if not _table_exists(connection, "publisher_details"):
+            return {}
+        rows = connection.execute(
+            "SELECT detail_name, value FROM publisher_details "
+            "WHERE publisher_id = ? AND trim(value) != '' ORDER BY detail_name COLLATE NOCASE",
+            (profile_id,),
+        ).fetchall()
+        return {row["detail_name"]: row["value"] for row in rows}
+
+    def list_detail_definitions(self) -> list[dict[str, object]]:
+        """The publisher details the user has defined (field definitions that
+        carry ``publisher_detail_name``), with their allowed values."""
+        with self._connection() as connection:
+            if not _table_exists(connection, "field_definitions"):
+                return []
+            rows = connection.execute(
+                "SELECT id, name, name_key, description, allowed_values, publisher_detail_name "
+                "FROM field_definitions "
+                "WHERE publisher_detail_name IS NOT NULL AND status = 'active' "
+                "ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+        definitions = []
+        for row in rows:
+            try:
+                allowed = [str(v) for v in json.loads(row["allowed_values"] or "[]")]
+            except (TypeError, ValueError):
+                allowed = []
+            definitions.append({
+                "id": int(row["id"]),
+                "name": row["publisher_detail_name"] or row["name"],
+                "field_name": row["name"],
+                "key": _normalize_field_name(row["publisher_detail_name"] or row["name"]),
+                "description": row["description"],
+                "allowed_values": allowed,
+            })
+        return definitions
+
+    def add_detail_definition(
+        self, name: str, allowed_values: Sequence[str] | None = None,
+        description: str = "",
+    ) -> int:
+        """Define a new publisher detail (such as Publisher type) and its choices.
+
+        It is an ordinary field definition (T-043-A) linked to the detail, so it
+        also appears in the field picker. A detail with allowed values is
+        edited with a drop-down and its stored value is checked against them.
+        """
+        clean = " ".join(str(name or "").split())
+        if not clean:
+            raise ValueError("Enter a name for the detail, such as Publisher type.")
+        values = []
+        for item in allowed_values or ():
+            text = " ".join(str(item).split())
+            if text and text.casefold() not in {v.casefold() for v in values}:
+                values.append(text)
+        name_key = re.sub(r"\s+", " ", clean).strip().lower()
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if connection.execute(
+                "SELECT 1 FROM field_definitions WHERE name_key = ?", (name_key,)
+            ).fetchone():
+                raise ValueError(f"A field named '{clean}' already exists. Choose another name.")
+            cursor = connection.execute(
+                "INSERT INTO field_definitions "
+                "(name, name_key, description, field_group, default_format, default_options, "
+                " allowed_values, publisher_profile_column, publisher_detail_name) "
+                "VALUES (?, ?, ?, 'Publisher', ?, '[]', ?, NULL, ?)",
+                (clean, name_key, str(description or "").strip(),
+                 "choice" if values else "", json.dumps(values), clean),
+            )
+            return int(cursor.lastrowid)
+
+    def detail_links(self) -> dict[str, str]:
+        """{normalized field name: detail name} for the defined details.
+
+        A field is linked to a detail by sharing its name, or by being the
+        field definition that carries it.
+        """
+        links = {}
+        for definition in self.list_detail_definitions():
+            links[definition["key"]] = definition["name"]
+            links[_normalize_field_name(definition["field_name"])] = definition["name"]
+        return links
+
+    def _check_details(
+        self, connection: sqlite3.Connection, details: Mapping[str, object]
+    ) -> dict[str, tuple[str, str]]:
+        """Validate details against the allowed values; {key: (name, value)}."""
+        definitions = {d["key"]: d for d in self.list_detail_definitions()}
+        checked = {}
+        for raw_name, raw_value in details.items():
+            key = _normalize_field_name(raw_name)
+            value = " ".join(str(raw_value or "").split())
+            definition = definitions.get(key)
+            if definition is None:
+                if value:
+                    raise ValueError(
+                        f"'{raw_name}' is not one of the details you defined. "
+                        "Add the detail first."
+                    )
+                continue
+            if value and definition["allowed_values"]:
+                match = next(
+                    (a for a in definition["allowed_values"]
+                     if a.casefold() == value.casefold()), None)
+                if match is None:
+                    raise ValueError(
+                        f"{definition['name']} must be one of: "
+                        + ", ".join(definition["allowed_values"]) + "."
+                    )
+                value = match
+            checked[key] = (definition["name"], value)
+        return checked
+
+    # -- parties (T-046-D) --------------------------------------------------
+
+    def list_parties(self) -> list[dict[str, object]]:
+        with self._connection() as connection:
+            if not _table_exists(connection, "publisher_parties"):
+                return []
+            rows = connection.execute(
+                "SELECT id, name, name_key, role FROM publisher_parties "
+                "ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def save_party(self, name: str, role: str = "", party_id: int | None = None) -> int:
+        """Define a party such as "Publisher One", optionally with a role label."""
+        clean = " ".join(str(name or "").split())
+        if not clean:
+            raise ValueError("Enter a name for the party, such as Publisher One.")
+        key = _normalize_field_name(clean)
+        try:
+            with self._connection() as connection:
+                if party_id is None:
+                    cursor = connection.execute(
+                        "INSERT INTO publisher_parties (name, name_key, role) VALUES (?, ?, ?)",
+                        (clean, key, " ".join(str(role or "").split())),
+                    )
+                    return int(cursor.lastrowid)
+                cursor = connection.execute(
+                    "UPDATE publisher_parties SET name = ?, name_key = ?, role = ? WHERE id = ?",
+                    (clean, key, " ".join(str(role or "").split()), int(party_id)),
+                )
+                if cursor.rowcount == 0:
+                    raise ValueError("That party no longer exists.")
+                return int(party_id)
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(f"A party named '{clean}' already exists.") from exc
+
+    def delete_party(self, party_id: int) -> bool:
+        with self._connection() as connection:
+            return connection.execute(
+                "DELETE FROM publisher_parties WHERE id = ?", (int(party_id),)
+            ).rowcount > 0
+
+    # -- help text for the fill-in forms (T-043-D, T-058-A) ----------------
+
+    def field_help_map(self) -> dict[str, str]:
+        """{normalized field name: description} for fields that have help text."""
+        with self._connection() as connection:
+            if not _table_exists(connection, "field_definitions"):
+                return {}
+            rows = connection.execute(
+                "SELECT name, description FROM field_definitions "
+                "WHERE status = 'active' AND trim(description) != ''"
+            ).fetchall()
+        return {_normalize_field_name(row["name"]): row["description"].strip() for row in rows}
+
     def save_profile(
         self, profile: Mapping[str, object], profile_id: int | None = None
     ) -> int:
@@ -1069,12 +1305,17 @@ class PublisherProfileStore:
 
         values = {field: str(profile.get(field) or "").strip() for field in PROFILE_FIELDS}
         values["publisher_name"] = name
+        details = profile.get("details")
         # Python's casefold handles international scripts more consistently than
         # SQLite's built-in NOCASE collation, which is limited to ASCII letters.
         name_key = " ".join(name.casefold().split())
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         try:
             with self._connection() as connection:
+                checked = (
+                    self._check_details(connection, details)
+                    if isinstance(details, Mapping) else None
+                )
                 if profile_id is None:
                     columns = ", ".join((*PROFILE_FIELDS, "publisher_name_key", "created_at", "updated_at"))
                     placeholders = ", ".join("?" for _ in range(len(PROFILE_FIELDS) + 3))
@@ -1082,6 +1323,7 @@ class PublisherProfileStore:
                         f"INSERT INTO publishers ({columns}) VALUES ({placeholders})",
                         (*[values[field] for field in PROFILE_FIELDS], name_key, now, now),
                     )
+                    self._write_details(connection, int(cursor.lastrowid), checked)
                     return int(cursor.lastrowid)
                 assignments = ", ".join(f"{field} = ?" for field in PROFILE_FIELDS)
                 cursor = connection.execute(
@@ -1091,11 +1333,25 @@ class PublisherProfileStore:
                 )
                 if cursor.rowcount == 0:
                     raise ValueError("That publisher profile no longer exists.")
+                self._write_details(connection, int(profile_id), checked)
                 return int(profile_id)
         except sqlite3.IntegrityError as exc:
             raise ValueError(
                 "A publisher with that name already exists. Use a distinct name or edit the existing profile."
             ) from exc
+
+    @staticmethod
+    def _write_details(connection, profile_id: int, checked) -> None:
+        """Replace this publisher's details (None leaves them as they are)."""
+        if checked is None or not _table_exists(connection, "publisher_details"):
+            return
+        connection.execute("DELETE FROM publisher_details WHERE publisher_id = ?", (profile_id,))
+        for key, (name, value) in checked.items():
+            if value:
+                connection.execute(
+                    "INSERT INTO publisher_details (publisher_id, detail_key, detail_name, value) "
+                    "VALUES (?, ?, ?, ?)", (profile_id, key, name, value),
+                )
 
     def delete_profile(self, profile_id: int) -> bool:
         with self._connection() as connection:

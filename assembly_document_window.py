@@ -7,9 +7,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 import core
-from publisher_profiles import (
-    values_for_template, publisher_column_for_field, unmatched_profile_details,
-)
+from publisher_panel import PublisherPanel
 from ui_widgets import FieldInput, ScrollableFrame
 
 
@@ -71,28 +69,13 @@ class AssemblyDocumentWindow:
                     command=self.on_review_updates,
                 ).pack(side="left", padx=(7, 0))
 
-        profile_frame = ttk.LabelFrame(outer, text="Saved publisher", padding=8)
-        profile_frame.pack(fill="x", pady=(0, 10))
-        self.publisher_variable = tk.StringVar(master=self.window)
-        self.publisher_combo = ttk.Combobox(
-            profile_frame, textvariable=self.publisher_variable, state="disabled"
+        self.publisher_panel = PublisherPanel(
+            self.window, outer, self.app.publisher_store, self.app.publisher_store_error,
+            lambda: self.inputs,
+            lambda text, color: self.status.configure(text=text, foreground=color),
+            self.app.manage_publisher_profiles,
+            "No fields in this assembly match the saved publisher profile.",
         )
-        self.publisher_combo.pack(side="left", fill="x", expand=True)
-        self.load_publisher_button = ttk.Button(
-            profile_frame, text="Fill all from publisher",
-            command=self.load_publisher_profile, state="disabled",
-        )
-        self.load_publisher_button.pack(side="left", padx=(8, 0))
-        self.auto_fill_publisher = tk.BooleanVar(master=self.window, value=False)
-        ttk.Checkbutton(
-            outer, text="Fill automatically when I choose a publisher",
-            variable=self.auto_fill_publisher,
-        ).pack(anchor="w", pady=(0, 8))
-        self.publisher_combo.bind("<<ComboboxSelected>>", self.publisher_selection_changed)
-        ttk.Button(
-            profile_frame, text="Manage profiles…",
-            command=self.app.manage_publisher_profiles,
-        ).pack(side="left", padx=(8, 0))
 
         ttk.Label(
             outer,
@@ -109,15 +92,12 @@ class AssemblyDocumentWindow:
         self.scroll = ScrollableFrame(form)
         self.scroll.pack(fill="both", expand=True)
         row = 0
-        store = self.app.publisher_store
-        match_map = store.field_match_map() if store is not None else {}
-        for field in template.field_list():
-            fill_callback = (
-                (lambda name=field.name: self.load_publisher_profile(name))
-                if publisher_column_for_field(field.name, match_map) else None
-            )
+        fields = template.field_list()
+        self.publisher_panel.analyze([field.name for field in fields])
+        for field in fields:
             control = FieldInput(
-                self.scroll.inner, field, row, on_fill_from_publisher=fill_callback
+                self.scroll.inner, field, row,
+                on_fill_from_publisher=self.publisher_panel.callback_for(field.name),
             )
             self.inputs.append(control)
             row += 1 if field.kind == "yesno" else 2
@@ -142,117 +122,36 @@ class AssemblyDocumentWindow:
 
         footer = ttk.Frame(outer)
         footer.pack(fill="x", pady=(12, 0))
-        self.status = ttk.Label(footer, text="", foreground="#555555", wraplength=350)
-        self.status.pack(side="left", fill="x", expand=True)
+        # The message has its own wrapping line, so a long one cannot push the
+        # buttons out of the window.
+        self.status = ttk.Label(footer, text="", foreground="#555555", justify="left", wraplength=700)
+        self.status.pack(side="top", fill="x", anchor="w", pady=(0, 6))
+        footer.bind(
+            "<Configure>",
+            lambda event: self.status.configure(wraplength=max(200, event.width - 20)),
+        )
+        buttons = ttk.Frame(footer)
+        buttons.pack(side="top", fill="x")
         self.highlight_variable = tk.BooleanVar(master=self.window, value=False)
         ttk.Checkbutton(
-            footer, text="Highlight inserted text", variable=self.highlight_variable
+            buttons, text="Highlight inserted text", variable=self.highlight_variable
         ).pack(side="left", padx=(5, 8))
-        ttk.Button(footer, text="Clear fields", command=self.clear_fields).pack(
+        ttk.Button(buttons, text="Clear fields", command=self.clear_fields).pack(
             side="right", padx=(0, 7)
         )
-        ttk.Button(footer, text="Close", command=self.close).pack(side="right")
+        ttk.Button(buttons, text="Close", command=self.close).pack(side="right")
         ttk.Button(
-            footer, text="Create document…", command=self.create_document
+            buttons, text="Create document…", command=self.create_document
         ).pack(side="right", padx=(0, 7))
         self._refresh_publisher_profiles()
 
     def _refresh_publisher_profiles(self):
-        store = self.app.publisher_store
-        if store is None:
-            self.publisher_combo.configure(state="disabled", values=[])
-            self.load_publisher_button.configure(state="disabled")
-            return
-        try:
-            profiles = store.list_profiles()
-        except sqlite3.Error as exc:
-            self.publisher_combo.configure(state="disabled", values=[])
-            self.load_publisher_button.configure(state="disabled")
-            self.status.configure(
-                text=f"Could not read publisher profiles: {exc}",
-                foreground="#a00000",
-            )
-            return
-        self.publisher_profile_ids = {
-            str(profile["publisher_name"]): int(profile["id"])
-            for profile in profiles
-        }
-        names = list(self.publisher_profile_ids)
-        self.publisher_combo.configure(
-            values=names, state="readonly" if names else "disabled"
-        )
-        self.load_publisher_button.configure(
-            state="normal" if names else "disabled"
-        )
-        self.publisher_variable.set("")
-
-    def publisher_selection_changed(self, _event=None):
-        if self.auto_fill_publisher.get():
-            self.load_publisher_profile()
+        self.publisher_panel.refresh_profiles()
 
     def load_publisher_profile(self, field_name=None):
-        name = self.publisher_variable.get()
-        profile_id = self.publisher_profile_ids.get(name)
-        store = self.app.publisher_store
-        if store is None:
-            return
-        if profile_id is None:
-            messagebox.showinfo(
-                "Choose a publisher", "Choose a saved publisher before filling fields.",
-                parent=self.window,
-            )
-            return
-        try:
-            profile = store.get_profile(profile_id)
-            match_map = store.field_match_map()
-        except sqlite3.Error as exc:
-            messagebox.showerror(
-                "Could not load publisher profile", str(exc), parent=self.window
-            )
-            return
-        if profile is None:
-            self._refresh_publisher_profiles()
-            messagebox.showwarning(
-                "Profile not found",
-                "That publisher profile was removed. Refresh the list and try again.",
-                parent=self.window,
-            )
-            return
-        field_names = [control.field.name for control in self.inputs]
-        requested_names = [field_name] if field_name else field_names
-        values = values_for_template(profile, requested_names, match_map)
-        if not values:
-            messagebox.showinfo(
-                "No matching fields",
-                (f"No saved publisher value is available for “{field_name}”."
-                 if field_name else
-                 "No fields in this assembly match the saved publisher profile."),
-                parent=self.window,
-            )
-            return
-        overwritten = [
-            item for item in values
-            if any(control.field.name == item and str(control.get()).strip()
-                   for control in self.inputs)
-        ]
-        if overwritten and not messagebox.askyesno(
-            "Replace existing entries?",
-            "Loading this profile will replace these non-empty fields:\n\n"
-            + "\n".join("• " + item for item in overwritten)
-            + "\n\nContinue?",
-            parent=self.window,
-        ):
-            return
-        for control in self.inputs:
-            if control.field.name in values:
-                control.set(values[control.field.name])
-        missing = unmatched_profile_details(profile, field_names, match_map)
-        summary = "Filled: " + ", ".join(values)
-        if missing:
-            summary += ". No matching field for: " + ", ".join(missing)
-        else:
-            summary += ". All populated publisher details have a matching field."
-        self.status.configure(text=summary, foreground="#1b6e2e")
+        """Fill the form from the chosen saved publisher (all fields, or one)."""
+        resolution = self.publisher_panel.resolutions.get(field_name) if field_name else None
+        self.publisher_panel.fill(resolution.party if resolution else None, field_name)
 
     def collect_values(self):
         return {control.field.name: control.get() for control in self.inputs}
