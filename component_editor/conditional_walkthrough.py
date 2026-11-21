@@ -22,7 +22,7 @@ def build_conditional_text(field_name, values, wording, placement="Inside a sent
     clean_values = [str(v).strip() for v in values if str(v).strip()]
     if len(clean_values) < 2:
         raise ValueError("A conditional choice needs at least two values.")
-    if any(any(ch in value for ch in "{}|\\n") for value in clean_values):
+    if any(any(ch in value for ch in "{}|\n") for value in clean_values):
         raise ValueError("Choice values must be single lines without braces or a vertical bar.")
     if len({v.casefold() for v in clean_values}) != len(clean_values):
         raise ValueError("Choice values must be unique.")
