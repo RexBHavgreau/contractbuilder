@@ -49,7 +49,7 @@ def test_conditional_wording_can_be_placed_in_a_list_item(tmp_path):
     document.save(source)
     template = core.Template(source)
     assert template.problems == []
-    assert "Publisher Type" in template.fields
+    assert core.key("Publisher Type") in template.fields
 
 
 def test_same_field_can_be_used_in_more_than_one_component():
