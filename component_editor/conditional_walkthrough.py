@@ -22,6 +22,8 @@ def build_conditional_text(field_name, values, wording, placement="Inside a sent
     clean_values = [str(v).strip() for v in values if str(v).strip()]
     if len(clean_values) < 2:
         raise ValueError("A conditional choice needs at least two values.")
+    if any(any(ch in value for ch in "{}|\\n") for value in clean_values):
+        raise ValueError("Choice values must be single lines without braces or a vertical bar.")
     if len({v.casefold() for v in clean_values}) != len(clean_values):
         raise ValueError("Choice values must be unique.")
     mapping = {}
@@ -168,6 +170,7 @@ class ConditionalWordingDialog:
                 if self.values:
                     values.insert("1.0", "\n".join(self.values))
                 self.values_widget = values
+                values.bind("<KeyRelease>", self._update_live_preview)
                 ttk.Label(self.body, text="Wording (one line per value, in the same order)").grid(
                     row=1, column=0, sticky="nw", pady=8)
                 wording = tk.Text(self.body, height=9, width=50)
@@ -175,10 +178,12 @@ class ConditionalWordingDialog:
                 if hasattr(self, "phrases") and self.phrases:
                     wording.insert("1.0", "\n".join(self.phrases))
                 self.wording_widget = wording
+                wording.bind("<KeyRelease>", self._update_live_preview)
             else:
                 ttk.Label(self.body, text="Clause wording").grid(row=0, column=0, sticky="nw")
                 self.wording_widget = tk.Text(self.body, height=12, width=60)
                 self.wording_widget.grid(row=0, column=1, sticky="nsew")
+                self.wording_widget.bind("<KeyRelease>", self._update_live_preview)
             self.body.columnconfigure(1, weight=1)
             self.body.rowconfigure(1, weight=1)
         elif self.page == 2:
@@ -230,9 +235,26 @@ class ConditionalWordingDialog:
 
     def _update_preview(self):
         if self.page == 1:
-            self.preview.configure(text="Your wording is checked before it is inserted.")
+            self._update_live_preview()
         elif self.page == 3:
             self.preview.configure(text=self._summary())
+
+    def _update_live_preview(self, _event=None):
+        if self.page != 1:
+            return
+        if self.kind.get() == "Conditional wording":
+            values = [line.strip() for line in self.values_widget.get("1.0", "end").splitlines()
+                      if line.strip()]
+            phrases = [line.strip() for line in self.wording_widget.get("1.0", "end-1c").splitlines()]
+            pairs = [phrase for phrase in phrases[:len(values)] if phrase]
+            if pairs:
+                self.preview.configure(text="Sentence preview: " + " ".join(pairs))
+            else:
+                self.preview.configure(text="Enter wording for each value to preview the sentence.")
+        else:
+            phrase = self.wording_widget.get("1.0", "end-1c").strip()
+            self.preview.configure(text="Clause preview: " + phrase if phrase
+                                   else "Enter the clause wording to preview it.")
 
     def advance(self):
         try:
@@ -251,14 +273,13 @@ class ConditionalWordingDialog:
                 self._render()
             else:
                 result = self._build()
-                if self.kind.get() == "Conditional wording":
-                    self._save_choice_field()
+                self._save_control_field()
                 self.on_insert(result)
                 self.window.destroy()
         except (ValueError, TypeError, OSError) as exc:
             messagebox.showerror("Check the wording", str(exc), parent=self.window)
 
-    def _save_choice_field(self):
+    def _save_control_field(self):
         existing = None
         try:
             existing = next((f for f in self.library.list_picker_fields()
@@ -266,16 +287,18 @@ class ConditionalWordingDialog:
                 and f.get("source") == "field_definition"), None)
         except (AttributeError, OSError, ValueError):
             pass
+        fmt = "choice" if self.kind.get() == "Conditional wording" else ""
+        allowed = self.values if self.kind.get() == "Conditional wording" else []
         if existing:
             definition = self.library.get_field_definition(existing["id"])
             self.library.edit_field_definition(existing["id"], name=definition["name"],
-                description=definition.get("description", ""), default_format="choice",
-                allowed_values=self.values, default_options=definition.get("default_options") or [],
+                description=definition.get("description", ""), default_format=fmt,
+                allowed_values=allowed, default_options=definition.get("default_options") or [],
                 publisher_profile_column=definition.get("publisher_profile_column"),
                 publisher_detail_name=definition.get("publisher_detail_name"))
         else:
-            self.library.add_field_definition(self.field.get().strip(), default_format="choice",
-                allowed_values=self.values)
+            self.library.add_field_definition(self.field.get().strip(), default_format=fmt,
+                allowed_values=allowed)
         # Saving is intentionally limited to the field definition; no component text is touched.
 
     def previous(self):
