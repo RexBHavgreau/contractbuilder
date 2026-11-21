@@ -81,6 +81,7 @@ from .field_picker import (  # noqa: F401,E402
     FieldPickerDialog,
     build_created_field,
     field_kind_definition,
+    field_definition_placeholder,
 )
 # Preserve the public dialog hook used by existing integrations and tests.
 FieldInsertDialog = FieldPickerDialog
