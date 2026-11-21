@@ -211,7 +211,7 @@ def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
     import assembly_open_dialog
 
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("760x460")
     library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
     component_id = library.create_component("Picker smoke clause", "Pinned wording.")
     component_version = library.list_component_versions(component_id)[0]
@@ -252,7 +252,9 @@ def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
         search.delete(0, "end")
         root.update()
         tree.selection_set(str(assembly_id))
-        tree.event_generate("<Return>")
+        tree.focus_set()
+        root.update()
+        tree.event_generate("<Return>", when="tail")
         root.update()
         assert opened == [latest["id"]]
 
@@ -276,7 +278,9 @@ def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
         assert earlier_tree.get_children() == (str(first["id"]),)
         assert earlier_tree.item(str(first["id"]), "values")[0] == "Revision 1"
         earlier_tree.selection_set(str(first["id"]))
-        earlier_tree.event_generate("<Return>")
+        earlier_tree.focus_set()
+        root.update()
+        earlier_tree.event_generate("<Return>", when="tail")
         root.update()
         assert opened == [latest["id"], first["id"]]
     finally:
