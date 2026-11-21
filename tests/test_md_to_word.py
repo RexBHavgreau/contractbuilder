@@ -361,7 +361,7 @@ def test_safe_markdown_links_become_word_hyperlinks_and_unsafe_links_stay_plain(
 
 def test_safe_markdown_links_are_also_rendered_inside_table_cells(tmp_path):
     result = md_to_word.render_markdown(
-        "| Contact | Link |\\n| --- | --- |\\n| Legal | [Email](mailto:legal@example.com) |",
+        "| Contact | Link |\n| --- | --- |\n| Legal | [Email](mailto:legal@example.com) |",
         make_shell(tmp_path / "shell.docx"),
     )
     table = result.elements[0]
