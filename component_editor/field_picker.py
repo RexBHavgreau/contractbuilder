@@ -397,14 +397,20 @@ class FieldCreatorDialog:
         ttk.Label(outer, text="Field name").grid(row=2, column=0, sticky="w", pady=4)
         self.name = tk.StringVar(master=self.window, value=(existing or {}).get("name", ""))
         ttk.Entry(outer, textvariable=self.name).grid(row=2, column=1, sticky="ew", pady=4)
-        ttk.Label(outer, text="Description (optional)").grid(row=3, column=0, sticky="w", pady=4)
+        ttk.Label(outer, text="Help text (optional)").grid(row=3, column=0, sticky="w", pady=4)
         self.description = tk.StringVar(
             master=self.window, value=(existing or {}).get("description", "")
         )
         ttk.Entry(outer, textvariable=self.description).grid(row=3, column=1, sticky="ew", pady=4)
+        ttk.Label(
+            outer,
+            text="Shown under the field name on the form, to help the person filling it in. "
+                 "Example: The date the agreement is signed.",
+            foreground="#555555", wraplength=620, justify="left",
+        ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(0, 6))
 
         ttk.Label(outer, text="Fill from saved publisher profile (optional)").grid(
-            row=4, column=0, sticky="w", pady=4
+            row=5, column=0, sticky="w", pady=4
         )
         self.profile_column = tk.StringVar(master=self.window, value="Not linked")
         self.profile_column_values = {
@@ -430,10 +436,10 @@ class FieldCreatorDialog:
         ttk.Combobox(
             outer, textvariable=self.profile_column, state="readonly",
             values=list(self.profile_column_values),
-        ).grid(row=4, column=1, sticky="ew", pady=4)
+        ).grid(row=5, column=1, sticky="ew", pady=4)
 
         self.options_frame = ttk.LabelFrame(outer, text="Options", padding=8)
-        self.options_frame.grid(row=5, column=0, columnspan=2, sticky="nsew", pady=8)
+        self.options_frame.grid(row=6, column=0, columnspan=2, sticky="nsew", pady=8)
         self.options_frame.columnconfigure(1, weight=1)
         ttk.Label(self.options_frame, text="Allowed values (one per line)").grid(
             row=0, column=0, sticky="nw"
@@ -469,7 +475,7 @@ class FieldCreatorDialog:
         self.placement_box.bind("<<ComboboxSelected>>", self._update_conditional_preview)
 
         footer = ttk.Frame(outer)
-        footer.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        footer.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(8, 0))
         ttk.Button(footer, text="Cancel", command=self.window.destroy).pack(side="right")
         ttk.Button(footer, text="Choice wording…", command=self.open_choice_wording).pack(side="left")
         ttk.Button(footer, text="Save field", command=self.save).pack(side="right", padx=6)

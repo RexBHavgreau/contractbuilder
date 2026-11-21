@@ -215,6 +215,34 @@ instead of a comma if either wording itself contains a comma:
 
     {{Titles | plural: it, as written / them, as written}}
 
+ASKING ONCE FOR A NUMBER
+
+Some wording needs a number both as digits and in words, such as "the number
+of copies". Do not write two separate fields for it. Write one field with a
+number format, and the person filling in the form is asked for the number once:
+
+    {{Copies | number}}          writes 7
+    {{Copies | number-words}}    writes seven (7)
+
+The number-words format writes the words with the digits in brackets, which is
+the usual contract form.
+
+To change wording that already has two fields, such as "(Spelled Out)" and
+"(Digit)", make it one field:
+
+1. Open the component in Components > Manage components, or open the Word file.
+2. Replace the two placeholders with one, using the format you want, for
+   example {{Copies | number-words}}.
+3. Save the version (for a component), or save the Word file.
+
+A saved assembly keeps the old version of a component, with its two fields,
+until you update it. Open the assembly, choose Review updates, and choose the
+new wording.
+
+Not available yet: words on their own, without the digits (for example
+"seven" alone). The number-words format always writes the digits in brackets.
+Ask Beaux if you need words only.
+
 CHOOSING THE RIGHT KIND OF FIELD
 
 Choose a field by asking what information the person filling in the contract
