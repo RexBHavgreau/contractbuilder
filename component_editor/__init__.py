@@ -89,6 +89,7 @@ from .conditional_walkthrough import (  # noqa: F401,E402
     ConditionalWordingDialog,
     build_conditional_text,
     build_optional_text,
+    parse_conditional_text,
 )
 from .history_dialog import open_version_history_dialog  # noqa: F401,E402
 from .import_dialog import ImportReviewDialog  # noqa: F401,E402
