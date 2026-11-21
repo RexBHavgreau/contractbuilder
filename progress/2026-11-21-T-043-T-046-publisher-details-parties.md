@@ -2,7 +2,7 @@
 date: 2026-11-21
 task: T-043-D, T-043-E, T-046-C, T-046-D
 author: Claude
-pull_request: pending (update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/87
 ci_run: pending (update after the run on the latest commit)
 size: pending; adds starter_fields.py, publisher_parties.py, publisher_panel.py, publisher_details_form.py, publisher_detail_dialog.py and party_dialog.py (pure Python and Tk, no dependency); confirm release and component-enabled sizes from the CI summary
 ---
