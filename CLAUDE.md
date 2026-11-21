@@ -162,8 +162,8 @@ trace.
   signature blocks.
 - **A PyInstaller one-file app that starts a copy of itself must reset its
   environment.** The app passes the location of its temporary `_MEI` folder to
-  whatever it starts; a restarted copy then reuses a folder that is deleted
-  when the first one closes and fails with "Failed to load Python DLL". Set
+  whatever it starts; a restarted copy **at the same path** (as in a
+  self-update) then reuses a folder that is deleted when the first one closes and fails with "Failed to load Python DLL". Set
   `PYINSTALLER_RESET_ENVIRONMENT=1` and drop `_PYI_*`/`_MEIPASS2` (see
   `self_update.clean_restart_environment`, TASKS.md T-039). The restart script
   is written by the *old* version, so a fix helps only from the version after.
