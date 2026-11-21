@@ -82,6 +82,8 @@ from .field_picker import (  # noqa: F401,E402
     build_created_field,
     field_kind_definition,
 )
+# Preserve the public dialog hook used by existing integrations and tests.
+FieldInsertDialog = FieldPickerDialog
 from .history_dialog import open_version_history_dialog  # noqa: F401,E402
 from .import_dialog import ImportReviewDialog  # noqa: F401,E402
 from .table_dialog import TableEditorDialog  # noqa: F401,E402
