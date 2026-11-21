@@ -506,3 +506,123 @@ def test_older_application_can_use_publishers_without_changing_newer_tables(
             "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'components'"
         ).fetchone()[0] == schema_before
     assert len(older.list_profiles()) == 2
+
+def test_v4_migration_preserves_v3_publisher_and_component_data(tmp_path, monkeypatch):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 3)
+    monkeypatch.setattr(
+        profiles,
+        "_MIGRATIONS",
+        {
+            2: profiles._migrate_components_and_versions,
+            3: profiles._migrate_assemblies_and_revisions,
+        },
+    )
+    legacy = profiles.PublisherProfileStore(path)
+    profile_id = legacy.save_profile(sample_profile())
+    library = ComponentLibrary(path)
+    component_id = library.create_component(
+        "Payment terms", "Payment is due within {{Payment Date}}."
+    )
+    before_profiles = legacy.list_profiles()
+    before_component = library.get_component(component_id)
+    assert _user_version(path) == 3
+
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 4)
+    monkeypatch.setattr(
+        profiles,
+        "_MIGRATIONS",
+        {
+            2: profiles._migrate_components_and_versions,
+            3: profiles._migrate_assemblies_and_revisions,
+            4: profiles._migrate_field_definitions,
+        },
+    )
+    upgraded = profiles.PublisherProfileStore(path)
+
+    assert _user_version(path) == 4
+    assert upgraded.list_profiles() == before_profiles
+    assert upgraded.get_profile(profile_id) == before_profiles[0]
+    assert library.get_component(component_id) == before_component
+    with sqlite3.connect(path) as connection:
+        columns = {
+            row[1] for row in connection.execute(
+                "PRAGMA table_info(field_definitions)"
+            )
+        }
+        assert {
+            "id", "name", "name_key", "description", "field_group",
+            "default_format", "default_options", "allowed_values",
+            "publisher_profile_column", "publisher_detail_name", "status",
+        } <= columns
+        assert connection.execute(
+            "SELECT COUNT(*) FROM field_definitions"
+        ).fetchone() == (0,)
+
+    backup_path = pathlib.Path(str(path) + ".bak-3")
+    assert backup_path.is_file()
+    assert _user_version(backup_path) == 3
+    with sqlite3.connect(backup_path) as backup:
+        assert backup.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'field_definitions'"
+        ).fetchone() is None
+        assert backup.execute("SELECT COUNT(*) FROM publishers").fetchone() == (1,)
+        assert backup.execute("SELECT COUNT(*) FROM components").fetchone() == (1,)
+        assert backup.execute(
+            "SELECT COUNT(*) FROM component_versions"
+        ).fetchone() == (1,)
+
+
+def test_older_v3_application_uses_profiles_without_changing_v4_tables(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    current = profiles.PublisherProfileStore(path)
+    first_profile_id = current.save_profile(sample_profile())
+    library = ComponentLibrary(path)
+    field_id = library.add_field_definition(
+        "Publisher Type",
+        group="Publisher",
+        default_format="choice",
+        allowed_values=["Non-profit", "Sole proprietor"],
+    )
+    with sqlite3.connect(path) as connection:
+        field_before = connection.execute(
+            "SELECT id, name, name_key, allowed_values, status "
+            "FROM field_definitions"
+        ).fetchall()
+        schema_before = connection.execute(
+            "SELECT sql FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'field_definitions'"
+        ).fetchone()[0]
+    assert field_before[0][0] == field_id
+    assert _user_version(path) == 4
+
+    # Simulate the previous release, which knows schemas only through v3.
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 3)
+    monkeypatch.setattr(
+        profiles,
+        "_MIGRATIONS",
+        {
+            2: profiles._migrate_components_and_versions,
+            3: profiles._migrate_assemblies_and_revisions,
+        },
+    )
+    older = profiles.PublisherProfileStore(path)
+    second_profile_id = older.save_profile(sample_profile("Older application profile"))
+
+    with sqlite3.connect(path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone() == (4,)
+        assert connection.execute(
+            "SELECT id, name, name_key, allowed_values, status "
+            "FROM field_definitions"
+        ).fetchall() == field_before
+        assert connection.execute(
+            "SELECT sql FROM sqlite_master "
+            "WHERE type = 'table' AND name = 'field_definitions'"
+        ).fetchone()[0] == schema_before
+    assert older.get_profile(first_profile_id) is not None
+    assert older.get_profile(second_profile_id)["publisher_name"] == (
+        "Older application profile"
+    )
