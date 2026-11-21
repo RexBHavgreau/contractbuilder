@@ -165,3 +165,18 @@ def test_preview_key_explains_both_styles():
     from component_preview import PREVIEW_KEY
     assert "Highlighted" in PREVIEW_KEY and "Grey tags" in PREVIEW_KEY
     assert "not printed" in PREVIEW_KEY
+
+
+
+def test_preview_distinguishes_safe_hyperlinks_from_unsupported_targets():
+    text, segments = _rendered(
+        "[Official site](https://example.com/terms) and "
+        "[legacy link](ftp://example.com/file)."
+    )
+    assert "Official site" in text
+    assert "legacy link" in text
+    assert any(value == "Official site" and "link" in tags for value, tags in segments)
+    assert any(
+        value == "legacy link" and "link_warning" in tags
+        for value, tags in segments
+    )
