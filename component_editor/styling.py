@@ -8,6 +8,7 @@ import re
 from typing import TYPE_CHECKING
 
 import core
+from component_preview import configure_paragraph_style_tags
 
 from .tables import _is_markdown_table_separator
 
@@ -180,6 +181,7 @@ def configure_preview_tags(widget) -> None:
     widget.tag_configure("link", underline=True, foreground="#245a8d")
     widget.tag_configure("rule", foreground="#888888")
     widget.tag_configure("source_text", foreground="#666666")
+    configure_paragraph_style_tags(widget)
     widget.tag_configure(
         "marker", foreground="#4f4f4f", background="#e6e6e6",
         font=("TkDefaultFont", 9, "italic"),

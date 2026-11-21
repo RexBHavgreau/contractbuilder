@@ -78,7 +78,9 @@ class ToolbarMixin:
             toolbar, text="Show raw text", variable=self.source_view_variable,
             command=self.toggle_source_view,
         )
+        self._build_paragraph_style_control(toolbar)
         self.toolbar_button_widgets = {
+            "paragraph_style": self.paragraph_style_button,
             "bold": self.bold_button,
             "italic": self.italic_button,
             "heading": self.heading_button,
@@ -92,7 +94,7 @@ class ToolbarMixin:
             "source_view": self.source_view_button,
         }
         self.toolbar_groups = [
-            ["bold", "italic", "heading"],
+            ["bold", "italic", "heading", "paragraph_style"],
             ["bullet", "numbered", "indent", "outdent"],
             ["table", "field", "import"],
             ["source_view"],
@@ -163,6 +165,7 @@ class ToolbarMixin:
                 self.bullet_variable.set(False)
                 self.numbered_variable.set(False)
                 self.heading_button.configure(text="Heading")
+                self._update_paragraph_style_control()
                 return
             selected = self.wording.tag_ranges("sel")
             if selected:
@@ -180,5 +183,6 @@ class ToolbarMixin:
             self.heading_button.configure(
                 text=f"Heading {state['heading']}" if state["heading"] else "Heading"
             )
+            self._update_paragraph_style_control()
         except tk.TclError:
             return
