@@ -252,9 +252,13 @@ def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
         search.delete(0, "end")
         root.update()
         tree.selection_set(str(assembly_id))
-        tree.focus_set()
-        root.update()
-        tree.event_generate("<Return>", when="tail")
+        assert tree.bind("<Return>") and tree.bind("<Double-1>")
+        open_button = _find_widget(
+            dialog,
+            lambda item: isinstance(item, ttk.Button)
+            and item.cget("text") == "Open latest",
+        )
+        open_button.invoke()
         root.update()
         assert opened == [latest["id"]]
 
@@ -278,9 +282,13 @@ def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
         assert earlier_tree.get_children() == (str(first["id"]),)
         assert earlier_tree.item(str(first["id"]), "values")[0] == "Revision 1"
         earlier_tree.selection_set(str(first["id"]))
-        earlier_tree.focus_set()
-        root.update()
-        earlier_tree.event_generate("<Return>", when="tail")
+        assert earlier_tree.bind("<Return>") and earlier_tree.bind("<Double-1>")
+        earlier_open = _find_widget(
+            earlier,
+            lambda item: isinstance(item, ttk.Button)
+            and item.cget("text") == "Open",
+        )
+        earlier_open.invoke()
         root.update()
         assert opened == [latest["id"], first["id"]]
     finally:
