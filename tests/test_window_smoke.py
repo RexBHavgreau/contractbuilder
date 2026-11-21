@@ -2,6 +2,8 @@
 import os
 from pathlib import Path
 import sys
+from types import SimpleNamespace
+import tkinter.ttk as ttk
 import tkinter as tk
 
 import pytest
@@ -189,4 +191,93 @@ def test_component_and_assembly_windows_work_under_a_virtual_display(
                 editor.window.destroy()
             except tk.TclError:
                 pass
+        root.destroy()
+
+
+
+def _find_widget(widget, predicate):
+    for child in widget.winfo_children():
+        if predicate(child):
+            return child
+        found = _find_widget(child, predicate)
+        if found is not None:
+            return found
+    return None
+
+
+def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
+    tmp_path, monkeypatch
+):
+    import assembly_open_dialog
+
+    root = tk.Tk()
+    root.withdraw()
+    library = ComponentLibrary(tmp_path / "publisher_profiles.sqlite3")
+    component_id = library.create_component("Picker smoke clause", "Pinned wording.")
+    component_version = library.list_component_versions(component_id)[0]
+    shell_path = tmp_path / "picker-shell.docx"
+    document = Document()
+    document.add_paragraph("Shell wording")
+    document.save(shell_path)
+    assembly_id = library.create_assembly("Picker smoke assembly")
+    first = library.save_assembly_revision(
+        assembly_id, str(shell_path), shell_file_sha256(shell_path),
+        [component_version["id"]],
+    )
+    latest = library.save_assembly_revision(
+        assembly_id, str(shell_path), shell_file_sha256(shell_path),
+        [component_version["id"]],
+    )
+    library.save_component_version(component_id, "Newer pinned wording.")
+    monkeypatch.setattr("library.ComponentLibrary", lambda: library)
+    opened = []
+    monkeypatch.setattr(
+        assembly_open_dialog, "_open_revision_direct",
+        lambda app, store, revision_id, parent: opened.append(revision_id) or object(),
+    )
+    app = SimpleNamespace(root=root)
+
+    try:
+        dialog = assembly_open_dialog.open_saved_assembly_direct(app)
+        root.update()
+        tree = _find_widget(dialog, lambda item: isinstance(item, ttk.Treeview))
+        assert tree.item(str(assembly_id), "values") == (
+            "Picker smoke assembly", "Revision 2",
+            str(latest["created"])[:10], "New wording available",
+        )
+        search = _find_widget(dialog, lambda item: isinstance(item, ttk.Entry))
+        search.insert(0, "not found")
+        root.update()
+        assert tree.get_children() == ()
+        search.delete(0, "end")
+        root.update()
+        tree.selection_set(str(assembly_id))
+        tree.event_generate("<Return>")
+        root.update()
+        assert opened == [latest["id"]]
+
+        dialog = assembly_open_dialog.open_saved_assembly_direct(app)
+        root.update()
+        earlier_button = _find_widget(
+            dialog,
+            lambda item: isinstance(item, ttk.Button)
+            and item.cget("text") == "Earlier revisions…",
+        )
+        assert earlier_button is not None
+        earlier_button.invoke()
+        root.update()
+        earlier = next(
+            child for child in dialog.winfo_children()
+            if isinstance(child, tk.Toplevel)
+        )
+        earlier_tree = _find_widget(
+            earlier, lambda item: isinstance(item, ttk.Treeview)
+        )
+        assert earlier_tree.get_children() == (str(first["id"]),)
+        assert earlier_tree.item(str(first["id"]), "values")[0] == "Revision 1"
+        earlier_tree.selection_set(str(first["id"]))
+        earlier_tree.event_generate("<Return>")
+        root.update()
+        assert opened == [latest["id"], first["id"]]
+    finally:
         root.destroy()
