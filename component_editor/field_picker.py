@@ -87,7 +87,9 @@ def field_definition_placeholder(definition: dict) -> str:
     """Build a stored field using its saved default format and options."""
     name = str(definition["name"])
     fmt = str(definition.get("default_format") or "")
-    return field_definition_placeholder(definition)
+    options = definition.get("default_options") or definition.get("allowed_values") or []
+    separator = " / " if any("," in str(value) for value in options) else ", "
+    return make_field_placeholder(name, fmt, separator.join(str(value) for value in options))
 
 
 def build_created_field(
@@ -124,9 +126,7 @@ def build_created_field(
             )
         separator = " " if placement == "Inside a sentence" else "\n\n"
         return separator.join(blocks)
-    options = definition.get("default_options") or definition.get("allowed_values") or []
-    separator = " / " if any("," in str(value) for value in options) else ", "
-    return make_field_placeholder(name, fmt, separator.join(str(value) for value in options))
+    return field_definition_placeholder(definition)
 
 
 class FieldPickerDialog:
