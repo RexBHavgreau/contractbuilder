@@ -34,9 +34,16 @@ Word Template Filler reads a Word document containing placeholders, asks you
 to fill in those placeholders, and saves a completed copy as a new .docx file.
 The original template is never changed.
 
-1. CHOOSE A TEMPLATE
+1. CHOOSE WHERE TO START
 
-Click Browse and select a Word .docx or .dotx file.
+At the top, under "Build contract from:", pick one of three buttons (or press
+Alt and the underlined letter):
+
+  Existing contract assembly - open one you saved before.
+  New contract assembly      - choose components and build a new one.
+  Word file                  - select a Word .docx or .dotx file.
+
+For a Word file:
 
 The application scans the document and finds each unique placeholder. A
 placeholder is a field name enclosed in double curly braces, for example:
@@ -266,7 +273,9 @@ original file is never changed.
 Building a contract from components
 
 1. In the Components window choose Build assembly.
-2. Choose a Word shell (see the next section) and give the assembly a name.
+2. Type a name for the assembly, then choose a page layout file (a "Word
+   shell"; see the next section) with the "Choose page layout file…" button.
+   Saving and creating a document both need these two things.
 3. Add components with "Add selected component". Use Move up, Move down and
    Remove to set the order. Untick Include to leave out an optional
    component without removing it.

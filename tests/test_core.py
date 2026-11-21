@@ -563,3 +563,59 @@ def test_template_authoring_examples_fill_a_real_word_template(tmp_path):
         assert expected in rendered
     for omitted in ("Other-state clause.", "Not Texas.", "guarantees performance."):
         assert omitted not in rendered
+
+
+# ----------------------------------------- spaces around inline wording (T-049-E) ---
+
+INLINE = "of X, {{#if A = B}} a phrase {{else}} another {{/if}} organized"
+
+
+def test_inline_wording_kept_leaves_single_spaces(tmp_path):
+    assert fill(tmp_path, [INLINE], {"A": "B"}) == ["of X, a phrase organized"]
+
+
+def test_inline_else_wording_leaves_single_spaces(tmp_path):
+    assert fill(tmp_path, [INLINE], {"A": "C"}) == ["of X, another organized"]
+
+
+def test_a_dropped_phrase_between_spaces_leaves_one_space(tmp_path):
+    paras = ["Pay {{#if Rush}}promptly{{/if}} now"]
+    assert fill(tmp_path, paras, {"Rush": False}) == ["Pay now"]
+    assert fill(tmp_path, paras, {"Rush": True}) == ["Pay promptly now"]
+
+
+def test_a_dropped_phrase_does_not_leave_a_space_before_punctuation(tmp_path):
+    paras = ["Pay today {{#if Late}}with a fee{{/if}}."]
+    assert fill(tmp_path, paras, {"Late": False}) == ["Pay today."]
+    assert fill(tmp_path, paras, {"Late": True}) == ["Pay today with a fee."]
+
+
+def test_a_phrase_that_starts_with_punctuation_joins_the_word_before(tmp_path):
+    paras = ["Fee {{#if Late}}, plus a late fee{{/if}} due"]
+    assert fill(tmp_path, paras, {"Late": True}) == ["Fee, plus a late fee due"]
+
+
+def test_spaces_the_author_typed_elsewhere_are_not_touched(tmp_path):
+    paras = ["Two  spaces here, {{#if X}}yes{{/if}} and  there"]
+    assert fill(tmp_path, paras, {"X": True}) == ["Two  spaces here, yes and  there"]
+
+
+def test_wording_with_no_spaces_around_the_markers_is_unchanged(tmp_path):
+    paras = ["Late{{#if Late}}, with a fee{{/if}}."]
+    assert fill(tmp_path, paras, {"Late": True}) == ["Late, with a fee."]
+    assert fill(tmp_path, paras, {"Late": False}) == ["Late."]
+
+
+def test_inline_wording_inside_a_table_cell_is_tidied(tmp_path):
+    doc = Document()
+    doc.add_table(rows=1, cols=1).cell(0, 0).text = "a {{#if X}} b {{else}} c {{/if}} d"
+    path = tmp_path / "cell.docx"
+    doc.save(path)
+    out = tmp_path / "cell-out.docx"
+    core.build_contract(core.Template(path), {"X": True}, out)
+    assert Document(out).tables[0].cell(0, 0).text == "a b d"
+
+
+def test_inline_wording_split_across_runs_is_tidied(tmp_path):
+    paras = [["of X, {{#if A = B}", "} a phrase {{el", "se}} another {{/if}} next"]]
+    assert fill(tmp_path, paras, {"A": "B"}) == ["of X, a phrase next"]

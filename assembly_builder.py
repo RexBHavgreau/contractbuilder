@@ -26,6 +26,9 @@ from library import ComponentLibrary
 import shell_selection
 
 
+NO_SHELL = "None chosen yet"
+
+
 class AssemblyBuilderWindow:
     """Arrange components, choose a shell, preview and save immutable revisions."""
 
@@ -48,7 +51,7 @@ class AssemblyBuilderWindow:
         self.saved_snapshot = None
 
         self.name_variable = tk.StringVar(master=self.window)
-        self.shell_variable = tk.StringVar(master=self.window, value="No shell chosen")
+        self.shell_variable = tk.StringVar(master=self.window, value=NO_SHELL)
         self.library_search_variable = tk.StringVar(master=self.window)
         self._build_widgets()
         self._populate_library()
@@ -68,8 +71,8 @@ class AssemblyBuilderWindow:
         ttk.Label(
             outer,
             text=(
-                "Choose a Word shell, add and order saved components, and omit "
-                "optional wording without removing it from the recipe."
+                "Name the assembly, choose a page layout file, add and order saved "
+                "components, and omit optional wording without removing it from the recipe."
             ),
             wraplength=1100,
         ).grid(row=1, column=0, sticky="w", pady=(3, 10))
@@ -77,25 +80,32 @@ class AssemblyBuilderWindow:
         details = ttk.Frame(outer)
         details.grid(row=2, column=0, sticky="nsew")
         details.columnconfigure(0, weight=1)
-        details.rowconfigure(0, weight=1)
 
         top = ttk.Frame(details)
         top.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         top.columnconfigure(1, weight=1)
         ttk.Label(top, text="Assembly name").grid(row=0, column=0, sticky="w")
         self.name_entry = ttk.Entry(top, textvariable=self.name_variable)
-        self.name_entry.grid(row=0, column=1, sticky="ew", padx=(8, 16))
-        ttk.Button(top, text="Choose shell…", command=self.choose_shell).grid(
-            row=0, column=2, sticky="e"
-        )
+        self.name_entry.grid(row=0, column=1, sticky="ew", padx=(8, 0))
 
         shell_row = ttk.Frame(details)
         shell_row.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         shell_row.columnconfigure(1, weight=1)
-        ttk.Label(shell_row, text="Word shell").grid(row=0, column=0, sticky="w")
+        ttk.Label(shell_row, text="Page layout file").grid(row=0, column=0, sticky="w")
         ttk.Label(
-            shell_row, textvariable=self.shell_variable, wraplength=850
+            shell_row, textvariable=self.shell_variable, wraplength=700
         ).grid(row=0, column=1, sticky="w", padx=(8, 0))
+        ttk.Button(
+            shell_row, text="Choose page layout file…", command=self.choose_shell
+        ).grid(row=0, column=2, sticky="e", padx=(8, 0))
+        ttk.Label(
+            shell_row,
+            text=(
+                "A Word document (a .docx or .dotx you already use) that supplies the "
+                "page size, fonts, headers and footers. Its own wording is not used."
+            ),
+            foreground="#555555", wraplength=900,
+        ).grid(row=1, column=0, columnspan=3, sticky="w", pady=(2, 0))
 
         content = ttk.Panedwindow(details, orient="horizontal")
         content.grid(row=2, column=0, sticky="nsew")
@@ -209,7 +219,7 @@ class AssemblyBuilderWindow:
 
         footer = ttk.Frame(outer)
         footer.grid(row=3, column=0, sticky="ew", pady=(10, 0))
-        self.status = ttk.Label(footer, text="Choose a Word shell to begin.")
+        self.status = ttk.Label(footer, text="Start by choosing a page layout file (button above the lists).")
         self.status.pack(side="left", fill="x", expand=True)
         ttk.Button(footer, text="Close", command=self.window.destroy).pack(side="right")
         ttk.Button(
@@ -295,12 +305,12 @@ class AssemblyBuilderWindow:
         if notes:
             self.status.configure(text=" ".join(notes))
         else:
-            self.status.configure(text="Shell ready. Add components to the assembly.")
+            self.status.configure(text="Page layout ready. Add components to the assembly.")
 
     def choose_shell(self):
         selected = filedialog.askopenfilename(
             parent=self.window,
-            title="Choose a Word document shell",
+            title="Choose a page layout file (a Word document)",
             filetypes=[
                 ("Word documents and templates", "*.docx *.dotx"),
                 ("All files", "*.*"),
@@ -312,14 +322,14 @@ class AssemblyBuilderWindow:
             check = shell_selection.choose_shell(selected, remember=False)
             if not check.usable:
                 messagebox.showerror(
-                    "This shell cannot be used",
+                    "This page layout file cannot be used",
                     "\n".join(check.lines),
                     parent=self.window,
                 )
                 return
             if check.result.warnings and not messagebox.askyesno(
-                "Review shell warnings",
-                "\n".join(check.lines) + "\n\nUse this shell anyway?",
+                "Review page layout warnings",
+                "\n".join(check.lines) + "\n\nUse this file anyway?",
                 parent=self.window,
             ):
                 return
@@ -327,7 +337,7 @@ class AssemblyBuilderWindow:
             self._set_shell(selected, chosen.lines)
         except (OSError, ValueError, sqlite3.Error) as exc:
             messagebox.showerror(
-                "Could not choose this shell", str(exc), parent=self.window
+                "Could not use this page layout file", str(exc), parent=self.window
             )
 
     def _populate_library(self):
@@ -471,10 +481,10 @@ class AssemblyBuilderWindow:
         if self.on_generate is None:
             return
         shell_text = self.shell_variable.get()
-        if not self.shell_digest or not shell_text or shell_text == "No shell chosen":
+        if not self.shell_digest or not shell_text or shell_text == NO_SHELL:
             messagebox.showerror(
                 "Choose a shell first",
-                "Choose a usable Word shell before generating the document.",
+                "Choose a usable page layout file (the button next to \"Page layout file\") before creating the document.",
                 parent=self.window,
             )
             return
@@ -559,10 +569,10 @@ class AssemblyBuilderWindow:
             )
             return False
         shell_text = self.shell_variable.get()
-        if not self.shell_digest or not shell_text or shell_text == "No shell chosen":
+        if not self.shell_digest or not shell_text or shell_text == NO_SHELL:
             messagebox.showerror(
                 "Choose a shell first",
-                "Choose a usable Word shell before saving the assembly.",
+                "Choose a usable page layout file (the button next to \"Page layout file\") before saving the assembly.",
                 parent=self.window,
             )
             return False

@@ -18,9 +18,18 @@ def main(argv=None):
         default=DEFAULT_MAX_BYTES,
         help=f"maximum permitted size in bytes (default: {DEFAULT_MAX_BYTES:,})",
     )
+    parser.add_argument(
+        "--min-headroom",
+        type=int,
+        default=0,
+        help="also fail when less than this many bytes remain under the limit "
+             "(CI uses 3 MiB: stop and tell Beaux, TASKS.md 'Size gate')",
+    )
     args = parser.parse_args(argv)
     if args.max_bytes <= 0:
         parser.error("--max-bytes must be greater than zero")
+    if args.min_headroom < 0:
+        parser.error("--min-headroom must not be negative")
 
     try:
         size = args.executable.stat().st_size
@@ -33,6 +42,14 @@ def main(argv=None):
     print(f"Size limit: {args.max_bytes:,} bytes ({args.max_bytes / MEBIBYTE:.2f} MiB)")
     if margin < 0:
         print(f"FAIL: executable exceeds the limit by {-margin:,} bytes ({-margin / MEBIBYTE:.2f} MiB)")
+        return 1
+
+    if margin < args.min_headroom:
+        print(
+            f"FAIL: only {margin:,} bytes ({margin / MEBIBYTE:.2f} MiB) of headroom remain; "
+            f"the rule is at least {args.min_headroom:,} bytes ({args.min_headroom / MEBIBYTE:.2f} MiB). "
+            "Stop and tell Beaux before adding anything else (TASKS.md 'Size gate')."
+        )
         return 1
 
     print(f"PASS: {margin:,} bytes ({margin / MEBIBYTE:.2f} MiB) of headroom remain")

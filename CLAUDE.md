@@ -120,7 +120,10 @@ trace.
   bytes (30 MiB). Every task that adds code, a dependency or a bundled file
   states its size effect in its design, and confirms the CI size numbers
   (release build and component-enabled build) before it is called done. See
-  TASKS.md "Size gate"; the weekly check is T-035.
+  TASKS.md "Size gate"; the weekly check is T-035. The numbers (release
+  build, all-modules build, headroom, growth since the last release, tool
+  versions) are in the Windows job's run summary; under 3 MiB of headroom
+  fails the job.
 - **Touches.** Each open task file in `tasks/` names the files it will change.
   `python scripts/overlaps.py` lists tasks that share one; two claimed tasks
   never share a file (T-055). A new window or dialog goes in a new module.
