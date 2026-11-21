@@ -32,7 +32,7 @@ def test_allows_supported_external_targets(target):
         "https:///missing-host",
         "https://user:secret@example.com",
         "https://example.com:99999/path",
-        "https://example.com\\\\evil.test",
+        r"https://example.com\evil.test",
         "https://example.com/path|other",
         "https://example.com/%0d%0aBcc:evil@example.com",
         "https://example.com/%3Cscript%3E",
