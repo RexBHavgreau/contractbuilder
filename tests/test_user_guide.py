@@ -36,3 +36,12 @@ def test_template_help_includes_the_field_type_section():
     assert 'window.title("How to write a template and choose fields")' in source
     assert 'contents.index("WRITING A TEMPLATE")' in source
     assert 'contents.index("TEMPLATE CHECKS", start)' in source
+
+
+def test_guide_has_the_starting_a_contract_section():
+    guide = GUIDE.read_text(encoding="utf-8")
+    start = guide.index("STARTING A CONTRACT")
+    end = guide.index("COMPONENTS AND ASSEMBLED CONTRACTS", start)
+    section = guide[start:end]
+    for words in ("Existing contract assembly", "New contract assembly", "Word file", "Recent", "Remove from list"):
+        assert words in section

@@ -355,6 +355,22 @@ A note about tracked changes, comments, highlighting, or other unusual Word
 formatting does not necessarily mean the template is invalid. Review such
 notes before relying on the completed document.
 
+STARTING A CONTRACT
+
+The first screen has a "Build contract from" row with three choices:
+
+- **Existing contract assembly**: open a contract you saved before. The list
+  shows the saved assemblies; choose one and press Open. The fields appear
+  straight away, filled in with the wording of the latest saved version.
+- **New contract assembly**: choose the components and build a new contract.
+- **Word file**: fill in a Word document that has {{fields}}.
+
+Under the three choices is a short **Recent** list of the Word files and
+assemblies you used most recently. Press an item's button to open it again in
+one click. If a file has been moved or deleted, its line says "file not found";
+choose the file again, or press **Remove from list** to take it off the list.
+The list is kept on this computer only.
+
 COMPONENTS AND ASSEMBLED CONTRACTS
 
 A component is a piece of reusable contract wording, such as a payment clause.
