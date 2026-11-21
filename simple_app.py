@@ -264,8 +264,11 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         self.load_publisher_button.configure(state="normal" if names else "disabled")
         self.publisher_variable.set("")
 
-    def create_assembly_document(self, shell_path, component_markdown, assembly_name=""):
+    def create_assembly_document(
+        self, shell_path, component_markdown, assembly_name="", assembly_revision=None
+    ):
         """Compose an assembly draft and open a separate field-entry window."""
+
         temporary = tempfile.TemporaryDirectory(prefix="contractbuilder-assembly-")
         output_path = pathlib.Path(temporary.name) / "assembled.docx"
         try:
@@ -282,6 +285,15 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             window = AssemblyDocumentWindow(
                 self, template, temporary, pathlib.Path(shell_path),
                 assembly_name, composition.warnings,
+                assembly_revision=assembly_revision,
+                on_edit_assembly=(
+                    lambda: self.open_assembly_revision(assembly_revision)
+                    if assembly_revision is not None else None
+                ),
+                on_review_updates=(
+                    lambda: self.open_assembly_revision(assembly_revision, review_updates=True)
+                    if assembly_revision is not None else None
+                ),
             )
         except (core.TemplateError, ValueError, TypeError, OSError, sqlite3.Error) as exc:
             temporary.cleanup()
