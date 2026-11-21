@@ -195,8 +195,40 @@ def _render_table(rows: Sequence[Sequence[tuple[list[Segment], bool]]]) -> list[
     return result
 
 
-def render_markdown_preview(markdown: str) -> list[Segment]:
-    """Return a list of (text, style-tags) segments for a Tk Text widget."""
+# Text tags for the paragraph styles a component can choose (T-061). The preview
+# shows each as the style would look; Word decides the final formatting.
+PARAGRAPH_STYLE_TAGS = {
+    "Title": "para_title",
+    "Subtitle": "para_subtitle",
+    "Body Text": "para_body_text",
+    "Block Text": "para_block_text",
+}
+
+
+def configure_paragraph_style_tags(widget) -> None:
+    """Add the paragraph-style tags to a Text widget used for previews."""
+    widget.tag_configure(
+        "para_title", font=("TkDefaultFont", 15, "bold"), justify="center",
+        spacing1=4, spacing3=8,
+    )
+    widget.tag_configure(
+        "para_subtitle", font=("TkDefaultFont", 12, "italic"), justify="center",
+        spacing3=6,
+    )
+    widget.tag_configure("para_body_text", spacing3=4)
+    widget.tag_configure(
+        "para_block_text", lmargin1=36, lmargin2=36, rmargin=36, spacing3=4,
+    )
+
+
+def render_markdown_preview(
+    markdown: str, paragraph_styles: Sequence[str] = ()
+) -> list[Segment]:
+    """Return a list of (text, style-tags) segments for a Tk Text widget.
+
+    ``paragraph_styles`` is the per-paragraph choice stored beside the wording
+    (T-061): one name per ordinary top-level paragraph, "" for Normal.
+    """
     if not isinstance(markdown, str):
         raise TypeError("Component wording must be text.")
 
@@ -209,6 +241,8 @@ def render_markdown_preview(markdown: str) -> list[Segment]:
     lists: list[dict[str, object]] = []
     heading_style: str | None = None
     in_blockquote = False
+    text_paragraph = -1          # index of the current top-level text paragraph
+    paragraph_tag: str | None = None
 
     def newline(blank: bool = False) -> None:
         existing = _segments_text(result)
@@ -272,7 +306,17 @@ def render_markdown_preview(markdown: str) -> list[Segment]:
         elif kind == "blockquote_close":
             in_blockquote = False
             newline(blank=True)
+        elif kind == "paragraph_open":
+            paragraph_tag = None
+            if getattr(token, "level", 1) == 0:
+                text_paragraph += 1
+                chosen = (
+                    paragraph_styles[text_paragraph]
+                    if text_paragraph < len(paragraph_styles) else ""
+                )
+                paragraph_tag = PARAGRAPH_STYLE_TAGS.get(chosen)
         elif kind == "paragraph_close":
+            paragraph_tag = None
             newline(blank=not bool(lists))
         elif kind == "inline":
             styles = []
@@ -280,6 +324,8 @@ def render_markdown_preview(markdown: str) -> list[Segment]:
                 styles.append(heading_style)
             if in_blockquote:
                 styles.append("blockquote")
+            if paragraph_tag:
+                styles.append(paragraph_tag)
             for value, tags in _inline_segments(
                 getattr(token, "children", None) or (), styles
             ):

@@ -597,7 +597,8 @@ def test_older_v3_application_uses_profiles_without_changing_newer_tables(
             "WHERE type = 'table' AND name = 'field_definitions'"
         ).fetchone()[0]
     assert field_before[0][0] == field_id
-    assert _user_version(path) == 5
+    current_version = profiles.SCHEMA_VERSION
+    assert _user_version(path) == current_version
 
     # Simulate the previous release, which knows schemas only through v3.
     monkeypatch.setattr(profiles, "SCHEMA_VERSION", 3)
@@ -613,7 +614,7 @@ def test_older_v3_application_uses_profiles_without_changing_newer_tables(
     second_profile_id = older.save_profile(sample_profile("Older application profile"))
 
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone() == (5,)
+        assert connection.execute("PRAGMA user_version").fetchone() == (current_version,)
         assert connection.execute(
             "SELECT id, name, name_key, allowed_values, status "
             "FROM field_definitions"
@@ -740,7 +741,7 @@ def test_schema_v4_upgrade_adds_field_matches_table(tmp_path, monkeypatch):
 
     monkeypatch.undo()
     current = profiles.PublisherProfileStore(path)
-    assert _user_version(path) == 5
+    assert _user_version(path) == profiles.SCHEMA_VERSION
     current.save_field_match("Legacy Publisher", "publisher_name")
     assert current.field_match_map() == {"Legacy Publisher": "publisher_name"}
 

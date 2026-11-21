@@ -40,7 +40,10 @@ def preview_segments_for_components(components: Sequence[Mapping[str, object]]):
         if number is not None:
             label += f" · version {number}"
         segments.append((label + "\n", ("component_label",)))
-        segments.extend(render_markdown_preview(str(component.get("markdown") or "")))
+        segments.extend(render_markdown_preview(
+            str(component.get("markdown") or ""),
+            list(component.get("paragraph_styles") or ()),
+        ))
         visible += 1
     return segments
 
@@ -94,6 +97,7 @@ def update_component_items(items, selections):
                 component_version_id=int(selected["id"]),
                 component_version_number=int(selected["number"]),
                 markdown=str(selected["markdown"]),
+                paragraph_styles=list(selected.get("paragraph_styles") or []),
             )
         updated.append(item)
     return updated

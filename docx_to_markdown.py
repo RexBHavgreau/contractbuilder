@@ -45,6 +45,16 @@ class DocxImport:
 
     markdown: str
     warnings: tuple[DocxImportWarning, ...]
+    # One entry per ordinary top-level paragraph, in order ("" = Normal): the
+    # Word style names the app also offers (T-061). Kept beside the Markdown.
+    paragraph_styles: tuple[str, ...] = ()
+
+
+# Word style names (any capitals) the editor offers as paragraph styles.
+_KNOWN_PARAGRAPH_STYLES = {
+    "title": "Title", "subtitle": "Subtitle",
+    "body text": "Body Text", "block text": "Block Text",
+}
 
 
 def _enabled(element) -> bool:
@@ -536,6 +546,20 @@ def _flush_list(items, blocks):
         items.clear()
 
 
+def _paragraph_style_name(paragraph, styles: dict) -> str:
+    """The Word display name of the paragraph's style, or "" for none."""
+    style_id = _paragraph_style_id(paragraph)
+    entry = styles.get(style_id) if style_id else None
+    return (entry["name"] if entry else "") or (style_id or "")
+
+
+def _direct_alignment(paragraph) -> str:
+    """"center" or "right" when set on the paragraph itself, else ""."""
+    ppr = paragraph.find("w:pPr", NS)
+    value = _value(ppr, "jc") if ppr is not None else None
+    return value if value in ("center", "right") else ""
+
+
 def import_docx(path: str | Path) -> DocxImport:
     """Read a DOCX package without modifying it; preserve paragraph/table order."""
     source = Path(path)
@@ -570,6 +594,8 @@ def import_docx(path: str | Path) -> DocxImport:
     changed_number_formats = set()
     paragraph_number = 0
     table_number = 0
+    text_styles = []            # style of each ordinary paragraph, in order
+    unoffered = {}              # Word style name -> paragraphs given Normal
 
     for child in body:
         if child.tag == W + "p":
@@ -611,6 +637,25 @@ def import_docx(path: str | Path) -> DocxImport:
                             location,
                         ))
                     blocks.append(value)
+                    level = _heading_level(child, styles)
+                    if level is None or level > 3:
+                        name = _paragraph_style_name(child, styles)
+                        offered = _KNOWN_PARAGRAPH_STYLES.get(name.casefold(), "")
+                        text_styles.append(offered)
+                        if name and not offered and name.casefold() not in (
+                            "normal", "default paragraph font"
+                        ) and not name.casefold().startswith("heading"):
+                            unoffered[name] = unoffered.get(name, 0) + 1
+                        alignment = _direct_alignment(child)
+                        if alignment:
+                            warnings.append(DocxImportWarning(
+                                "This paragraph is %s by hand in Word. A component keeps "
+                                "alignment only through a paragraph style, so it is not kept. "
+                                "Choose the Title or Subtitle style for it in the editor if it "
+                                "is a title."
+                                % ("centered" if alignment == "center" else "right-aligned"),
+                                location,
+                            ))
         elif child.tag == W + "tbl":
             _flush_list(list_items, blocks)
             active_list_id = None
@@ -621,4 +666,28 @@ def import_docx(path: str | Path) -> DocxImport:
                 blocks.append(value)
 
     _flush_list(list_items, blocks)
-    return DocxImport(markdown="\n\n".join(blocks), warnings=tuple(warnings))
+    markdown = "\n\n".join(blocks)
+    for name, count in sorted(unoffered.items()):
+        warnings.append(DocxImportWarning(
+            "%d paragraph%s use%s the Word style '%s', which the editor does not offer, so "
+            "%s imported as Normal." % (
+                count, "" if count == 1 else "s", "s" if count == 1 else "", name,
+                "it is" if count == 1 else "they are"),
+            "style " + name,
+        ))
+    styles_list = _importable_styles(markdown, text_styles)
+    return DocxImport(markdown=markdown, warnings=tuple(warnings), paragraph_styles=styles_list)
+
+
+def _importable_styles(markdown: str, text_styles) -> tuple[str, ...]:
+    """The style list, only when it lines up with the paragraphs Markdown will show.
+
+    If a typed list marker or other markup changed how the text parses, the
+    counts differ; then the styles are dropped rather than put on the wrong
+    paragraphs.
+    """
+    import paragraph_styles as rules
+
+    if len(rules.text_paragraphs(markdown)) != len(text_styles):
+        return ()
+    return tuple(rules.normalize(text_styles))

@@ -19,7 +19,7 @@ from typing import Callable, Iterator, Mapping, Sequence
 
 # The existing publisher_profiles.sqlite3 layout is schema version 1.
 # Later component-library changes add one migration per new version.
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 _MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
 
 PROFILE_FIELDS = (
@@ -762,6 +762,33 @@ def _migrate_user_field_matches(connection: sqlite3.Connection) -> None:
 _MIGRATIONS[5] = _migrate_user_field_matches
 
 
+def _migrate_paragraph_styles(connection: sqlite3.Connection) -> None:
+    """Let each component version carry its per-paragraph styles (T-061).
+
+    A JSON list written by ``paragraph_styles.dump``; the empty string (every
+    existing version) means all paragraphs are Normal, so old components
+    render exactly as before. The versions table keeps its immutability
+    triggers: adding a column is not an UPDATE of any row.
+    """
+    connection.execute(
+        "ALTER TABLE component_versions "
+        "ADD COLUMN paragraph_styles TEXT NOT NULL DEFAULT ''"
+    )
+
+
+_MIGRATIONS[6] = _migrate_paragraph_styles
+
+
+def _verify_paragraph_style_schema(connection: sqlite3.Connection) -> None:
+    columns = {row[1] for row in connection.execute(
+        "PRAGMA table_info(component_versions)"
+    ).fetchall()}
+    if "paragraph_styles" not in columns:
+        raise sqlite3.DatabaseError(
+            "The component versions table is missing the paragraph_styles column."
+        )
+
+
 def _verify_user_field_match_schema(connection: sqlite3.Connection) -> None:
     if not _table_exists(connection, "publisher_field_matches"):
         raise sqlite3.DatabaseError("The publisher field-matching table is missing.")
@@ -796,6 +823,8 @@ def _verify_database(
         _verify_field_definition_schema(connection)
     if expected_version is not None and expected_version >= 5:
         _verify_user_field_match_schema(connection)
+    if expected_version is not None and expected_version >= 6:
+        _verify_paragraph_style_schema(connection)
     integrity = connection.execute("PRAGMA integrity_check").fetchall()
     if integrity != [("ok",)]:
         raise sqlite3.DatabaseError(

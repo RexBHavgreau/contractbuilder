@@ -19,11 +19,14 @@ from .library_list import LibraryListMixin
 from .styling import configure_preview_tags
 from .save_feedback import SAVE_FEEDBACK_COLORS, SAVE_FEEDBACK_SECONDS, save_feedback_text
 from .text_rules import _markdown_is_editable, plain_text_to_markdown
+from .paragraph_style_control import ParagraphStyleMixin
 from .toolbar import ToolbarMixin
 from .wording_actions import WordingActionsMixin
 
 
-class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin):
+class ComponentEditorWindow(
+    LibraryListMixin, ToolbarMixin, ParagraphStyleMixin, WordingActionsMixin
+):
     """Manage saved components and create immutable wording versions."""
 
     def __init__(
@@ -304,6 +307,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
         if not self.wording.edit_modified():
             return
         self.wording.edit_modified(False)
+        self._sync_paragraph_styles()
         self._refresh_editor_styling()
         self._refresh_save_state()
         self._update_toolbar_state()
@@ -341,7 +345,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
         elif not self.protected_content:
             self.content_notice.configure(text="")
         try:
-            segments = render_markdown_preview(source)
+            segments = render_markdown_preview(source, self.paragraph_styles)
         except (TypeError, ValueError) as exc:
             segments = [(f"Preview unavailable: {exc}", ("source_text",))]
         self.preview.configure(state="normal")
@@ -361,6 +365,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
             self.description_variable.get(),
             self.wording.get("1.0", "end-1c"),
             self.note_variable.get(),
+            self._paragraph_styles_signature(),
         )
 
     def _has_unsaved_changes(self) -> bool:
@@ -406,6 +411,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
                 state="disabled" if component["status"] == "archived" else "normal"
             )
         self.loaded_markdown = latest["markdown"]
+        self._reset_paragraph_styles(self.loaded_markdown, latest.get("paragraph_styles") or [])
         self.loaded_plain_text = self.loaded_markdown
         self.editor_markdown_mode = True
         self.source_view_variable.set(False)
@@ -444,6 +450,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
             return
         self.current_component_id = None
         self.loaded_markdown = None
+        self._reset_paragraph_styles("")
         self.loaded_plain_text = ""
         self.editor_markdown_mode = False
         self.source_view_variable.set(False)
@@ -479,6 +486,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
         self.name_entry.focus_set()
 
     def save_component(self) -> bool:
+        self._sync_paragraph_styles()
         name = self.name_variable.get().strip()
         body = self.wording.get("1.0", "end-1c")
         if not name:
@@ -535,6 +543,7 @@ class ComponentEditorWindow(LibraryListMixin, ToolbarMixin, WordingActionsMixin)
                 category=self.category_variable.get(),
                 tags=tags,
                 note=note,
+                paragraph_styles=self.paragraph_styles,
             )
         except (ValueError, TypeError, OSError, sqlite3.Error) as exc:
             self._show_save_feedback(save_feedback_text("failed", error=str(exc)), "failed")

@@ -21,9 +21,10 @@ from assembly_helpers import (  # noqa: F401  (re-exported for callers and tests
 )
 import assembly_open_dialog
 import assembly_review_dialog
-from component_preview import PREVIEW_KEY
+from component_preview import PREVIEW_KEY, configure_paragraph_style_tags
 from library import ComponentLibrary
 import shell_selection
+from docx_compose import ComponentText
 from layout_file_dialog import confirm_layout_file
 
 
@@ -294,6 +295,7 @@ class AssemblyBuilderWindow:
         self.preview.tag_configure("link", underline=True, foreground="#245a8d")
         self.preview.tag_configure("rule", foreground="#888888")
         self.preview.tag_configure("source_text", foreground="#666666")
+        configure_paragraph_style_tags(self.preview)
         self.preview.tag_configure(
             "component_label", foreground="#555555",
             font=("TkDefaultFont", 9, "bold"), spacing1=9, spacing3=3,
@@ -400,6 +402,7 @@ class AssemblyBuilderWindow:
                 "component_name": component["name"],
                 "component_version_number": int(latest["number"]),
                 "markdown": latest["markdown"],
+                "paragraph_styles": list(latest.get("paragraph_styles") or []),
                 "included": True,
             }
         )
@@ -509,7 +512,10 @@ class AssemblyBuilderWindow:
         except OSError as exc:
             messagebox.showerror("The shell is unavailable", str(exc), parent=self.window)
             return
-        components = [str(item["markdown"]) for item in self.items if item["included"]]
+        components = [
+            ComponentText(str(item["markdown"]), tuple(item.get("paragraph_styles") or ()))
+            for item in self.items if item["included"]
+        ]
         if not components:
             messagebox.showerror(
                 "Nothing included",
@@ -535,6 +541,7 @@ class AssemblyBuilderWindow:
                     item["included"],
                     item["component_name"],
                     item["markdown"],
+                    tuple(item.get("paragraph_styles") or ()),
                 )
                 for item in self.items
             ),

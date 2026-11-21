@@ -376,7 +376,19 @@ Writing a component
    text and do not change if clauses move.
 5. Fields work as in templates: {{Name}}, {{Fee | money-words}} and so on.
    The Field button adds one for you.
-6. Click Save version. Nothing you save is ever overwritten: each save is a
+6. Titles and other special paragraphs: click in the paragraph and choose a
+   style from the Style button (Normal, Title, Subtitle, Body Text or Block
+   Text). Each paragraph has its own style, so one component can hold a title
+   and ordinary wording. The Preview shows it. Title and Subtitle are centered
+   in the finished document; centering comes from the style and nothing
+   else, so there is no Center button. The button is off when the cursor is in
+   a heading, a list or a table, which have their own formatting. If the page
+   layout file has a style with that name, it is used as it is; if not, the
+   app adds a simple one to your new document. A style change counts as an
+   edit, so saving it creates a new version. Styles are kept with the
+   component, not in its wording, so wording exported as plain text does not
+   carry them.
+7. Click Save version. Nothing you save is ever overwritten: each save is a
    new version, and Version history shows them all. Contracts that used an
    earlier version keep that wording.
 
@@ -387,7 +399,11 @@ headings, bold and italic text, lists and simple tables, in order. It lists
 anything it could not bring across (pictures, comments, merged table cells,
 footnotes and so on) so you can check the result before saving. Page layout,
 headers and footers are not imported: the Word shell supplies those. Your
-original file is never changed.
+original file is never changed. Paragraphs in the Word styles Title,
+Subtitle, Body Text or Block Text keep that style. Other styles are
+imported as Normal, and the list of notes says which. Text that was centered
+or right-aligned by hand is not kept as centered; choose the Title or
+Subtitle style for it in the editor.
 
 Building a contract from components
 

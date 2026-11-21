@@ -29,6 +29,17 @@ _NUMBER_ID = re.compile(r"^rId(\d+)$")
 
 
 @dataclass(frozen=True)
+class ComponentText:
+    """One component's wording plus its per-paragraph styles (T-061).
+
+    A plain string passed to ``compose_document`` means no styles (all Normal).
+    """
+
+    markdown: str
+    paragraph_styles: Tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class ComposeResult:
     """The written document and any non-fatal findings from its components."""
 
@@ -237,7 +248,7 @@ def _ensure_numbering_content_type(types_root) -> None:
 
 def compose_document(
     shell_path: Union[os.PathLike, str],
-    components: Iterable[str],
+    components: Iterable[Union[str, ComponentText]],
     output_path: Union[os.PathLike, str],
 ) -> ComposeResult:
     """Write ordered Markdown components into a new DOCX based on a Word shell.
@@ -254,9 +265,14 @@ def compose_document(
     if output.suffix.lower() != ".docx":
         raise ValueError("The output file name must end in .docx.")
 
-    component_texts = list(components)
-    if any(not isinstance(item, str) for item in component_texts):
-        raise TypeError("Each component must be Markdown text.")
+    component_texts = []
+    for item in components:
+        if isinstance(item, ComponentText):
+            component_texts.append(item)
+        elif isinstance(item, str):
+            component_texts.append(ComponentText(item))
+        else:
+            raise TypeError("Each component must be Markdown text.")
 
     shell_check = check_shell(shell, supply_missing=True)
     if not shell_check.can_generate:
@@ -265,8 +281,8 @@ def compose_document(
 
     rendered = []
     warnings = []
-    for source in component_texts:
-        result = render_markdown(source, shell)
+    for component in component_texts:
+        result = render_markdown(component.markdown, shell, component.paragraph_styles)
         if not result.can_generate:
             details = " ".join(item.message for item in result.errors)
             raise ValueError("A component could not be rendered. " + details)
@@ -307,9 +323,14 @@ def compose_document(
             else:
                 styles_root = shell_styles.new_styles_root()
             added_ids = shell_styles.add_missing_styles(styles_root)
-            if added_ids or styles_name not in names:
+            requested = [name for item in component_texts for name in item.paragraph_styles if name]
+            paragraph_plan = shell_styles.plan_paragraph_styles(
+                styles_root if styles_name in names else None, requested
+            )
+            added_names = shell_styles.add_paragraph_styles(styles_root, paragraph_plan)
+            if added_ids or added_names or styles_name not in names:
                 replacements[styles_name] = _xml_bytes(styles_root)
-            added_styles = tuple(shell_styles.SUPPLIABLE[i][1] for i in added_ids)
+            added_styles = tuple(shell_styles.SUPPLIABLE[i][1] for i in added_ids) + tuple(added_names)
 
             if has_numbering or styles_name in replacements:
                 rels_name = "word/_rels/document.xml.rels"
