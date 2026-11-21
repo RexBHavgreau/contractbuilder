@@ -153,3 +153,49 @@ def test_field_creator_can_link_a_definition_to_a_publisher_profile_column(tmp_p
     field_id = library.add_field_definition(**definition)
     saved = library.get_field_definition(field_id)
     assert saved["publisher_profile_column"] == "contact_name"
+
+
+def _window_or_skip():
+    import os
+    import tkinter as tk
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("Tk window tests need a display; CI runs window tests under xvfb-run.")
+    root = tk.Tk()
+    root.withdraw()
+    return root
+
+
+def test_field_creator_has_a_help_text_box_and_keeps_its_saved_help(tmp_path):
+    from tkinter import ttk
+    from component_editor.field_picker import FieldCreatorDialog
+
+    library = ComponentLibrary(tmp_path / "library.sqlite3")
+    created_id = library.add_field_definition(
+        **field_kind_definition("Text", "Signing Date", "The date the agreement is signed.")
+    )
+    created = library.get_field_definition(created_id)
+    root = _window_or_skip()
+    try:
+        dialog = FieldCreatorDialog(root, library, on_saved=lambda *_: None, existing=created)
+        root.update()
+        labels = []
+
+        def walk(widget):
+            for child in widget.winfo_children():
+                if isinstance(child, ttk.Label):
+                    labels.append(child.cget("text"))
+                walk(child)
+
+        walk(dialog.window)
+        assert "Help text (optional)" in labels
+        assert not any(text.startswith("Description") for text in labels)
+        assert dialog.description.get() == "The date the agreement is signed."
+
+        dialog.description.set("The date the agreement is signed by both parties.")
+        dialog.save()
+        root.update()
+        stored = library.get_field_definition(created_id)
+        assert stored["description"] == "The date the agreement is signed by both parties."
+        assert stored["name"] == "Signing Date"
+    finally:
+        root.destroy()
