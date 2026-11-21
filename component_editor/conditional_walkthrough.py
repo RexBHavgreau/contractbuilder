@@ -304,7 +304,7 @@ class ConditionalWordingDialog:
             if self.page == 0 and self.kind.get() == "Conditional wording":
                 existing = next((item for item in self.library.list_picker_fields()
                     if item.get("name", "").casefold() == self.field.get().strip().casefold()), None)
-                if existing:
+                if existing and not self.values:
                     self.values = list(existing.get("allowed_values") or [])
             if self.page == 1:
                 self._build()
@@ -327,18 +327,20 @@ class ConditionalWordingDialog:
                 and f.get("source") == "field_definition"), None)
         except (AttributeError, OSError, ValueError):
             pass
-        fmt = "choice" if self.kind.get() == "Conditional wording" else ""
-        allowed = self.values if self.kind.get() == "Conditional wording" else []
-        if existing:
-            definition = self.library.get_field_definition(existing["id"])
-            self.library.edit_field_definition(existing["id"], name=definition["name"],
-                description=definition.get("description", ""), default_format=fmt,
-                allowed_values=allowed, default_options=definition.get("default_options") or [],
-                publisher_profile_column=definition.get("publisher_profile_column"),
-                publisher_detail_name=definition.get("publisher_detail_name"))
-        else:
-            self.library.add_field_definition(self.field.get().strip(), default_format=fmt,
-                allowed_values=allowed)
+        if self.kind.get() == "Conditional wording":
+            if existing:
+                definition = self.library.get_field_definition(existing["id"])
+                self.library.edit_field_definition(existing["id"], name=definition["name"],
+                    description=definition.get("description", ""), default_format="choice",
+                    allowed_values=self.values,
+                    default_options=definition.get("default_options") or [],
+                    publisher_profile_column=definition.get("publisher_profile_column"),
+                    publisher_detail_name=definition.get("publisher_detail_name"))
+            else:
+                self.library.add_field_definition(self.field.get().strip(), default_format="choice",
+                    allowed_values=self.values)
+        elif not existing:
+            self.library.add_field_definition(self.field.get().strip())
         # Saving is intentionally limited to the field definition; no component text is touched.
 
     def previous(self):
