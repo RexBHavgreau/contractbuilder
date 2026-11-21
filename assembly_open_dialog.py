@@ -243,12 +243,36 @@ def _open_revision_direct(app, library, revision_id, parent):
         )
         for item in revision["components"] if item["included"]
     ]
+    app.remember_recent({
+        "kind": "assembly",
+        "key": str(revision["assembly_id"]),
+        "label": str(revision["assembly_name"]),
+    })
     return app.create_assembly_document(
         shell_path,
         component_text,
         revision["assembly_name"],
         assembly_revision=revision,
     )
+
+
+def open_latest_revision(app, assembly_id: int):
+    """Open the newest finalized revision of an assembly straight to its fields."""
+    from library import ComponentLibrary
+
+    library = ComponentLibrary()
+    revisions = [
+        item for item in library.list_assembly_revisions(int(assembly_id))
+        if item["finalized"]
+    ]
+    if not revisions:
+        messagebox.showerror(
+            "Assembly unavailable",
+            "This assembly has no saved revision any more. Remove it from the list.",
+            parent=app.root,
+        )
+        return None
+    return _open_revision_direct(app, library, int(revisions[0]["id"]), app.root)
 
 
 def open_saved_assembly_direct(app):

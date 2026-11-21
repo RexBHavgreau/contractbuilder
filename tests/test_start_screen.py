@@ -76,16 +76,18 @@ def test_new_assembly_opens_the_builder_once(app):
 
 
 def test_existing_assembly_opens_the_saved_list(app, monkeypatch):
-    import assembly_builder
+    # The saved list is a modal window that waits for the user, so the test
+    # replaces the opener itself (T-048-B opens the list directly).
+    import assembly_open_dialog
 
     calls = []
     monkeypatch.setattr(
-        assembly_builder.AssemblyBuilderWindow, "open_saved_assembly", lambda self: calls.append(1)
+        assembly_open_dialog, "open_saved_assembly_direct", lambda _app: calls.append(1)
     )
     app.start_buttons[0].invoke()
     app.root.update()
     assert calls == [1]
-    app.start_buttons[0].invoke()  # already open: asked again, not a second window
+    app.start_buttons[0].invoke()
     assert calls == [1, 1]
 
 
@@ -159,3 +161,40 @@ def test_buttons_stay_visible_when_the_status_message_is_very_long(app):
 
     save = find(window, "Save assembly…")
     assert save.winfo_rootx() + save.winfo_width() <= window_right
+
+
+def test_recent_list_shows_a_missing_file_and_lets_it_be_removed(app, tmp_path):
+    from recent_items import TEMPLATE, record
+
+    gone = str(tmp_path / "Invented Gone.docx")
+    record(app._recent_settings_path(), {"kind": TEMPLATE, "key": gone, "label": "Invented Gone.docx"})
+    app.refresh_recent_list()
+    texts = _texts(app.recent_frame)
+    assert any("file not found" in text for text in texts)
+    remove = [b for b in _buttons(app.recent_frame) if b.cget("text") == "Remove from list"]
+    assert len(remove) == 1
+    remove[0].invoke()
+    assert not any("file not found" in text for text in _texts(app.recent_frame))
+
+
+def test_recent_word_file_reopens_in_one_click(app, tmp_path):
+    from docx import Document
+    from recent_items import TEMPLATE, record
+
+    path = tmp_path / "Invented Recent.docx"
+    Document().save(path)
+    record(app._recent_settings_path(), {"kind": TEMPLATE, "key": str(path), "label": "Invented Recent.docx"})
+    app.refresh_recent_list()
+    button = [b for b in _buttons(app.recent_frame) if b.cget("text") == "Word file: Invented Recent.docx"]
+    assert len(button) == 1
+    button[0].invoke()
+    assert app.template_name.cget("text") == "Invented Recent.docx"
+
+
+def _buttons(widget):
+    found = []
+    for child in widget.winfo_children():
+        if child.winfo_class() == "TButton":
+            found.append(child)
+        found.extend(_buttons(child))
+    return found

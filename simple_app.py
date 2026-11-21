@@ -186,6 +186,7 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         self.inputs = []
         self.scroll.clear()
         self.template_name.config(text=path.name)
+        self.remember_recent({"kind": "template", "key": str(path), "label": path.name})
         fields = template.field_list()
         self.summary.config(
             text=f"Found {len(fields)} unique field(s) in {template.places} location(s)."

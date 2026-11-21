@@ -25,6 +25,9 @@ class FakeApp:
         self.calls.append((args, kwargs))
         return object()
 
+    def remember_recent(self, entry):
+        self.recent = getattr(self, "recent", []) + [entry]
+
 
 def _saved_revision(tmp_path):
     shell = tmp_path / "layout.docx"
@@ -188,6 +191,13 @@ def test_picker_shows_latest_revision_searches_and_opens_with_enter(monkeypatch)
     search.delete(0, "end")
     root.update()
     tree.selection_set("4")
+    # Key events go to the focused widget; with no window manager the tree
+    # must be given focus first.
+    # Key events are dropped by a withdrawn window, so map it briefly.
+    root.deiconify()
+    root.update()
+    tree.focus_force()
+    root.update()
     tree.event_generate("<Return>")
     root.update()
     assert opened == [42]

@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import sqlite3
 import tkinter as tk
+from pathlib import Path
 from tkinter import messagebox, ttk
+
+import recent_items
 
 CHOICES = (
     ("Existing contract assembly", "Pick a saved assembly and fill it in.", "open_existing_assembly", "E"),
@@ -42,13 +45,110 @@ def build_start_row(parent, app):
     ttk.Label(name_row, text="Word file:").pack(side="left")
     name = ttk.Label(name_row, text="None chosen", foreground="#666666")
     name.pack(side="left", padx=(8, 0), fill="x", expand=True)
+    app.recent_frame = ttk.Frame(box)
+    app.recent_frame.pack(fill="x", pady=(8, 0))
+    app.refresh_recent_list()
     return name
+
+
+def recent_row_text(entry, state):
+    """Plain-English line for one recent item, with its state shown as such."""
+    kind = "Word file" if entry["kind"] == recent_items.TEMPLATE else "Assembly"
+    text = f"{kind}: {entry['label']}"
+    if state == "missing":
+        note = "file not found" if entry["kind"] == recent_items.TEMPLATE else "no saved revision"
+        return f"{text} ({note})"
+    return text
 
 
 class StartScreenMixin:
     """Opens the assembly builder from the main window's start row."""
 
     assembly_builder_window = None
+
+    def _recent_settings_path(self):
+        import self_update
+
+        return self_update.settings_path()
+
+    def _has_saved_revision(self, assembly_id):
+        from library import ComponentLibrary
+
+        library = ComponentLibrary()
+        return any(
+            item["finalized"] for item in library.list_assembly_revisions(assembly_id)
+        )
+
+    def remember_recent(self, entry):
+        """Record a file or assembly as recently used. Never stops the document opening."""
+        try:
+            recent_items.record(self._recent_settings_path(), entry)
+        except (OSError, ValueError):
+            pass
+        self.refresh_recent_list()
+
+    def refresh_recent_list(self):
+        frame = getattr(self, "recent_frame", None)
+        if frame is None:
+            return
+        for child in frame.winfo_children():
+            child.destroy()
+        items = recent_items.load(self._recent_settings_path())
+        if not items:
+            ttk.Label(frame, text="Recently used files and assemblies appear here.",
+                      foreground="#666666").pack(anchor="w")
+            return
+        ttk.Label(frame, text="Recent", font=("TkDefaultFont", 9, "bold")).pack(anchor="w")
+        for entry in items:
+            if entry["kind"] == recent_items.ASSEMBLY:
+                try:
+                    state = recent_items.status(
+                        entry, lambda item_id: self._has_saved_revision(item_id)
+                    )
+                except (sqlite3.Error, OSError):
+                    state = "ok"
+            else:
+                state = recent_items.status(entry)
+            row = ttk.Frame(frame)
+            row.pack(fill="x", pady=1)
+            if state == "ok":
+                ttk.Button(row, text=recent_row_text(entry, state),
+                           command=lambda e=entry: self.open_recent_item(e)).pack(side="left")
+            else:
+                ttk.Label(row, text=recent_row_text(entry, state),
+                          foreground="#8a5a00").pack(side="left", padx=(4, 0))
+            ttk.Button(row, text="Remove from list",
+                       command=lambda e=entry: self.remove_recent_item(e)).pack(side="right")
+
+    def open_recent_item(self, entry):
+        if entry["kind"] == recent_items.TEMPLATE:
+            path = Path(entry["key"])
+            if not path.is_file():
+                messagebox.showinfo(
+                    "This file cannot be found",
+                    "This Word file was moved or deleted. Choose it again, or remove it from the list.",
+                    parent=self.root,
+                )
+                return
+            self.load_template(path)
+            return
+        try:
+            from assembly_open_dialog import open_latest_revision
+
+            open_latest_revision(self, int(entry["key"]))
+        except (ImportError, OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
+            messagebox.showerror(
+                "Could not open this assembly",
+                f"The assembly could not be opened.\n\n{exc}",
+                parent=self.root,
+            )
+
+    def remove_recent_item(self, entry):
+        try:
+            recent_items.remove(self._recent_settings_path(), entry)
+        except (OSError, ValueError):
+            pass
+        self.refresh_recent_list()
 
     def open_new_assembly(self):
         self._open_assembly_builder(open_saved=False)
