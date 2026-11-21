@@ -16,9 +16,10 @@ import core
 from assembly_document_window import AssemblyDocumentWindow
 from help_windows import HelpWindowsMixin
 from publisher_dialog import PublisherProfileDialog
+from party_dialog import PartyDialog
 from publisher_panel import PublisherPanel
 from field_matching import FieldMatchingDialog
-from publisher_profiles import PublisherProfileStore
+from publisher_profiles import PublisherProfileStore, field_help_for
 from start_screen import StartScreenMixin, build_start_row
 from ui_widgets import FieldInput, ScrollableFrame, resource_path  # noqa: F401
 from update_dialogs import UpdateDialogsMixin
@@ -59,6 +60,9 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         )
         publisher_menu.add_command(
             label="Field matching…", command=self.manage_field_matching
+        )
+        publisher_menu.add_command(
+            label="Parties in a contract…", command=self.manage_parties
         )
         menu.add_cascade(label="Publishers", menu=publisher_menu)
 
@@ -200,13 +204,15 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
         else:
             row = 0
             self.publisher_panel.analyze([field.name for field in fields])
+            help_map = self._field_help_map()
             for field in fields:
                 control = FieldInput(
                     self.scroll.inner, field, row,
                     on_fill_from_publisher=self.publisher_panel.callback_for(field.name),
+                    help_text=field_help_for(help_map, field.name),
                 )
                 self.inputs.append(control)
-                row += 1 if field.kind == "yesno" else 2
+                row += control.rows_used
             self.create_button.config(state="normal")
 
         if template.warnings:
@@ -218,6 +224,15 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             self.status.config(text="Correct the template problems before continuing.", foreground="#a00000")
         else:
             self.status.config(text="", foreground="#555555")
+
+    def _field_help_map(self):
+        """Saved help text by field name (T-043-D); none if the database is unavailable."""
+        if self.publisher_store is None:
+            return {}
+        try:
+            return self.publisher_store.field_help_map()
+        except sqlite3.Error:
+            return {}
 
     def refresh_publisher_profiles(self):
         self.publisher_panel.refresh_profiles()
@@ -311,6 +326,24 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             )
             return
         FieldMatchingDialog(self.root, self.publisher_store)
+
+    def manage_parties(self):
+        if self.publisher_store is None:
+            messagebox.showerror(
+                "Publisher database unavailable",
+                "Parties are unavailable because the publisher database could not be opened.",
+                parent=self.root,
+            )
+            return
+        PartyDialog(self.root, self.publisher_store, on_close=self._parties_changed)
+
+    def _parties_changed(self):
+        """Party changes show in a template the next time it is opened."""
+        if self.template is not None:
+            self.status.config(
+                text="Party changes apply the next time you open the template or assembly.",
+                foreground="#8a5a00",
+            )
 
     def manage_publisher_profiles(self):
         if self.publisher_store is None:

@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 
 import core
 from publisher_panel import PublisherPanel
+from publisher_profiles import field_help_for
 from ui_widgets import FieldInput, ScrollableFrame
 
 
@@ -94,13 +95,15 @@ class AssemblyDocumentWindow:
         row = 0
         fields = template.field_list()
         self.publisher_panel.analyze([field.name for field in fields])
+        help_map = self._field_help_map()
         for field in fields:
             control = FieldInput(
                 self.scroll.inner, field, row,
                 on_fill_from_publisher=self.publisher_panel.callback_for(field.name),
+                help_text=field_help_for(help_map, field.name),
             )
             self.inputs.append(control)
-            row += 1 if field.kind == "yesno" else 2
+            row += control.rows_used
         if not self.inputs:
             ttk.Label(
                 self.scroll.inner,
@@ -144,6 +147,16 @@ class AssemblyDocumentWindow:
             buttons, text="Create document…", command=self.create_document
         ).pack(side="right", padx=(0, 7))
         self._refresh_publisher_profiles()
+
+    def _field_help_map(self):
+        """Saved help text by field name (T-043-D); none if the database is unavailable."""
+        store = self.app.publisher_store
+        if store is None:
+            return {}
+        try:
+            return store.field_help_map()
+        except sqlite3.Error:
+            return {}
 
     def _refresh_publisher_profiles(self):
         self.publisher_panel.refresh_profiles()

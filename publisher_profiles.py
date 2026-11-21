@@ -135,6 +135,11 @@ def _normalize_field_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", value).strip()
 
 
+def field_help_for(help_map: Mapping[str, str], field_name: str) -> str:
+    """The saved help text for a field name, ignoring capitals, spacing and 's."""
+    return help_map.get(_normalize_field_name(field_name), "")
+
+
 def publisher_profile_field_definitions() -> list[dict[str, object]]:
     """Return the app's built-in publisher fields with explicit profile links.
 

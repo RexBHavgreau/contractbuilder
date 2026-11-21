@@ -63,11 +63,23 @@ class ScrollableFrame(ttk.Frame):
 class FieldInput:
     """A basic form control corresponding to one unique placeholder."""
 
-    def __init__(self, parent, field, row, on_fill_from_publisher=None):
+    def __init__(self, parent, field, row, on_fill_from_publisher=None, help_text=""):
         self.field = field
         self.variable = None
         self.text = None
         self.control = None
+        # Rows this field uses: the next field starts at row + rows_used.
+        self.rows_used = 1 if field.kind == "yesno" and not help_text else 2
+        self.help_label = None
+        if help_text:
+            # Guidance for the person filling in the form; never put in the document.
+            self.help_label = ttk.Label(
+                parent, text=help_text, foreground="#555555", wraplength=460, justify="left"
+            )
+            self.help_label.grid(
+                row=row + 1, column=0 if field.kind == "yesno" else 1,
+                columnspan=2 if field.kind == "yesno" else 1, sticky="w", padx=(22, 0) if field.kind == "yesno" else 0,
+            )
 
         if field.kind == "yesno":
             self.variable = tk.BooleanVar(master=parent, value=False)
