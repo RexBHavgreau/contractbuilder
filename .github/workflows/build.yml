@@ -187,17 +187,23 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $built = Get-ChildItem "dist" -Filter "Contract Builder *.exe" | Select-Object -First 1
           if (-not $built) { throw "Windows executable was not produced." }
-          $releaseAsset = "dist/Word-Template-Filler-windows-x64.exe"
+          $versionLine = Select-String -Path "version.py" -Pattern '^APP_VERSION\s*=\s*"([^"]+)"'
+          if (-not $versionLine) { throw "Could not read APP_VERSION from version.py." }
+          $version = $versionLine.Matches[0].Groups[1].Value
+          $releaseAsset = "dist/ContractBuilder-$version-windows-x64.exe"
           Move-Item -LiteralPath $built.FullName -Destination $releaseAsset
           if ((Get-Item -LiteralPath $releaseAsset).Length -le 0) {
             throw "Windows executable is empty."
           }
+          # Published under the fixed name too: copies of 0.4.x look only for it.
+          Copy-Item -LiteralPath $releaseAsset -Destination "dist/Word-Template-Filler-windows-x64.exe"
+          "WINDOWS_RELEASE_ASSET=$releaseAsset" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Get-FileHash -Algorithm SHA256 -LiteralPath $releaseAsset
 
       - name: Check Windows executable size
         shell: pwsh
         run: |
-          python scripts/check_executable_size.py dist/Word-Template-Filler-windows-x64.exe --min-headroom 3145728
+          python scripts/check_executable_size.py $env:WINDOWS_RELEASE_ASSET --min-headroom 3145728
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # Compare the release build with the same application while forcing in
@@ -207,7 +213,7 @@ jobs:
       - name: Measure component-builder executable size
         shell: pwsh
         run: |
-          $releaseAsset = "dist/Word-Template-Filler-windows-x64.exe"
+          $releaseAsset = $env:WINDOWS_RELEASE_ASSET
           if (-not (Test-Path -LiteralPath $releaseAsset)) {
             throw "The normal Windows executable is missing."
           }
@@ -259,7 +265,7 @@ jobs:
           try {
             $env:GH_TOKEN = "${{ github.token }}"
             $json = gh api "repos/${{ github.repository }}/releases/latest" | ConvertFrom-Json
-            $asset = $json.assets | Where-Object { $_.name -eq "Word-Template-Filler-windows-x64.exe" } | Select-Object -First 1
+            $asset = $json.assets | Where-Object { $_.name -eq "Word-Template-Filler-windows-x64.exe" -or $_.name -like "ContractBuilder-*-windows-x64.exe" } | Select-Object -First 1
             if ($asset) { $previous = [int64]$asset.size }
           } catch { Write-Host "No earlier release size available." }
 
@@ -274,7 +280,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: build-windows-x64
-          path: dist/Word-Template-Filler-windows-x64.exe
+          path: |
+            dist/ContractBuilder-*-windows-x64.exe
+            dist/Word-Template-Filler-windows-x64.exe
           if-no-files-found: error
           retention-days: 14
 
@@ -360,7 +368,8 @@ jobs:
       - name: Verify required Windows release asset
         run: |
           test -s release-assets/Word-Template-Filler-windows-x64.exe
-          echo "Required Windows executable is present."
+          test -s release-assets/ContractBuilder-*-windows-x64.exe
+          echo "Required Windows executables are present (versioned and fixed name)."
           echo "macOS build matrix result: ${{ needs.build-macos.result }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish GitHub release and attach applications

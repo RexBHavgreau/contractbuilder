@@ -23,7 +23,23 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+# The Windows download. Releases from 0.4.5 carry the version in the name; the
+# fixed name is still published for copies of 0.4.x, whose updater looks only
+# for it. Remove the fixed name once no installed copy predates the new updater.
 WINDOWS_ASSET = "Word-Template-Filler-windows-x64.exe"
+
+
+def versioned_windows_asset(version: str) -> str:
+    return f"ContractBuilder-{version}-windows-x64.exe"
+
+
+def windows_download(release):
+    """The Windows download of a release, accepting either name (versioned first)."""
+    for name in (versioned_windows_asset(release.latest_version), WINDOWS_ASSET):
+        item = release.asset(name)
+        if item is not None:
+            return item
+    return None
 CHUNK = 256 * 1024
 
 

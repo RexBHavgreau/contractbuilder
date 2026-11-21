@@ -382,3 +382,37 @@ def test_start_swap_passes_the_clean_environment(tmp_path, monkeypatch):
     self_update.start_swap(tmp_path / "app.exe", tmp_path / "app.exe.new")
     assert seen["env"]["PYINSTALLER_RESET_ENVIRONMENT"] == "1"
     assert "_PYI_APPLICATION_HOME_DIR" not in seen["env"]
+
+
+class _Release:
+    """Only what windows_download needs: the version and an asset lookup."""
+
+    def __init__(self, version, names):
+        self.latest_version = version
+        self._items = {name: object() for name in names}
+
+    def asset(self, name):
+        return self._items.get(name)
+
+
+def test_windows_download_prefers_the_versioned_name():
+    both = _Release("0.4.5", [self_update.WINDOWS_ASSET, "ContractBuilder-0.4.5-windows-x64.exe"])
+    assert self_update.windows_download(both) is both.asset("ContractBuilder-0.4.5-windows-x64.exe")
+
+
+def test_windows_download_accepts_the_fixed_name_for_older_releases():
+    fixed = _Release("0.4.4", [self_update.WINDOWS_ASSET])
+    assert self_update.windows_download(fixed) is fixed.asset(self_update.WINDOWS_ASSET)
+
+
+def test_windows_download_ignores_a_versioned_name_for_another_version():
+    other = _Release("0.4.5", ["ContractBuilder-0.4.4-windows-x64.exe"])
+    assert self_update.windows_download(other) is None
+
+
+def test_windows_download_is_none_without_a_windows_file():
+    assert self_update.windows_download(_Release("0.4.5", ["macOS.zip"])) is None
+
+
+def test_versioned_name_follows_the_pattern():
+    assert self_update.versioned_windows_asset("0.4.5") == "ContractBuilder-0.4.5-windows-x64.exe"

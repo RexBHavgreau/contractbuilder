@@ -14,6 +14,8 @@ size: no executable change in the rename itself; the build names are changed, so
   title, the download name the updater uses, the guide and the README now say
   Contract Builder. The data folder is now `Contract Builder`; the one existing folder must be
   renamed by hand before the new version first runs (the guide says so). Kept on
-  purpose: the Windows release file `Word-Template-Filler-windows-x64.exe` (the updater looks
-  for that exact name); the macOS zip name, which matches it; and the history in
-  CHANGES.txt, progress and decisions. Tests: 525 pass, 1 skipped.
+  purpose: the macOS zip name; and the history in CHANGES.txt, progress and
+  decisions. The Windows download is now `ContractBuilder-X.Y.Z-windows-x64.exe`.
+  The fixed name `Word-Template-Filler-windows-x64.exe` is still published for
+  0.4.x copies, and the updater accepts either (see
+  decisions/2026-11-21-versioned-windows-file-name.md). Tests: 530 pass, 1 skipped.

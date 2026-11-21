@@ -80,7 +80,7 @@ class UpdateDialogsMixin:
             if len(note_lines) > 15:
                 notes_preview += "\n…"
             heading += "What's new:\n" + notes_preview + "\n\n"
-        asset = result.asset(self_update.WINDOWS_ASSET)
+        asset = self_update.windows_download(result)
         if self_update.can_install_in_place() and asset:
             if messagebox.askyesno(
                 "Update available",
