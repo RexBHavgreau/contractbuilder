@@ -213,15 +213,15 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             ).grid(row=0, column=0, sticky="w", pady=10)
         else:
             row = 0
+            match_map = self.publisher_store.field_match_map() if self.publisher_store else {}
             for field in fields:
-                match_map = self.publisher_store.field_match_map() if self.publisher_store else {}
                 fill_callback = (
-                    lambda name=field.name: self.load_publisher_profile(name)
-                    if publisher_column_for_field(name, match_map) else None
+                    (lambda name=field.name: self.load_publisher_profile(name))
+                    if publisher_column_for_field(field.name, match_map) else None
                 )
                 control = FieldInput(
                     self.scroll.inner, field, row,
-                    on_fill_from_publisher=fill_callback() if publisher_column_for_field(field.name, match_map) else None,
+                    on_fill_from_publisher=fill_callback,
                 )
                 self.inputs.append(control)
                 row += 1 if field.kind == "yesno" else 2
@@ -368,7 +368,13 @@ class WordTemplateFiller(StartScreenMixin, UpdateDialogsMixin, HelpWindowsMixin)
             return
         name = self.publisher_variable.get()
         profile_id = self.publisher_profile_ids.get(name)
-        if profile_id is None or self.publisher_store is None:
+        if self.publisher_store is None:
+            return
+        if profile_id is None:
+            messagebox.showinfo(
+                "Choose a publisher", "Choose a saved publisher before filling fields.",
+                parent=self.root,
+            )
             return
         try:
             profile = self.publisher_store.get_profile(profile_id)
