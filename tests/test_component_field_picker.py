@@ -6,7 +6,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import core
 import pytest
-from component_editor.field_picker import build_created_field, field_kind_definition
+from component_editor.field_picker import (
+    build_created_field, field_definition_placeholder, field_kind_definition
+)
 from library import ComponentLibrary
 
 
@@ -27,6 +29,18 @@ def test_plain_field_kinds_map_to_their_default_formats(kind, expected_format):
     assert build_created_field(definition, kind) == (
         "{{Contract Field}}" if not expected_format
         else "{{Contract Field | " + expected_format + "}}"
+    )
+
+
+def test_picker_preserves_legacy_stored_formats():
+    definition = {
+        "name": "Effective Date",
+        "default_format": "date-formal",
+        "default_options": [],
+        "allowed_values": [],
+    }
+    assert field_definition_placeholder(definition) == (
+        "{{Effective Date | date-formal}}"
     )
 
 
