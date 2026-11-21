@@ -13,7 +13,7 @@ from tkinter import messagebox, ttk
 from component_preview import PREVIEW_KEY, render_markdown_preview
 from library import ComponentLibrary
 
-from .fields import malformed_field_message
+from .backup_dialog import LibraryBackupDialog\nfrom .fields import malformed_field_message
 from .history_dialog import open_version_history_dialog
 from .library_list import LibraryListMixin
 from .styling import configure_preview_tags
@@ -169,6 +169,10 @@ class ComponentEditorWindow(
             command=self.open_version_history, state="disabled",
         )
         self.history_button.pack(side="left", padx=(6, 0))
+        ttk.Button(
+            library_actions, text="Backup / export…",
+            command=self.open_library_backup,
+        ).pack(side="left", padx=(6, 0))
 
         form = ttk.LabelFrame(body, text="Component details", padding=10)
         form.grid(row=0, column=1, sticky="nsew")
@@ -299,6 +303,14 @@ class ComponentEditorWindow(
             footer, text="Save version", command=self.save_component
         )
         self.save_button.pack(side="right", padx=(0, 8))
+
+    def open_library_backup(self):
+        if not self._confirm_pending_changes("opening the library backup tools"):
+            return
+        LibraryBackupDialog(
+            self.window, self.library,
+            selected_component_id=self.current_component_id,
+        )
 
     def _configure_preview_tags(self):
         configure_preview_tags(self.preview)
