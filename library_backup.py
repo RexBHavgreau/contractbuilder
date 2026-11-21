@@ -373,7 +373,11 @@ def _replace(connection: sqlite3.Connection, payload: dict, include_profiles: bo
             inserted[table] = len(rows)
     for sql in trigger_sql:
         connection.execute(sql)
-    _reset_sequences(connection, _AUTO_ID_TABLES)
+    sequence_tables = _AUTO_ID_TABLES if include_profiles and payload.get("includes_publisher_profiles") else tuple(
+        table for table in _AUTO_ID_TABLES
+        if table not in {"publishers", "publisher_field_matches", "publisher_parties"}
+    )
+    _reset_sequences(connection, sequence_tables)
     return {"inserted": inserted, "skipped": {}}
 
 
@@ -500,8 +504,8 @@ def import_library_backup(
     payload = _read_backup(source)
     profiles = bool(include_publisher_profiles and payload.get("includes_publisher_profiles"))
     with _database_connection(database_path) as connection:
-        payload = _validated_payload(connection, payload)
         connection.execute("BEGIN IMMEDIATE")
+        payload = _validated_payload(connection, payload)
         try:
             result = (
                 _replace(connection, payload, profiles)
@@ -533,6 +537,8 @@ def get_backup_reminder_settings(database_path: str | Path) -> dict:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
         data = {}
     return {
         "enabled": bool(data.get("enabled", False)),
