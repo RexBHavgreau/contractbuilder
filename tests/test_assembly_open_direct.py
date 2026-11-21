@@ -1,4 +1,5 @@
 """Direct opening of saved assemblies from the main start screen."""
+import os
 import sys
 import tkinter as tk
 from tkinter import ttk
