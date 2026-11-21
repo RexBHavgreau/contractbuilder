@@ -574,7 +574,7 @@ def test_v4_migration_preserves_v3_publisher_and_component_data(tmp_path, monkey
         ).fetchone() == (1,)
 
 
-def test_older_v3_application_uses_profiles_without_changing_v4_tables(
+def test_older_v3_application_uses_profiles_without_changing_newer_tables(
     tmp_path, monkeypatch
 ):
     path = tmp_path / "publisher_profiles.sqlite3"
@@ -597,7 +597,7 @@ def test_older_v3_application_uses_profiles_without_changing_v4_tables(
             "WHERE type = 'table' AND name = 'field_definitions'"
         ).fetchone()[0]
     assert field_before[0][0] == field_id
-    assert _user_version(path) == 4
+    assert _user_version(path) == 5
 
     # Simulate the previous release, which knows schemas only through v3.
     monkeypatch.setattr(profiles, "SCHEMA_VERSION", 3)
@@ -613,7 +613,7 @@ def test_older_v3_application_uses_profiles_without_changing_v4_tables(
     second_profile_id = older.save_profile(sample_profile("Older application profile"))
 
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone() == (4,)
+        assert connection.execute("PRAGMA user_version").fetchone() == (5,)
         assert connection.execute(
             "SELECT id, name, name_key, allowed_values, status "
             "FROM field_definitions"
@@ -658,3 +658,88 @@ def test_builtin_publisher_fields_link_to_profile_columns_and_autofill():
         profiles.format_address(profile).splitlines()
     )
     assert mapped == expected
+
+def test_user_field_matches_are_saved_updated_and_removed(tmp_path):
+    store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
+    first = store.save_field_match("Legal Name", "publisher_name")
+    assert store.field_match_map() == {"Legal Name": "publisher_name"}
+
+    second = store.save_field_match("Legal Name", "contact_name")
+    assert second == first
+    assert len(store.list_field_matches()) == 1
+    assert store.field_match_map() == {"Legal Name": "contact_name"}
+
+    assert store.delete_field_match(first)
+    assert store.field_match_map() == {}
+    assert not store.delete_field_match(first)
+
+
+def test_user_field_matches_override_builtins_and_normalize_names(tmp_path):
+    store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
+    store.save_field_match(" Publisher’s   Legal Name ", "contact_name")
+    profile = sample_profile()
+    values = profiles.values_for_template(
+        profile,
+        ["Publisher's Legal   Name", "Publisher Name", "Unknown Field"],
+        store.field_match_map(),
+    )
+    assert values == {
+        "Publisher's Legal   Name": profile["contact_name"],
+        "Publisher Name": profile["publisher_name"],
+    }
+
+
+def test_user_field_matches_reject_invalid_columns_and_names(tmp_path):
+    store = profiles.PublisherProfileStore(tmp_path / "publisher_profiles.sqlite3")
+    with pytest.raises(ValueError, match="valid publisher profile detail"):
+        store.save_field_match("Legal Name", "made_up_column")
+    with pytest.raises(ValueError, match="Enter a field name"):
+        store.save_field_match("   ", "publisher_name")
+    with pytest.raises(ValueError, match="without braces"):
+        store.save_field_match("{{Legal Name}}", "publisher_name")
+
+
+def test_schema_v4_migrates_to_user_field_matching_without_losing_fields(tmp_path):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    store = profiles.PublisherProfileStore(path)
+    store.save_field_match("Legacy field", "publisher_name")
+    expected = store.list_field_matches()
+
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(profiles, "SCHEMA_VERSION", 4)
+        monkeypatch.setattr(
+            profiles,
+            "_MIGRATIONS",
+            {
+                2: profiles._migrate_components_and_versions,
+                3: profiles._migrate_assemblies_and_revisions,
+                4: profiles._migrate_field_definitions,
+            },
+        )
+        older = profiles.PublisherProfileStore(path)
+        assert older.list_field_matches() == expected
+    finally:
+        monkeypatch.undo()
+
+def test_schema_v4_upgrade_adds_field_matches_table(tmp_path, monkeypatch):
+    path = tmp_path / "publisher_profiles.sqlite3"
+    monkeypatch.setattr(profiles, "SCHEMA_VERSION", 4)
+    monkeypatch.setattr(
+        profiles,
+        "_MIGRATIONS",
+        {
+            2: profiles._migrate_components_and_versions,
+            3: profiles._migrate_assemblies_and_revisions,
+            4: profiles._migrate_field_definitions,
+        },
+    )
+    legacy = profiles.PublisherProfileStore(path)
+    legacy.save_profile(sample_profile())
+    assert _user_version(path) == 4
+
+    monkeypatch.undo()
+    current = profiles.PublisherProfileStore(path)
+    assert _user_version(path) == 5
+    current.save_field_match("Legacy Publisher", "publisher_name")
+    assert current.field_match_map() == {"Legacy Publisher": "publisher_name"}
