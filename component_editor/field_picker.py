@@ -81,7 +81,9 @@ def field_kind_definition(
     }
 
 
-def build_created_field(definition: dict, kind: str, wording: str = "") -> str:
+def build_created_field(
+    definition: dict, kind: str, wording: str = "", placement: str = "Inside a sentence"
+) -> str:
     """Build the exact placeholder or conditional block produced by the creator."""
     name = str(definition["name"])
     field_kind = str(kind).strip().casefold()
@@ -112,7 +114,8 @@ def build_created_field(definition: dict, kind: str, wording: str = "") -> str:
                 + mapping[str(value).casefold()]
                 + "{{/if}}"
             )
-        return "\n\n".join(blocks)
+        separator = " " if placement == "Inside a sentence" else "\n\n"
+        return separator.join(blocks)
     options = definition.get("default_options") or definition.get("allowed_values") or []
     separator = " / " if any("," in str(value) for value in options) else ", "
     return make_field_placeholder(name, fmt, separator.join(str(value) for value in options))
@@ -291,7 +294,11 @@ class FieldPickerDialog:
             self.details.configure(text="Only fields under Your fields can be edited.")
             return
         definition = self.library.get_field_definition(field["id"])
-        FieldCreatorDialog(self.window, self.library, self._created, existing=definition)
+        FieldCreatorDialog(self.window, self.library, self._updated, existing=definition)
+
+    def _updated(self, definition, _insertion):
+        self.refresh(definition.get("name_key"))
+        self.details.configure(text="Field definition updated.")
 
     def archive_field(self):
         field = self._selected_field()
@@ -372,6 +379,15 @@ class FieldCreatorDialog:
         self.values_text.bind("<KeyRelease>", self._update_conditional_preview)
         self.preview = ttk.Label(self.options_frame, text="", wraplength=600)
         self.preview.grid(row=4, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        self.placement_label = ttk.Label(self.options_frame, text="Where does the wording go?")
+        self.placement_label.grid(row=5, column=0, sticky="w", pady=(5, 0))
+        self.placement = tk.StringVar(master=self.window, value="Inside a sentence")
+        self.placement_box = ttk.Combobox(
+            self.options_frame, textvariable=self.placement, state="readonly",
+            values=["Inside a sentence", "As separate paragraphs"], width=28,
+        )
+        self.placement_box.grid(row=5, column=1, sticky="w", pady=(5, 0))
+        self.placement_box.bind("<<ComboboxSelected>>", self._update_conditional_preview)
 
         footer = ttk.Frame(outer)
         footer.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 0))
@@ -414,6 +430,8 @@ class FieldCreatorDialog:
                 for widget in self.options_frame.winfo_children()[6:]:
                     widget.grid()
                 self.preview.grid()
+                self.placement_label.grid()
+                self.placement_box.grid()
         elif kind == "Singular or plural word":
             for widget in self.options_frame.winfo_children()[2:6]:
                 widget.grid()
@@ -423,8 +441,12 @@ class FieldCreatorDialog:
             for widget in self.options_frame.winfo_children()[6:8]:
                 widget.grid()
             self.preview.grid_remove()
+            self.placement_label.grid_remove()
+            self.placement_box.grid_remove()
         else:
             self.preview.grid_remove()
+            self.placement_label.grid_remove()
+            self.placement_box.grid_remove()
         self._update_conditional_preview()
 
     def _update_conditional_preview(self, _event=None):
@@ -437,11 +459,15 @@ class FieldCreatorDialog:
                 choice, phrase = line.split("|", 1)
                 if choice.strip() and phrase.strip():
                     entries.append(choice.strip() + " → " + phrase.strip())
-        self.preview.configure(
-            text=("Preview: " + " · ".join(entries)) if entries
-            else "Enter one line for each choice as “Choice | wording”. "
-            + ("Choices: " + ", ".join(values) if values else "")
-        )
+        if entries:
+            separator = " " if self.placement.get() == "Inside a sentence" else "\\n\\n"
+            preview_text = ("Sentence: " if separator == " " else "Paragraphs: ")
+            self.preview.configure(text=preview_text + separator.join(entries))
+        else:
+            self.preview.configure(
+                text="Enter one line for each choice as “Choice | wording”. "
+                + ("Choices: " + ", ".join(values) if values else "")
+            )
 
     def save(self):
         kind = self.kind.get()
@@ -459,7 +485,9 @@ class FieldCreatorDialog:
                 definition_id = self.library.add_field_definition(**definition)
             saved = self.library.get_field_definition(definition_id)
             wording = self.wording_text.get("1.0", "end-1c").strip()
-            insertion = build_created_field(saved, kind, wording)
+            insertion = build_created_field(
+                saved, kind, wording, placement=self.placement.get()
+            )
         except (ValueError, TypeError, OSError) as exc:
             messagebox.showerror("Could not save field", str(exc), parent=self.window)
             return
