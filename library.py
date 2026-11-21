@@ -1,6 +1,6 @@
 """Non-UI access to reusable components in the shared local SQLite database.
 
-This module deliberately depends only on the standard library and the
+This module uses the standard library, the field rules in core.py, and the
 publisher database module. It is safe to import from the desktop UI, tests,
 or other application code; it contains no Tkinter code.
 """
@@ -111,7 +111,7 @@ def _field_definition_values(
 ) -> dict:
     clean_name, name_key = _field_name(name)
     format_key = re.sub(
-        r"[\\s_]+", "-", str(default_format or "").strip().lower()
+        r"[\s_]+", "-", str(default_format or "").strip().lower()
     )
     if format_key not in core.FORMAT_ALIASES:
         raise ValueError("Choose a field format supported by ContractBuilder.")
@@ -594,7 +594,7 @@ class ComponentLibrary:
         return self._set_status("field_definitions", field_id, "active")
 
     def _set_status(self, table: str, record_id: int, status: str) -> bool:
-        """Change only the lifecycle status of a component or assembly."""
+        """Change only the lifecycle status of a retained library record."""
         if table not in {"components", "assemblies", "field_definitions"}:
             raise ValueError("Unsupported archive record type.")
         if status not in {"active", "archived"}:
