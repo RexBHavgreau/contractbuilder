@@ -77,6 +77,7 @@ def test_changed_or_missing_shell_can_be_reselected_without_changing_saved_revis
     tmp_path, monkeypatch
 ):
     library, original_shell, revision, _opening_id = _saved_revision(tmp_path)
+    original_shell.unlink()  # Simulate the saved shell having been moved.
     replacement = tmp_path / "replacement.docx"
     document = Document()
     document.add_paragraph("Replacement layout")
