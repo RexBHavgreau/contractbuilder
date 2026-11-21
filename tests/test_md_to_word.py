@@ -325,3 +325,47 @@ def test_reordered_list_items_remain_native_and_follow_source_order(tmp_path):
     assert all(_num_pr(item) is not None for item in moved.elements)
     assert len({_num_pr(item).find("w:numId", NS).get("{%s}val" % W)
                 for item in moved.elements if item.tag == "{%s}p" % W}) == 1
+
+
+
+def test_safe_markdown_links_become_word_hyperlinks_and_unsafe_links_stay_plain(tmp_path):
+    shell = make_shell(tmp_path / "shell.docx")
+    result = md_to_word.render_markdown(
+        "[**{{Client Name}}**](https://example.com/terms) and "
+        "[email](mailto:legal@example.com) plus "
+        "[unsafe](javascript:alert(1)).",
+        shell,
+    )
+
+    assert result.hyperlinks == (
+        ("rIdLink1", "https://example.com/terms"),
+        ("rIdLink2", "mailto:legal@example.com"),
+    )
+    paragraph = result.elements[0]
+    links = paragraph.findall("w:hyperlink", NS)
+    assert [link.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
+            for link in links] == ["rIdLink1", "rIdLink2"]
+    assert ["".join(link.xpath(".//w:t/text()", namespaces=NS)) for link in links] == [
+        "{{Client Name}}", "email"
+    ]
+    assert links[0].find("w:r/w:rPr/w:b", NS) is not None
+
+    plain_text = "".join(
+        run.findtext("w:t", namespaces=NS) or ""
+        for run in paragraph.findall("w:r", NS)
+    )
+    assert "unsafe" in plain_text
+    assert "javascript" not in plain_text
+    assert any(item.code == "markdown.link_unsafe" for item in result.warnings)
+
+
+def test_safe_markdown_links_are_also_rendered_inside_table_cells(tmp_path):
+    result = md_to_word.render_markdown(
+        "| Contact | Link |\\n| --- | --- |\\n| Legal | [Email](mailto:legal@example.com) |",
+        make_shell(tmp_path / "shell.docx"),
+    )
+    table = result.elements[0]
+    hyperlink = table.find(".//w:hyperlink", NS)
+    assert hyperlink is not None
+    assert hyperlink.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id") == "rIdLink1"
+    assert result.hyperlinks == (("rIdLink1", "mailto:legal@example.com"),)
