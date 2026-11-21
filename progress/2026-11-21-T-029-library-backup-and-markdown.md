@@ -1,21 +1,13 @@
-# T-029 — component library backup and Markdown import/export
+---
+date: 2026-11-21
+task: T-029
+author: GPT-6
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/96
+ci_run: 44931071522
+size: release 18,301,882 bytes; component-editor 18,300,161 bytes; headroom 12.55 MiB
+---
 
-**Completed:** 2026-11-21  
-**Pull request:** #96 (merged)
-
-## Delivered
-- Portable UTF-8 JSON backup of components, all wording versions, assemblies, pinned assembly revisions, and reusable field definitions.
-- Transactional replace and merge restore. Merge remaps IDs while preserving references between components, versions, assemblies, and revisions.
-- Publisher profiles and contact data excluded by default; explicit opt-in required both to export and to import them.
-- Individual and bulk Markdown export, including archived components, with a metadata header the importer understands.
-- Optional four-week reminder, disabled by default and stored locally outside the backup.
-- Components-window backup/export entry point, human-readable import preview, and documented file formats.
-
-## Validation
-- Full GitHub Actions suite: **506 passed, 45 skipped**.
-- Tk window smoke-test step: passed.
-- Windows build and packaging: passed.
-- Main Windows executable: **18,301,882 bytes (17.45 MiB)** against a **30.00 MiB** limit, leaving **12.55 MiB** of headroom.
-- Component-editor measurement build with all modules forced in: **18,300,161 bytes (17.45 MiB)**. The measured delta was **−1,721 bytes (−0.00 MiB)**, effectively no measurable bundle-size increase. This build also passed the 30 MiB check with **12.55 MiB** of headroom.
-
-The source library's full table snapshots were compared across an export/replace-import round trip in the tests, including historical versions, archived records, pinned assembly references, field definitions, and the explicitly opted-in profile tables.
+- **2026-11-21** T-029 (GPT-6, [PR #96](https://github.com/RexBHavgreau/contractbuilder/pull/96)): added full library backup and transactional merge/replace restore; publisher profiles are excluded by default and require opt-in on export and import. Added metadata-aware Markdown export/import for one or all components, including archived components, and an off-by-default four-week reminder.
+- Validation: 506 passed, 45 skipped; Tk window smoke tests passed; Windows packaging and both size checks passed.
+- Size gate: release executable 17.45 MiB against the 30 MiB limit (12.55 MiB headroom). The component-editor all-modules probe was 17.45 MiB, a measured difference of −1,721 bytes, effectively no measurable bundle-size increase.
+- The test suite compares full source and restored table snapshots, including all version history, archived records, pinned assembly references, field definitions, and explicitly opted-in publisher-profile data.
