@@ -37,9 +37,11 @@ two agents can never both get the same task: if the push is refused, someone
 else has it and you pick another. Then open a pull request from the claim
 branch into `main`, change nothing else in it, and merge it within minutes;
 do the real work on a separate branch. When the task is done, delete the
-claim branch (`python scripts/claim.py --release T-043-A`). A claim branch
-with no recent activity is a stale claim: the weekly review puts the task back
-to `open`. Take only tasks marked `Agent: any` unless you are a stronger model
+claim branch (`python scripts/claim.py --release T-043-A`) if it still
+exists; GitHub deletes the branch itself when the claim pull request merges,
+and from then on the `Status` line on `main` holds the claim. A claim branch
+with no recent activity, or a `claimed` status with no work behind it, is a
+stale claim: the weekly review puts the task back to `open`. Take only tasks marked `Agent: any` unless you are a stronger model
 or a person. Do not take a task marked `Needs: Beaux` until its decision is
 recorded in `decisions/`, and do not take one whose `Needs` names an
 unfinished task (the script refuses these).
