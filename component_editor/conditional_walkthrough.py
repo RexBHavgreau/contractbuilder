@@ -54,6 +54,27 @@ def build_conditional_text(field_name, values, wording, placement="Inside a sent
     return result
 
 
+def parse_conditional_text(text):
+    """Return (field, values, phrases) for a complete explicit-choice block sequence."""
+    source = str(text or "").strip()
+    pattern = re.compile(
+        r"\\{\\{#if\\s+(.+?)\\s*=\\s*(.+?)\\}\\}(.*?)\\{\\{/if\\}\\}",
+        re.S,
+    )
+    matches = list(pattern.finditer(source))
+    if not matches or re.sub(pattern, "", source).strip():
+        raise ValueError("This selection is not a complete choice-wording block. "
+                         "It has been left unchanged.")
+    field_name = matches[0].group(1).strip()
+    if any(match.group(1).strip().casefold() != field_name.casefold() for match in matches):
+        raise ValueError("The selected blocks use more than one field and cannot be edited together.")
+    values = [match.group(2).strip() for match in matches]
+    phrases = [match.group(3).strip() for match in matches]
+    if len(values) < 2 or len({value.casefold() for value in values}) != len(values):
+        raise ValueError("The selected blocks do not form a complete choice set.")
+    return field_name, values, phrases
+
+
 def build_optional_text(field_name, wording, only_if_blank=False, placement="As separate paragraphs"):
     """Build a yes/no clause or an only-if-blank clause."""
     name = str(field_name or "").strip()
@@ -110,6 +131,25 @@ class ConditionalWordingDialog:
         self.values = []
         self.phrase_vars = {}
         self.initial_text = initial_text
+        self.editing_existing = False
+        if "{{#if" in str(initial_text or ""):
+            self.field.set(str(initial_text))
+            try:
+                parsed_field, parsed_values, parsed_phrases = parse_conditional_text(initial_text)
+                self.field.set(parsed_field)
+                self.values = parsed_values
+                self.phrases = parsed_phrases
+                self.editing_existing = True
+            except ValueError:
+                # Do not reinterpret or rewrite hand-authored conditional text.
+                self.window.destroy()
+                messagebox.showwarning(
+                    "Cannot edit this conditional block",
+                    "This selection does not match a complete choice-wording block. "
+                    "It has been left unchanged.",
+                    parent=parent,
+                )
+                return
         self.outer = ttk.Frame(self.window, padding=14)
         self.outer.pack(fill="both", expand=True)
         self.heading = ttk.Label(self.outer, font=("", 13, "bold"))
