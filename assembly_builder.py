@@ -219,24 +219,36 @@ class AssemblyBuilderWindow:
 
         footer = ttk.Frame(outer)
         footer.grid(row=3, column=0, sticky="ew", pady=(10, 0))
-        self.status = ttk.Label(footer, text="Start by choosing a page layout file (button above the lists).")
-        self.status.pack(side="left", fill="x", expand=True)
-        ttk.Button(footer, text="Close", command=self.window.destroy).pack(side="right")
+        # The message gets its own full-width, wrapping line above the buttons.
+        # Beside the buttons, a long message took all the width and pushed
+        # Save assembly off the window.
+        self.status = ttk.Label(
+            footer, text="Start by choosing a page layout file (button above the lists).",
+            justify="left", wraplength=800,
+        )
+        self.status.pack(side="top", fill="x", anchor="w", pady=(0, 6))
+        footer.bind(
+            "<Configure>",
+            lambda event: self.status.configure(wraplength=max(200, event.width - 20)),
+        )
+        buttons = ttk.Frame(footer)
+        buttons.pack(side="top", fill="x")
+        ttk.Button(buttons, text="Close", command=self.window.destroy).pack(side="right")
         ttk.Button(
-            footer, text="Save assembly…", command=self.save_assembly
+            buttons, text="Save assembly…", command=self.save_assembly
         ).pack(side="right", padx=(0, 7))
         self.updates_button = ttk.Button(
-            footer, text="Review updates…", command=self.review_updates, state="disabled"
+            buttons, text="Review updates…", command=self.review_updates, state="disabled"
         )
         self.updates_button.pack(side="right", padx=(0, 7))
         self.generate_button = ttk.Button(
-            footer, text="Fill fields and create document…",
+            buttons, text="Fill fields and create document…",
             command=self.generate_document,
             state="normal" if self.on_generate is not None else "disabled",
         )
         self.generate_button.pack(side="right", padx=(0, 7))
         ttk.Button(
-            footer, text="Open saved…", command=self.open_saved_assembly
+            buttons, text="Open saved…", command=self.open_saved_assembly
         ).pack(side="right", padx=(0, 7))
 
     def _configure_preview_tags(self):

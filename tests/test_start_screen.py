@@ -129,3 +129,33 @@ def test_builder_shows_name_box_and_layout_button(app):
     window.geometry("1000x640")
     window.update()
     assert visible(entry)
+
+
+def test_buttons_stay_visible_when_the_status_message_is_very_long(app):
+    app.start_buttons[1].invoke()
+    app.root.update()
+    builder = app.assembly_builder_window
+    window = builder.window
+    window.geometry("900x640")
+    builder.status.configure(text="Warning: this layout file has a problem. " * 40)
+    window.update()
+    window_right = window.winfo_rootx() + window.winfo_width()
+    for button in (builder.generate_button, builder.updates_button):
+        assert button.winfo_ismapped()
+        assert button.winfo_rootx() + button.winfo_width() <= window_right
+    texts = _texts(window)
+    assert "Save assembly…" in texts and "Close" in texts
+
+    def find(widget, label):
+        for child in widget.winfo_children():
+            try:
+                if child.cget("text") == label:
+                    return child
+            except tk.TclError:
+                pass
+            found = find(child, label)
+            if found is not None:
+                return found
+
+    save = find(window, "Save assembly…")
+    assert save.winfo_rootx() + save.winfo_width() <= window_right
