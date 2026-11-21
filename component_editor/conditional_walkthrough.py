@@ -38,8 +38,16 @@ def build_conditional_text(field_name, values, wording, placement="Inside a sent
         "{{#if " + name + " = " + value + "}}" + mapping[value.casefold()] + "{{/if}}"
         for value in clean_values
     ]
-    separator = " " if placement == "Inside a sentence" else "\n\n"
-    result = separator.join(blocks)
+    if placement == "Inside a sentence":
+        result = " ".join(blocks)
+    else:
+        paragraph_blocks = []
+        for value in clean_values:
+            paragraph_blocks.append(
+                "{{#if " + name + " = " + value + "}}\\n"
+                + mapping[value.casefold()] + "\\n{{/if}}"
+            )
+        result = "\\n\\n".join(paragraph_blocks)
     _validate_with_template(result)
     return result
 
