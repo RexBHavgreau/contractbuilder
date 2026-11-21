@@ -24,6 +24,7 @@ import assembly_review_dialog
 from component_preview import PREVIEW_KEY
 from library import ComponentLibrary
 import shell_selection
+from layout_file_dialog import confirm_layout_file
 
 
 NO_SHELL = "None chosen yet"
@@ -339,11 +340,7 @@ class AssemblyBuilderWindow:
                     parent=self.window,
                 )
                 return
-            if check.result.warnings and not messagebox.askyesno(
-                "Review page layout warnings",
-                "\n".join(check.lines) + "\n\nUse this file anyway?",
-                parent=self.window,
-            ):
+            if check.needs_review and not confirm_layout_file(self.window, check.lines):
                 return
             chosen = shell_selection.choose_shell(selected, remember=True)
             self._set_shell(selected, chosen.lines)
