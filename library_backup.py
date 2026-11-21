@@ -52,7 +52,6 @@ _AUTO_ID_TABLES = (
     "assembly_components", "field_definitions", "publishers",
     "publisher_field_matches", "publisher_parties",
 )
-_TRIGGER_DROP_FOR_MERGE = ("assembly_components_no_late_insert",)
 
 
 def _connect(database_path: str | Path) -> sqlite3.Connection:
@@ -146,17 +145,21 @@ def _read_backup(source: str | Path | Mapping) -> dict:
             payload = json.loads(Path(source).read_text(encoding="utf-8-sig"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             raise ValueError(f"Could not read the backup file: {exc}") from None
+    if not isinstance(payload, dict):
+        raise ValueError("The backup root must be a JSON object.")
     if payload.get("format") != FORMAT:
         raise ValueError("This is not a Contract Builder library backup.")
     if payload.get("format_version") != FORMAT_VERSION:
         raise ValueError(
             f"This backup format version ({payload.get('format_version')}) is not supported."
         )
-    if not isinstance(payload.get("schema_version"), int):
+    if type(payload.get("schema_version")) is not int:
         raise ValueError("The backup does not contain a valid database schema version.")
     if not isinstance(payload.get("tables"), dict):
         raise ValueError("The backup does not contain its table data.")
-    includes_profiles = bool(payload.get("includes_publisher_profiles"))
+    if type(payload.get("includes_publisher_profiles", False)) is not bool:
+        raise ValueError("The publisher-profile option in the backup is malformed.")
+    includes_profiles = payload.get("includes_publisher_profiles", False)
     expected = set(APP_TABLES + (PROFILE_TABLES if includes_profiles else ()))
     actual = set(payload["tables"])
     if actual != expected:
@@ -171,7 +174,7 @@ def _read_backup(source: str | Path | Mapping) -> dict:
         if not isinstance(record, dict) or not isinstance(record.get("columns"), list) or not isinstance(record.get("rows"), list):
             raise ValueError(f"The backup data for {table} is malformed.")
         columns = record["columns"]
-        if len(columns) != len(set(columns)) or any(not isinstance(c, str) for c in columns):
+        if any(not isinstance(c, str) for c in columns) or len(columns) != len(set(columns)):
             raise ValueError(f"The backup column list for {table} is malformed.")
         for row in record["rows"]:
             if not isinstance(row, list) or len(row) != len(columns):
@@ -336,6 +339,8 @@ def _drop_triggers(connection: sqlite3.Connection, tables: set[str]) -> list[str
         safe_name = row["name"].replace('"', '""')
         connection.execute(f'DROP TRIGGER "{safe_name}"')
     return [row["sql"] for row in selected]
+
+
 def _reset_sequences(connection: sqlite3.Connection, tables: tuple[str, ...]) -> None:
     if not _has_table(connection, "sqlite_sequence"):
         return
@@ -514,6 +519,23 @@ def import_library_backup(
             errors = connection.execute("PRAGMA foreign_key_check").fetchall()
             if errors:
                 raise sqlite3.IntegrityError("The imported records contain broken links.")
+            unfinished = connection.execute(
+                """
+                SELECT assembly_versions.id
+                FROM assembly_versions
+                WHERE assembly_versions.finalized = 1
+                  AND NOT EXISTS (
+                      SELECT 1 FROM assembly_components
+                      WHERE assembly_components.assembly_version_id = assembly_versions.id
+                        AND assembly_components.included = 1
+                  )
+                LIMIT 1
+                """
+            ).fetchone()
+            if unfinished:
+                raise sqlite3.IntegrityError(
+                    "The imported data contains a finalized assembly with no included components."
+                )
             connection.commit()
         except Exception:
             connection.rollback()
