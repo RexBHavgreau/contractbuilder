@@ -18,7 +18,8 @@ class AssemblyDocumentWindow:
 
     def __init__(
         self, app, template, temporary_directory, shell_path,
-        assembly_name="", composition_warnings=(),
+        assembly_name="", composition_warnings=(), assembly_revision=None,
+        on_edit_assembly=None, on_review_updates=None,
     ):
         self.app = app
         self.template = template
@@ -26,6 +27,9 @@ class AssemblyDocumentWindow:
         self.shell_path = pathlib.Path(shell_path)
         self.assembly_name = str(assembly_name or "").strip()
         self.composition_warnings = tuple(composition_warnings or ())
+        self.assembly_revision = assembly_revision
+        self.on_edit_assembly = on_edit_assembly
+        self.on_review_updates = on_review_updates
         self.inputs = []
         self.publisher_profile_ids = {}
 
@@ -49,6 +53,23 @@ class AssemblyDocumentWindow:
             ),
             wraplength=760,
         ).pack(anchor="w", pady=(3, 10))
+
+        if self.assembly_revision is not None:
+            assembly_actions = ttk.Frame(outer)
+            assembly_actions.pack(fill="x", pady=(0, 8))
+            if self.on_edit_assembly is not None:
+                ttk.Button(
+                    assembly_actions, text="Edit this assembly…",
+                    command=self.on_edit_assembly,
+                ).pack(side="left")
+            if (
+                self.assembly_revision.get("has_newer_wording")
+                and self.on_review_updates is not None
+            ):
+                ttk.Button(
+                    assembly_actions, text="Review updates…",
+                    command=self.on_review_updates,
+                ).pack(side="left", padx=(7, 0))
 
         profile_frame = ttk.LabelFrame(outer, text="Saved publisher", padding=8)
         profile_frame.pack(fill="x", pady=(0, 10))

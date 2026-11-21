@@ -54,7 +54,52 @@ class StartScreenMixin:
         self._open_assembly_builder(open_saved=False)
 
     def open_existing_assembly(self):
-        self._open_assembly_builder(open_saved=True)
+        try:
+            import assembly_open_dialog
+
+            assembly_open_dialog.open_saved_assembly_direct(self)
+        except (ImportError, OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
+            messagebox.showerror(
+                "Contract assemblies unavailable",
+                f"Could not open the saved contract assemblies.\\n\\n{exc}",
+                parent=self.root,
+            )
+
+    def open_assembly_revision(self, revision, review_updates=False):
+        """Open the builder for a pinned revision, optionally showing its updates."""
+        existing = self.assembly_builder_window
+        if existing is not None:
+            try:
+                if existing.window.winfo_exists():
+                    if not existing._confirm_replace():
+                        return
+                    existing._load_revision(revision)
+                    existing.window.deiconify()
+                    existing.window.lift()
+                    existing.window.focus_set()
+                    if review_updates:
+                        existing.review_updates()
+                    return
+            except tk.TclError:
+                pass
+            self.assembly_builder_window = None
+        try:
+            from assembly_builder import AssemblyBuilderWindow
+
+            builder = AssemblyBuilderWindow(
+                self.root, on_generate=self.create_assembly_document
+            )
+            self.assembly_builder_window = builder
+            builder._load_revision(revision)
+            if review_updates:
+                builder.review_updates()
+        except (ImportError, OSError, sqlite3.Error, tk.TclError, ValueError) as exc:
+            self.assembly_builder_window = None
+            messagebox.showerror(
+                "Could not open this assembly",
+                f"The assembly could not be opened in the builder.\\n\\n{exc}",
+                parent=self.root,
+            )
 
     def _open_assembly_builder(self, open_saved):
         existing = self.assembly_builder_window
