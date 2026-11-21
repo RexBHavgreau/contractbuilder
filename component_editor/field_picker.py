@@ -4,6 +4,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+import starter_fields
 from .fields import _FIELD_FORMATS, make_field_placeholder
 
 
@@ -206,6 +207,7 @@ class FieldPickerDialog:
             controls, text="Keep this window open after inserting",
             variable=self.keep_open,
         ).pack(side="left")
+        ttk.Button(controls, text="Add starter fields…", command=self.add_starter).pack(side="left", padx=(12, 0))
         ttk.Button(controls, text="New field…", command=self.new_field).pack(side="right")
         ttk.Button(controls, text="Edit…", command=self.edit_field).pack(side="right", padx=5)
         ttk.Button(controls, text="Archive", command=self.archive_field).pack(side="right")
@@ -325,6 +327,28 @@ class FieldPickerDialog:
     def _updated(self, definition, _insertion):
         self.refresh(definition.get("name_key"))
         self.details.configure(text="Field definition updated.")
+
+    def add_starter(self):
+        """Offer the optional starting list (T-043-E); never re-adds archived fields."""
+        names = ", ".join(starter_fields.starter_names())
+        if not messagebox.askyesno(
+            "Add starter fields",
+            "Copy these fields into your own list?\n\n" + names
+            + "\n\nThey are ordinary fields you can edit or archive. A field you already "
+            "have, or archived, is left alone.",
+            parent=self.window,
+        ):
+            return
+        try:
+            added, skipped = starter_fields.add_starter_fields(self.library)
+        except (ValueError, OSError) as exc:
+            self.details.configure(text=f"Could not add the starter fields: {exc}")
+            return
+        self.refresh()
+        text = ("Added: " + ", ".join(added) + ".") if added else "Nothing new to add."
+        if skipped:
+            text += " Already there or archived: " + ", ".join(skipped) + "."
+        self.details.configure(text=text)
 
     def archive_field(self):
         field = self._selected_field()

@@ -94,4 +94,4 @@ def test_an_older_application_still_opens_a_v6_file(tmp_path, monkeypatch):
     older = ComponentLibrary(path)
     assert older.get_component(component_id)["name"] == "C"
     monkeypatch.undo()
-    assert _user_version(path) == 6
+    assert _user_version(path) == profiles.SCHEMA_VERSION

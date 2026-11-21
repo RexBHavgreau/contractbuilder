@@ -5,6 +5,8 @@ import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from publisher_details_form import DetailsForm
+
 
 
 class PublisherProfileDialog:
@@ -108,6 +110,11 @@ class PublisherProfileDialog:
         )
         self.notes.grid(row=notes_row, column=1, sticky="ew", pady=(8, 0))
 
+        self.details_form = DetailsForm(self.window, form, self.store)
+        self.details_form.frame.grid(
+            row=notes_row + 1, column=0, columnspan=2, sticky="ew", pady=(10, 0)
+        )
+
         footer = ttk.Frame(outer)
         footer.pack(fill="x", pady=(12, 0))
         self.status = ttk.Label(footer, text="", foreground="#555555")
@@ -142,6 +149,7 @@ class PublisherProfileDialog:
     def _current_form_values(self):
         values = {name: variable.get() for name, variable in self.variables.items()}
         values["notes"] = self.notes.get("1.0", "end-1c")
+        values["details"] = tuple(sorted(self.details_form.values().items()))
         return values
 
     def _has_unsaved_changes(self):
@@ -172,10 +180,11 @@ class PublisherProfileDialog:
         self._load_profile(int(selection[0]))
 
     def _load_profile(self, profile_id):
-        profile = self.store.get_profile(profile_id)
+        profile = self.store.get_profile_with_details(profile_id)
         if profile is None:
             return
         self.current_id = profile_id
+        self.details_form.set(profile.get("details") or {})
         for name, variable in self.variables.items():
             variable.set(str(profile.get(name) or ""))
         self.notes.delete("1.0", "end")
@@ -194,6 +203,7 @@ class PublisherProfileDialog:
         for variable in self.variables.values():
             variable.set("")
         self.notes.delete("1.0", "end")
+        self.details_form.set({})
         self.loaded_snapshot = self._current_form_values()
         selection = self.tree.selection()
         if selection:
@@ -203,6 +213,7 @@ class PublisherProfileDialog:
     def save_profile(self):
         profile = {name: variable.get().strip() for name, variable in self.variables.items()}
         profile["notes"] = self.notes.get("1.0", "end-1c").strip()
+        profile["details"] = self.details_form.values()
         try:
             profile_id = self.store.save_profile(profile, self.current_id)
         except (ValueError, OSError, sqlite3.Error) as exc:

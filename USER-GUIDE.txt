@@ -99,6 +99,39 @@ If loading a profile would replace information already entered, the application
 asks before making the change. Loading a profile does not modify the saved
 profile. Changes made in the contract form apply only to that contract.
 
+Extra details, such as Publisher type
+
+In the Publisher Profiles window, "More about this publisher" holds extra
+details you define yourself. Click "Add a detail…", name it (for example
+Publisher type) and list its choices, one per line (Non-profit, Sole
+proprietor, Company). Each profile then has a drop-down for it, so the saved
+value always matches what your wording tests for. A field with the same name
+as the detail, such as {{Publisher Type}} in {{#if Publisher Type = Non-profit}},
+is filled when you choose the publisher, and the right alternative wording is
+used without anyone answering a question. If a publisher has no value saved,
+the field is left for you to choose and the message says so.
+
+More than one publisher in a contract
+
+If one contract names two publishers, choose Publishers > Parties in a
+contract and add a party for each, such as Publisher One (role: Proprietor)
+and Publisher Two. Fields that start with the party's name are then filled
+from the publisher you choose for that party: "Publisher One's Address",
+"Publisher One's State", "Publisher Two's Contact" and so on, with or without
+the apostrophe. A field named exactly for the party, or for the party and its
+role in brackets, such as "Publisher One (Proprietor)", is filled with the
+publisher's name. The form shows one publisher choice for each party that
+appears in the document, each with its own "Fill all" button, and every field
+it can fill has a "From publisher" button. Changes to the parties apply the next
+time you open the template or assembly. A document with one publisher works as
+before.
+
+Help under each field
+
+If a field has a description (set in the field's edit window), it appears in
+small grey text under the field in the form. It is guidance for the person
+filling in the form and is never put in the document.
+
 Publisher profiles are stored in a local SQLite database in your user data
 directory. On Windows, this is normally under
 %LOCALAPPDATA%\TMAI Contract Builder. On macOS, it is under
@@ -391,7 +424,10 @@ Writing a component
    correct however you order them. Words such as "see clause 2.1" are plain
    text and do not change if clauses move.
 5. Fields work as in templates: {{Name}}, {{Fee | money-words}} and so on.
-   The Field button adds one for you.
+   The Field button adds one for you. If you are starting out, the picker's
+   "Add starter fields…" button copies a short list (Works, Publisher type,
+   Territory, Term in years, Effective Date) into your own fields; you can
+   edit or archive any of them, and one you archived is never added back.
 6. Titles and other special paragraphs: click in the paragraph and choose a
    style from the Style button (Normal, Title, Subtitle, Body Text or Block
    Text). Each paragraph has its own style, so one component can hold a title
