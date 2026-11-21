@@ -1,4 +1,4 @@
-name: Test and build Word Template Filler
+name: Test and build Contract Builder
 
 on:
   push:
@@ -185,7 +185,7 @@ jobs:
         run: |
           powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\build-windows.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $built = Get-ChildItem "dist" -Filter "Word Template Filler *.exe" | Select-Object -First 1
+          $built = Get-ChildItem "dist" -Filter "Contract Builder *.exe" | Select-Object -First 1
           if (-not $built) { throw "Windows executable was not produced." }
           $releaseAsset = "dist/Word-Template-Filler-windows-x64.exe"
           Move-Item -LiteralPath $built.FullName -Destination $releaseAsset
@@ -215,7 +215,7 @@ jobs:
 
           $versionLine = Select-String -Path "version.py" -Pattern '^APP_VERSION\s*=\s*"([^"]+)"'
           if (-not $versionLine) { throw "Could not read APP_VERSION from version.py." }
-          $appName = "Word Template Filler $($versionLine.Matches[0].Groups[1].Value)"
+          $appName = "Contract Builder $($versionLine.Matches[0].Groups[1].Value)"
 
           $probeRoot = Join-Path $env:RUNNER_TEMP "component-builder-size"
           $probeDist = Join-Path $probeRoot "dist"
@@ -307,8 +307,8 @@ jobs:
 
       - name: Build macOS application
         run: |
-          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Word Template Filler" --add-data "USER-GUIDE.txt:." --add-data "THIRD-PARTY-LICENSES.txt:." simple_app.py
-          ditto -c -k --sequesterRsrc --keepParent "dist/Word Template Filler.app" "dist/Word-Template-Filler-${{ matrix.target }}.zip"
+          python -m PyInstaller --clean --noconfirm --onefile --windowed --name "Contract Builder" --add-data "USER-GUIDE.txt:." --add-data "THIRD-PARTY-LICENSES.txt:." simple_app.py
+          ditto -c -k --sequesterRsrc --keepParent "dist/Contract Builder.app" "dist/Word-Template-Filler-${{ matrix.target }}.zip"
 
       - name: Upload macOS application
         uses: actions/upload-artifact@v7
@@ -368,7 +368,7 @@ jobs:
         with:
           tag_name: v${{ needs.version.outputs.version }}
           target_commitish: ${{ github.sha }}
-          name: Word Template Filler v${{ needs.version.outputs.version }}
+          name: Contract Builder v${{ needs.version.outputs.version }}
           body_path: release-notes.txt
           files: release-assets/*
           fail_on_unmatched_files: true

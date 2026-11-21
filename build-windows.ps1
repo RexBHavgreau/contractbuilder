@@ -1,4 +1,4 @@
-# Builds Word Template Filler into a single Windows executable.
+# Builds Contract Builder into a single Windows executable.
 #
 # Runs under Windows PowerShell 5.1 (what build-windows.bat starts) and under
 # PowerShell 7. Two 5.1 behaviours shape this script:
@@ -227,7 +227,7 @@ listed by:  py -0p
     $VersionLine = Select-String -Path (Join-Path $Root "version.py") -Pattern '^APP_VERSION\s*=\s*"([^"]+)"'
     if (-not $VersionLine) { throw "Could not read APP_VERSION from version.py." }
     $AppVersion = $VersionLine.Matches[0].Groups[1].Value
-    $AppName = "Word Template Filler $AppVersion"
+    $AppName = "Contract Builder $AppVersion"
 
     Write-Log "Using Python: $PythonExe"
     & $PythonExe --version 2>&1 | ForEach-Object { Write-Log "$_" }

@@ -127,7 +127,7 @@ def default_database_path() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
-    return base / "TMAI Contract Builder" / "publisher_profiles.sqlite3"
+    return base / "Contract Builder" / "publisher_profiles.sqlite3"
 
 
 def _normalize_field_name(value: str) -> str:

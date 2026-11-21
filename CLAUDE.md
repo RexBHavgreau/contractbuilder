@@ -1,4 +1,4 @@
-# CLAUDE.md — Word Template Filler (formerly TMAI Contract Builder)
+# CLAUDE.md — Contract Builder (formerly Word Template Filler and TMAI Contract Builder)
 
 This file holds the project's standing rules: read it before changing
 anything. It is edited rarely, by a deliberate change, not by every pull

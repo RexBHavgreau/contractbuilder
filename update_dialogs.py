@@ -105,7 +105,7 @@ class UpdateDialogsMixin:
         if in_place:
             destination = target.with_name(target.name + ".new")
         else:
-            destination = self_update.downloads_folder() / f"Word Template Filler {result.latest_version}.exe"
+            destination = self_update.downloads_folder() / f"Contract Builder {result.latest_version}.exe"
 
         window = tk.Toplevel(self.root)
         window.title("Downloading update")

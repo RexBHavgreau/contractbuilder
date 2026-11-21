@@ -1,6 +1,6 @@
 # TASKS.md
 
-Open work on Word Template Filler, sized so that any agent, including a
+Open work on Contract Builder, sized so that any agent, including a
 cheap one, can pick up a task, do it, and hand it back. Read
 [CLAUDE.md](CLAUDE.md) first: it has the layout, conventions, pitfalls and
 decisions every task assumes.

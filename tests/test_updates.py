@@ -39,7 +39,7 @@ def test_check_for_update_parses_latest_release(monkeypatch):
     payload = {
         "tag_name": "v0.2.0",
         "html_url": "https://github.com/RexBHavgreau/contractbuilder/releases/tag/v0.2.0",
-        "name": "Word Template Filler 0.2.0",
+        "name": "Contract Builder 0.2.0",
         "body": "Release notes",
         "published_at": "2026-11-17T00:00:00Z",
     }
@@ -218,8 +218,8 @@ def test_token_saved_privately(tmp_path):
 
 
 def test_leftover_note_is_read_once(tmp_path):
-    exe = tmp_path / "Word Template Filler.exe"
-    note = tmp_path / "Word Template Filler.exe.update-failed.txt"
+    exe = tmp_path / "Contract Builder.exe"
+    note = tmp_path / "Contract Builder.exe.update-failed.txt"
     note.write_text("could not replace")
     assert self_update.leftover_note(exe) == "could not replace"
     assert not note.exists() and self_update.leftover_note(exe) == ""
@@ -238,8 +238,8 @@ def test_cleanup_stale_update_download_only_removes_files_older_than_one_day(tmp
     import os
     import time
 
-    target = tmp_path / "Word Template Filler.exe"
-    leftover = tmp_path / "Word Template Filler.exe.new"
+    target = tmp_path / "Contract Builder.exe"
+    leftover = tmp_path / "Contract Builder.exe.new"
     leftover.write_bytes(b"partial or abandoned update")
     now = time.time()
     os.utime(leftover, (now - age, now - age))
@@ -249,15 +249,15 @@ def test_cleanup_stale_update_download_only_removes_files_older_than_one_day(tmp
 
 
 def test_cleanup_stale_update_download_ignores_missing_file(tmp_path):
-    target = tmp_path / "Word Template Filler.exe"
+    target = tmp_path / "Contract Builder.exe"
     assert not self_update.cleanup_stale_update_download(target, now=10**10)
 
 
 def test_cleanup_stale_update_download_does_not_follow_symlinks(tmp_path):
-    target = tmp_path / "Word Template Filler.exe"
+    target = tmp_path / "Contract Builder.exe"
     outside = tmp_path / "keep.me"
     outside.write_text("keep")
-    leftover = tmp_path / "Word Template Filler.exe.new"
+    leftover = tmp_path / "Contract Builder.exe.new"
     try:
         leftover.symlink_to(outside)
     except (OSError, NotImplementedError):

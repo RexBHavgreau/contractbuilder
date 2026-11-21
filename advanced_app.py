@@ -1,5 +1,5 @@
 """
-TMAI Contract Builder
+Contract Builder
 Build 3
 
 Choose a contract template, fill in what changes, and get a finished Word

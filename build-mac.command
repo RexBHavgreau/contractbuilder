@@ -1,7 +1,7 @@
 #!/bin/bash
 # ---------------------------------------------------------------
 #  build-mac.command
-#  Builds the Word Template Filler into a single .app.
+#  Builds the Contract Builder into a single .app.
 #
 #  Put this beside simple_app.py and core.py and double-click it. It works
 #  from any folder or drive and leaves the finished app in a "dist"
@@ -29,7 +29,7 @@ show_log() {
 }
 
 echo
-echo "  Building the Word Template Filler"
+echo "  Building the Contract Builder"
 echo "  Folder: $(pwd)"
 echo
 
@@ -51,7 +51,7 @@ fi
 
 BUILD=$(grep '^APP_VERSION = ' version.py | head -1 | cut -d'"' -f2)
 [ -z "$BUILD" ] && BUILD="unknown"
-APPNAME="Word Template Filler $BUILD"
+APPNAME="Contract Builder $BUILD"
 
 echo "  Build number found: $BUILD"
 echo "  Will produce: $APPNAME.app"

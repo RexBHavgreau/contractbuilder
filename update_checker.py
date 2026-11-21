@@ -86,7 +86,7 @@ def check_for_update(
     url = f"https://api.github.com/repos/{repository}/releases/latest"
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "Word-Template-Filler",
+        "User-Agent": "Contract-Builder",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     if token:

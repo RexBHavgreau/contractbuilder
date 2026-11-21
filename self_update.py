@@ -71,7 +71,7 @@ def download_asset(asset, destination: Path, token: str = "", progress=None, tim
         url, headers = asset.api_url, {"Accept": "application/octet-stream"}
     else:
         url, headers = asset.download_url, {}
-    headers["User-Agent"] = "Word-Template-Filler"
+    headers["User-Agent"] = "Contract-Builder"
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
@@ -250,7 +250,7 @@ def settings_path() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
-    return base / "TMAI Contract Builder" / "update-settings.json"
+    return base / "Contract Builder" / "update-settings.json"
 
 
 AUTOMATIC_CHECK_INTERVAL_SECONDS = 24 * 60 * 60
