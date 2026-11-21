@@ -17,10 +17,12 @@ from markdown_fields import protect_fields, restore_fields
 from md_parse import create_parser
 import shell_styles
 from shell_check import ShellFinding, check_shell
+from safe_hyperlinks import safe_hyperlink_target
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{%s}" % W_NS
 NS = {"w": W_NS}
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 _HTML_TAG = re.compile(r"<\s*/?\s*[A-Za-z][^>]*>")
 _ALIGN = re.compile(r"text-align\s*:\s*(left|center|right)", re.I)
 
@@ -45,6 +47,8 @@ class MarkdownRenderResult:
     warnings: Tuple[MarkdownWarning, ...]
     errors: Tuple[ShellFinding, ...]
     numbering: Tuple[etree._Element, ...] = ()
+    # Component-local relationship IDs; the document composer remaps them.
+    hyperlinks: Tuple[Tuple[str, str], ...] = ()
 
     @property
     def can_generate(self) -> bool:
@@ -68,16 +72,22 @@ def _paragraph(style_id: str | None, alignment: str | None = None) -> etree._Ele
     return paragraph
 
 
-def _run(paragraph: etree._Element, text: str, bold: bool, italic: bool) -> None:
+def _run(paragraph: etree._Element, text: str, bold: bool, italic: bool,
+         *, hyperlink: bool = False) -> None:
     if not text:
         return
     run = etree.SubElement(paragraph, W + "r")
-    if bold or italic:
+    if bold or italic or hyperlink:
         properties = etree.SubElement(run, W + "rPr")
         if bold:
             etree.SubElement(properties, W + "b")
         if italic:
             etree.SubElement(properties, W + "i")
+        if hyperlink:
+            color = etree.SubElement(properties, W + "color")
+            color.set(W + "val", "0563C1")
+            underline = etree.SubElement(properties, W + "u")
+            underline.set(W + "val", "single")
     node = etree.SubElement(run, W + "t")
     if text[:1].isspace() or text[-1:].isspace():
         node.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
@@ -89,9 +99,26 @@ def _line_break(paragraph: etree._Element) -> None:
     etree.SubElement(run, W + "br")
 
 
-def _inline(paragraph: etree._Element, children: Sequence[object],
-            warnings: List[MarkdownWarning]) -> None:
+def _inline(
+    paragraph: etree._Element,
+    children: Sequence[object],
+    warnings: List[MarkdownWarning],
+    hyperlink_ids: dict[str, str] | None = None,
+    hyperlinks: list[tuple[str, str]] | None = None,
+) -> None:
+    """Render inline tokens, wrapping safe links in Word hyperlink elements."""
+    hyperlink_ids = hyperlink_ids if hyperlink_ids is not None else {}
+    hyperlinks = hyperlinks if hyperlinks is not None else []
     bold_depth = italic_depth = 0
+    active_hyperlink = None
+
+    def add_run(text: str) -> None:
+        _run(
+            active_hyperlink if active_hyperlink is not None else paragraph,
+            text, bold_depth > 0, italic_depth > 0,
+            hyperlink=active_hyperlink is not None,
+        )
+
     for token in children:
         kind = getattr(token, "type", "")
         content = getattr(token, "content", "")
@@ -103,37 +130,52 @@ def _inline(paragraph: etree._Element, children: Sequence[object],
             italic_depth += 1
         elif kind == "em_close":
             italic_depth = max(0, italic_depth - 1)
+        elif kind == "link_open":
+            target = safe_hyperlink_target(_attr(token, "href"))
+            if target is None:
+                _warn(
+                    warnings, "markdown.link_unsafe",
+                    "A link target is invalid or uses an unsupported scheme. "
+                    "Only http, https and mailto links are made clickable; this link's "
+                    "text is kept as plain text.",
+                )
+                active_hyperlink = None
+            else:
+                relationship_id = hyperlink_ids.get(target)
+                if relationship_id is None:
+                    relationship_id = "rIdLink%d" % (len(hyperlink_ids) + 1)
+                    hyperlink_ids[target] = relationship_id
+                    hyperlinks.append((relationship_id, target))
+                active_hyperlink = etree.SubElement(paragraph, W + "hyperlink")
+                active_hyperlink.set("{%s}id" % R_NS, relationship_id)
+        elif kind == "link_close":
+            active_hyperlink = None
         elif kind == "text":
             if _HTML_TAG.search(content):
                 _warn(warnings, "markdown.raw_html",
                       "HTML-like text is kept as plain text; HTML formatting is not supported.")
-            _run(paragraph, content, bold_depth > 0, italic_depth > 0)
+            add_run(content)
         elif kind == "softbreak":
-            _run(paragraph, " ", bold_depth > 0, italic_depth > 0)
+            add_run(" ")
         elif kind == "hardbreak":
-            _line_break(paragraph)
+            _line_break(active_hyperlink if active_hyperlink is not None else paragraph)
         elif kind == "code_inline":
             _warn(warnings, "markdown.inline_code",
                   "Inline code formatting is not supported; the text is kept without code styling.")
-            _run(paragraph, content, bold_depth > 0, italic_depth > 0)
+            add_run(content)
         elif kind == "image":
             _warn(warnings, "markdown.image",
                   "Images are not supported in components; only the image's alternative text is kept.")
             alt = "".join(getattr(child, "content", "") for child in (getattr(token, "children", None) or ()))
-            _run(paragraph, alt or content, bold_depth > 0, italic_depth > 0)
-        elif kind == "link_open":
-            _warn(warnings, "markdown.link",
-                  "Links are not supported in components yet; the link text is kept without a link.")
+            add_run(alt or content)
         elif kind == "html_inline":
             _warn(warnings, "markdown.raw_html",
                   "HTML formatting is not supported; the text is kept without HTML formatting.")
-            _run(paragraph, content, bold_depth > 0, italic_depth > 0)
-        elif kind == "link_close":
-            continue
+            add_run(content)
         elif content:
             _warn(warnings, "markdown.inline_unsupported",
                   "A Markdown inline feature is not supported; its text is kept without special formatting.")
-            _run(paragraph, content, bold_depth > 0, italic_depth > 0)
+            add_run(content)
 
 
 def _skip_block(tokens: Sequence[object], start: int) -> int:
@@ -266,7 +308,8 @@ def _add_num_pr(paragraph: etree._Element, num_id: int, level: int,
 
 
 def _table(tokens: Sequence[object], start: int, style_id: str | None,
-           normal_style: str | None, warnings: List[MarkdownWarning]) -> Tuple[etree._Element, int]:
+           normal_style: str | None, warnings: List[MarkdownWarning],
+           hyperlink_ids: dict[str, str], hyperlinks: list[tuple[str, str]]) -> Tuple[etree._Element, int]:
     rows = []
     in_header = False
     row = cell = None
@@ -324,7 +367,7 @@ def _table(tokens: Sequence[object], start: int, style_id: str | None,
             tcw.set(_tag("w"), str(width))
             tcw.set(_tag("type"), "dxa")
             paragraph = _paragraph(normal_style, cell_data["align"])
-            _inline(paragraph, cell_data["children"], warnings)
+            _inline(paragraph, cell_data["children"], warnings, hyperlink_ids, hyperlinks)
             tc.append(paragraph)
     return table, index + 1
 
@@ -378,6 +421,8 @@ def render_markdown(
     numbering = list(numbering_additions)
     elements: List[etree._Element] = []
     list_stack = []
+    hyperlink_ids: dict[str, str] = {}
+    hyperlinks: list[tuple[str, str]] = []
 
     def begin_list(ordered: bool) -> None:
         nonlocal next_num_id
@@ -442,7 +487,7 @@ def render_markdown(
                     context["first_paragraph"] = False
             index += 1
             if index < len(tokens) and tokens[index].type == "inline":
-                _inline(paragraph, tokens[index].children or (), warnings)
+                _inline(paragraph, tokens[index].children or (), warnings, hyperlink_ids, hyperlinks)
                 index += 1
             if index < len(tokens) and tokens[index].type in ("paragraph_close", "heading_close"):
                 index += 1
@@ -451,7 +496,9 @@ def render_markdown(
         if kind == "table_open":
             style_id = shell.style_fallbacks.get("TableGrid", "TableGrid")
             normal_style = shell.style_fallbacks.get("Normal", "Normal")
-            table, index = _table(tokens, index, style_id, normal_style, warnings)
+            table, index = _table(
+                tokens, index, style_id, normal_style, warnings, hyperlink_ids, hyperlinks
+            )
             elements.append(table)
             continue
         if kind in ("paragraph_close", "heading_close", "inline"):
@@ -465,4 +512,6 @@ def render_markdown(
             _warn(warnings, "markdown.block_unsupported",
                   "This component contains a Markdown block type that is not supported yet; that block was not included in the Word output.")
             index += 1
-    return MarkdownRenderResult(tuple(elements), tuple(warnings), (), tuple(numbering))
+    return MarkdownRenderResult(
+        tuple(elements), tuple(warnings), (), tuple(numbering), tuple(hyperlinks)
+    )
