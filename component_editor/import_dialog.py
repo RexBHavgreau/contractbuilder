@@ -6,8 +6,9 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-from component_preview import render_markdown_preview
+from component_preview import configure_paragraph_style_tags, render_markdown_preview
 from docx_to_markdown import DocxImportError, import_docx
+import paragraph_styles as styles_rules
 
 from .fields import malformed_field_message
 from .styling import _style_markdown_widget
@@ -29,6 +30,12 @@ class ImportReviewDialog:
             )
             return
 
+        # The styles found in the Word file stay with their paragraphs while the
+        # wording is reviewed and edited here (T-061).
+        self.paragraph_styles = list(imported.paragraph_styles)
+        self._synced_paragraphs = [
+            p.text for p in styles_rules.text_paragraphs(imported.markdown)
+        ]
         self.window = tk.Toplevel(editor.window)
         self.window.title("Review Word import")
         self.window.geometry("1080x720")
@@ -96,6 +103,7 @@ class ImportReviewDialog:
         preview_scroll.grid(row=0, column=1, sticky="ns")
         self.preview.configure(yscrollcommand=preview_scroll.set)
         self._configure_preview()
+        configure_paragraph_style_tags(self.preview)
         self.source_view_variable = tk.BooleanVar(master=self.window, value=False)
         ttk.Checkbutton(
             outer,
@@ -167,7 +175,8 @@ class ImportReviewDialog:
         self._preview_after_id = None
         source = self.source.get("1.0", "end-1c")
         try:
-            segments = render_markdown_preview(source)
+            self._sync_styles(source)
+            segments = render_markdown_preview(source, self.paragraph_styles)
         except (TypeError, ValueError) as exc:
             segments = [(f"Preview unavailable: {exc}", ("source_text",))]
         self.preview.configure(state="normal")
@@ -179,9 +188,17 @@ class ImportReviewDialog:
                 self.preview.insert("end", value, tags)
         self.preview.configure(state="disabled")
 
+    def _sync_styles(self, source: str):
+        texts = [p.text for p in styles_rules.text_paragraphs(source)]
+        self.paragraph_styles = styles_rules.sync_styles(
+            self._synced_paragraphs, self.paragraph_styles, texts
+        )
+        self._synced_paragraphs = texts
+
     def save(self):
         name = self.name_variable.get().strip()
         markdown = self.source.get("1.0", "end-1c")
+        self._sync_styles(markdown)
         if not name:
             messagebox.showerror(
                 "A name is required", "Enter a name for this component.",
@@ -202,7 +219,9 @@ class ImportReviewDialog:
         ):
             return
         try:
-            component_id = self.editor.library.create_component(name, markdown=markdown)
+            component_id = self.editor.library.create_component(
+                name, markdown=markdown, paragraph_styles=self.paragraph_styles
+            )
         except (ValueError, TypeError, OSError, sqlite3.Error) as exc:
             messagebox.showerror("Could not save component", str(exc), parent=self.window)
             return
