@@ -44,10 +44,10 @@ def build_conditional_text(field_name, values, wording, placement="Inside a sent
         paragraph_blocks = []
         for value in clean_values:
             paragraph_blocks.append(
-                "{{#if " + name + " = " + value + "}}\\n"
+                "{{#if " + name + " = " + value + "}}\n"
                 + mapping[value.casefold()] + "\\n{{/if}}"
             )
-        result = "\\n\\n".join(paragraph_blocks)
+        result = "\n\n".join(paragraph_blocks)
     _validate_with_template(result)
     return result
 
@@ -102,7 +102,7 @@ class ConditionalWordingDialog:
         self.window.grab_set()
         self.page = 0
         self.kind = tk.StringVar(master=self.window, value="Conditional wording")
-        self.field = tk.StringVar(master=self.window)
+        self.field = tk.StringVar(master=self.window, value=str(initial_text or ""))
         self.placement = tk.StringVar(master=self.window, value="Inside a sentence")
         self.only_blank = tk.BooleanVar(master=self.window, value=False)
         self.values = []
@@ -239,6 +239,11 @@ class ConditionalWordingDialog:
             self._capture()
             if self.page == 0 and not self.field.get().strip():
                 raise ValueError("Choose or enter a field name.")
+            if self.page == 0 and self.kind.get() == "Conditional wording":
+                existing = next((item for item in self.library.list_picker_fields()
+                    if item.get("name", "").casefold() == self.field.get().strip().casefold()), None)
+                if existing:
+                    self.values = list(existing.get("allowed_values") or [])
             if self.page == 1:
                 self._build()
             if self.page < 3:
