@@ -261,8 +261,8 @@ def test_composer_writes_external_hyperlink_relationships_and_preserves_linked_f
         [
             "[{{Client Name}}](https://example.com/terms) and "
             "[email](mailto:legal@example.com) plus "
-            "[another reference](https://example.com/terms).\\n\\n"
-            "| Contact | Link |\\n| --- | --- |\\n"
+            "[another reference](https://example.com/terms).\n\n"
+            "| Contact | Link |\n| --- | --- |\n"
             "| Legal | [Email](mailto:legal@example.com) |"
         ],
         output,
@@ -316,4 +316,5 @@ def test_composer_writes_external_hyperlink_relationships_and_preserves_linked_f
     # hyperlink element that makes the target clickable in Word.
     filled_document_xml = xml_part(filled_path, "word/document.xml")
     assert filled_document_xml.find(".//w:hyperlink", NS) is not None
-    assert Document(filled_path).paragraphs[0].text or True
+    filled_document = Document(filled_path)
+    assert filled_document.part.rels
