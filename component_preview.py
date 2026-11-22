@@ -139,7 +139,7 @@ def conditional_preview_warnings(markdown: str) -> list[str]:
 
     for frame in stack:
         warn(
-            f"The condition for {frame['name']} has no closing {{/if}} marker. "
+            f"The condition for {frame['name']} has no closing {{{{/if}}}} marker. "
             "Add {{/if}} after the wording it controls."
         )
     return warnings
