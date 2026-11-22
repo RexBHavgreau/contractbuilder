@@ -243,11 +243,14 @@ def test_conditional_preview_choices_lists_each_distinct_explicit_value():
             {"markdown": "{{#if Publisher Type = Sole proprietor}}B{{/if}}"},
             {"markdown": "{{#if Include Schedule}}C{{/if}}"},
             {"markdown": "{{#if publisher type = Non-profit}}D{{/if}}"},
+            {"included": False, "markdown": "{{#if Internal Flag}}hidden{{/if}}"},
         ]
     )
     assert choices == [
         ("Publisher Type", "Non-profit"),
         ("Publisher Type", "Sole proprietor"),
+        ("Include Schedule", True),
+        ("Include Schedule", False),
     ]
 
 
