@@ -532,7 +532,18 @@ Writing a component
 
 Importing wording from Word
 
-Click Import Word. ContractBuilder reads the paragraphs,
+Click Import Word and choose the file. You are asked how much to import:
+Whole document, or Part of it. For Part of it, the document is shown as a
+list of its headings, paragraphs, lists and tables, each with a box. Click a
+box (or press Space) to tick it, or Shift-click to tick everything between;
+Select all and Clear help. A list or a table is one item and is taken whole.
+Warnings for the highlighted item, and anything worth knowing about your choice
+(for example that you skipped some items between your first and last), are shown
+below the list. Continue to review takes only the ticked items to the same review
+window as a whole import, where you can still edit and where nothing is saved
+until you choose Save as component.
+
+For either choice, ContractBuilder reads the paragraphs,
 headings, bold and italic text, lists and simple tables, in order. It lists
 anything it could not bring across (pictures, comments, merged table cells,
 footnotes and so on) so you can check the result before saving. Page layout,

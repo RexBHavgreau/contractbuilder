@@ -17,18 +17,21 @@ from .styling import _style_markdown_widget
 class ImportReviewDialog:
     """Review a read-only DOCX conversion; save only after an explicit choice."""
 
-    def __init__(self, editor, path):
+    def __init__(self, editor, path, imported=None, default_name=None):
+        """``imported`` is a ready import result (for part of a document, T-064-C);
+        without it the whole file is read, as always."""
         self.editor = editor
         self.path = path
-        try:
-            imported = import_docx(path)
-        except (DocxImportError, OSError) as exc:
-            messagebox.showerror(
-                "Could not import Word file",
-                f"{exc}\n\nChoose an unencrypted .docx file and try again.",
-                parent=editor.window,
-            )
-            return
+        if imported is None:
+            try:
+                imported = import_docx(path)
+            except (DocxImportError, OSError) as exc:
+                messagebox.showerror(
+                    "Could not import Word file",
+                    f"{exc}\n\nChoose an unencrypted .docx file and try again.",
+                    parent=editor.window,
+                )
+                return
 
         # The styles found in the Word file stay with their paragraphs while the
         # wording is reviewed and edited here (T-061).
@@ -46,7 +49,7 @@ class ImportReviewDialog:
         name_row = ttk.Frame(outer)
         name_row.pack(fill="x", pady=(0, 8))
         ttk.Label(name_row, text="Component name").pack(side="left")
-        self.name_variable = tk.StringVar(master=self.window, value=Path(path).stem)
+        self.name_variable = tk.StringVar(master=self.window, value=default_name or Path(path).stem)
         ttk.Entry(name_row, textvariable=self.name_variable).pack(
             side="left", fill="x", expand=True, padx=(10, 0)
         )
