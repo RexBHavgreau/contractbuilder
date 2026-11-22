@@ -359,11 +359,25 @@ def test_conditional_warnings_and_preview_as_selector_in_both_windows(tmp_path):
                     "{{else}}due{{/if}}."
                 ),
                 "included": True,
-            }
+            },
+            {
+                "key": 2,
+                "component_id": 2,
+                "component_version_id": 2,
+                "component_name": "Schedule clause",
+                "component_version_number": 1,
+                "markdown": (
+                    "{{#if Include Schedule}}Schedule included"
+                    "{{else}}No schedule{{/if}}."
+                ),
+                "included": True,
+            },
         ]
         builder._refresh_preview()
         options = builder.preview_as_box.cget("values")
         assert "Publisher Type — Non-profit" in options
+        assert "Include Schedule — filled in" in options
+        assert "Include Schedule — not filled in" in options
         assert "form will offer only Non-profit" in builder.preview_warning.cget("text")
 
         all_text = builder.preview.get("1.0", "end-1c")
@@ -373,7 +387,14 @@ def test_conditional_warnings_and_preview_as_selector_in_both_windows(tmp_path):
         selected_text = builder.preview.get("1.0", "end-1c")
         assert "waived" in selected_text
         assert "due" not in selected_text
-        assert "Otherwise" not in selected_text
+        assert "If Include Schedule is filled in" in selected_text
+
+        builder.preview_as_variable.set("Include Schedule — filled in")
+        builder._refresh_preview()
+        presence_text = builder.preview.get("1.0", "end-1c")
+        assert "Schedule included" in presence_text
+        assert "No schedule" not in presence_text
+        assert "If Include Schedule is filled in" not in presence_text
     finally:
         if builder is not None:
             builder.window.destroy()
