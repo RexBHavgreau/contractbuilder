@@ -68,8 +68,15 @@ class FieldInput:
         self.variable = None
         self.text = None
         self.control = None
-        # Rows this field uses: the next field starts at row + rows_used.
-        self.rows_used = 1 if field.kind == "yesno" and not help_text else 2
+        self.is_list = "list" in getattr(field, "formats", ())
+        # A list needs a line explaining its multiline entry box; saved help
+        # text gets its own row below that explanation.
+        if field.kind == "yesno":
+            self.rows_used = 2 if help_text else 1
+        elif self.is_list:
+            self.rows_used = 3 if help_text else 2
+        else:
+            self.rows_used = 2 if help_text else 1
         self.help_label = None
         if help_text:
             # Guidance for the person filling in the form; never put in the document.
@@ -77,9 +84,12 @@ class FieldInput:
                 parent, text=help_text, foreground="#555555", wraplength=460, justify="left"
             )
             self.help_label.grid(
-                row=row + 1, column=0 if field.kind == "yesno" else 1,
-                columnspan=2 if field.kind == "yesno" else 1, sticky="w", padx=(22, 0) if field.kind == "yesno" else 0,
+                row=row + (2 if self.is_list else 1),
+                column=0 if field.kind == "yesno" else 1,
+                columnspan=2 if field.kind == "yesno" else 1, sticky="w",
+                padx=(22, 0) if field.kind == "yesno" else 0,
             )
+        self.list_hint = None
 
         if field.kind == "yesno":
             self.variable = tk.BooleanVar(master=parent, value=False)
@@ -109,6 +119,11 @@ class FieldInput:
                 highlightthickness=0,
             )
             self.text.grid(row=row, column=1, sticky="ew", pady=(5, 0))
+            if self.is_list:
+                self.list_hint = ttk.Label(
+                    parent, text="One item per line", foreground="#555555"
+                )
+                self.list_hint.grid(row=row + 1, column=1, sticky="w", pady=(2, 0))
         else:
             self.variable = tk.StringVar(master=parent, value="")
             if field.kind == "choice":
