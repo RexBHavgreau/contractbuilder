@@ -11,6 +11,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import assembly_builder  # noqa: E402
+import core  # noqa: E402
+from ui_widgets import FieldInput  # noqa: E402
 import component_editor  # noqa: E402
 from assembly_builder import AssemblyBuilderWindow, shell_file_sha256  # noqa: E402
 from component_editor import ComponentEditorWindow  # noqa: E402
@@ -293,3 +295,33 @@ def test_saved_assembly_picker_opens_latest_and_lists_earlier_revisions(
         assert opened == [latest["id"], first["id"]]
     finally:
         root.destroy()
+
+
+def test_list_field_form_uses_a_multiline_one_per_line_box(tmp_path):
+    root = tk.Tk()
+    try:
+        source = tmp_path / "list-form.docx"
+        document = Document()
+        document.add_paragraph(
+            "The {{Works | list}} include {{Works | plural: work, works}}."
+        )
+        document.save(source)
+        field = core.Template(source).field_list()[0]
+        assert field.formats == ["list", "plural"]
+
+        form = ttk.Frame(root)
+        form.pack(fill="both", expand=True)
+        control = FieldInput(
+            form, field, 0, help_text="Enter the titles covered by this agreement."
+        )
+        root.update()
+
+        assert control.text is not None
+        assert control.list_hint is not None
+        assert control.list_hint.cget("text") == "One item per line"
+        assert control.rows_used == 3
+        control.set("First work\nSecond work")
+        assert control.get() == "First work\nSecond work"
+    finally:
+        root.destroy()
+
