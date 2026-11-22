@@ -3,8 +3,8 @@ date: 2026-11-22
 task: T-049-B
 author: GPT-6
 pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/107
-ci_run: pending (update after the run on the latest commit)
-size: pending (size-gated task)
+ci_run: https://github.com/RexBHavgreau/contractbuilder/actions/runs/44994640013
+size: Windows release 18,317,192 bytes; component-builder probe 18,316,864 bytes; both below 31,457,280-byte limit with at least 3 MiB headroom
 ---
 
 # T-049-B — guided singular/plural wording
