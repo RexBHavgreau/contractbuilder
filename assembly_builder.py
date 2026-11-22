@@ -21,7 +21,12 @@ from assembly_helpers import (  # noqa: F401  (re-exported for callers and tests
 )
 import assembly_open_dialog
 import assembly_review_dialog
-from component_preview import PREVIEW_KEY, configure_paragraph_style_tags
+from component_preview import (
+    PREVIEW_KEY,
+    conditional_preview_choices,
+    conditional_preview_warnings,
+    configure_paragraph_style_tags,
+)
 from library import ComponentLibrary
 import shell_selection
 from docx_compose import ComponentText
@@ -56,6 +61,10 @@ class AssemblyBuilderWindow:
         self.items: list[dict] = []
         self._next_item_key = 1
         self.saved_snapshot = None
+        self.preview_as_variable = tk.StringVar(
+            master=self.window, value="All alternatives"
+        )
+        self.preview_choice_values = {"All alternatives": None}
 
         self.name_variable = tk.StringVar(master=self.window)
         self.shell_variable = tk.StringVar(master=self.window, value=NO_SHELL)
@@ -202,28 +211,50 @@ class AssemblyBuilderWindow:
             right_panes, text="Complete assembly preview", padding=8
         )
         preview_frame.columnconfigure(0, weight=1)
-        preview_frame.rowconfigure(0, weight=1)
+        preview_frame.rowconfigure(2, weight=1)
         right_panes.add(preview_frame, weight=3)
+
+        preview_controls = ttk.Frame(preview_frame)
+        preview_controls.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 5))
+        ttk.Label(preview_controls, text="Preview as").pack(side="left")
+        self.preview_as_box = ttk.Combobox(
+            preview_controls,
+            textvariable=self.preview_as_variable,
+            values=("All alternatives",),
+            state="disabled",
+            width=38,
+        )
+        self.preview_as_box.pack(side="left", padx=(7, 0))
+        self.preview_as_box.bind("<<ComboboxSelected>>", self._refresh_preview)
+
+        self.preview_warning = ttk.Label(
+            preview_frame, text="", foreground="#8a5a00",
+            wraplength=760, justify="left",
+        )
+        self.preview_warning.grid(
+            row=1, column=0, columnspan=2, sticky="ew", pady=(0, 5)
+        )
+
         self.preview = tk.Text(
             preview_frame, wrap="word", state="disabled",
             font="TkDefaultFont", relief="solid", borderwidth=1,
             padx=8, pady=7, cursor="arrow",
         )
-        self.preview.grid(row=0, column=0, sticky="nsew")
+        self.preview.grid(row=2, column=0, sticky="nsew")
         preview_scroll = ttk.Scrollbar(
             preview_frame, orient="vertical", command=self.preview.yview
         )
-        preview_scroll.grid(row=0, column=1, sticky="ns")
+        preview_scroll.grid(row=2, column=1, sticky="ns")
         self.preview.configure(yscrollcommand=preview_scroll.set)
         self._configure_preview_tags()
         ttk.Label(
             preview_frame,
             text="Word decides the final page layout.",
             foreground="#555555",
-        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(5, 0))
         ttk.Label(
-            preview_frame, text=PREVIEW_KEY, foreground="#555555", wraplength=330,
-        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(3, 0))
+            preview_frame, text=PREVIEW_KEY, foreground="#555555", wraplength=760,
+        ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(3, 0))
 
         footer = ttk.Frame(outer)
         footer.grid(row=3, column=0, sticky="ew", pady=(10, 0))
@@ -281,6 +312,11 @@ class AssemblyBuilderWindow:
         self.preview.tag_configure(
             "marker", foreground="#4f4f4f", background="#e6e6e6",
             font=("TkDefaultFont", 9, "italic"),
+        )
+        self.preview.tag_configure(
+            "marker_band", foreground="#243d5a", background="#dce9f6",
+            font=("TkDefaultFont", 9, "bold"), spacing1=3, spacing3=3,
+            lmargin1=6, lmargin2=6,
         )
         self.preview.tag_configure(
             "table_header", font=("TkDefaultFont", 9, "bold"),
@@ -479,8 +515,36 @@ class AssemblyBuilderWindow:
             selected_key = self.items[min(index, len(self.items) - 1)]["key"]
         self._render_items(selected_key)
 
-    def _refresh_preview(self):
-        segments = preview_segments_for_components(self.items)
+    def _refresh_preview(self, _event=None):
+        included = [item for item in self.items if bool(item.get("included", True))]
+        choices = conditional_preview_choices(included)
+        choice_values = {"All alternatives": None}
+        labels = ["All alternatives"]
+        for field_name, value in choices:
+            label = f"{field_name} — {value}"
+            choice_values[label] = {field_name: value}
+            labels.append(label)
+        self.preview_choice_values = choice_values
+        self.preview_as_box.configure(
+            values=labels,
+            state="readonly" if len(labels) > 1 else "disabled",
+        )
+        if self.preview_as_variable.get() not in choice_values:
+            self.preview_as_variable.set("All alternatives")
+        preview_values = choice_values[self.preview_as_variable.get()]
+
+        warnings = []
+        for item in included:
+            component_name = str(item.get("component_name") or "Component")
+            for warning in conditional_preview_warnings(
+                str(item.get("markdown") or "")
+            ):
+                warnings.append(f"{component_name}: {warning}")
+        self.preview_warning.configure(text="\n".join(warnings))
+
+        segments = preview_segments_for_components(
+            self.items, preview_values=preview_values
+        )
         self.preview.configure(state="normal")
         self.preview.delete("1.0", "end")
         if not segments:
