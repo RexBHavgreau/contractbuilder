@@ -441,6 +441,48 @@ one click. If a file has been moved or deleted, its line says "file not found";
 choose the file again, or press **Remove from list** to take it off the list.
 The list is kept on this computer only.
 
+BUILDING CHOICE AND SINGULAR OR PLURAL WORDING WITH THE BUTTONS
+
+You do not need to type the markers. In the Components window, use the buttons
+below. Then check the preview, which shows each alternative.
+
+Choice wording
+--------------
+
+Use this when the wording depends on one value, such as a publisher type.
+
+1. Click Choice wording on the toolbar.
+2. Choose the field that decides the wording (for example Publisher Type), or
+   create it there.
+3. Type each value (for example Non-profit, then Sole proprietor) and the
+   wording for each.
+4. Choose whether the wording goes inside a sentence or as its own paragraph.
+5. Check the summary, which shows the sentence for each value.
+
+The editor writes one block for each value, such as
+{{#if Publisher Type = Non-profit}} ... {{/if}}. For example, with invented
+wording: "The Provider is a non-profit corporation" for Non-profit, and "The
+Provider is a sole proprietor" for Sole proprietor.
+
+The value in a condition must be one of the choices of its field. The form
+rejects any other value and lists the choices it accepts. Capitals and extra
+spaces are ignored when the value is matched, but type the values exactly as
+the field lists them, to avoid a rejected answer.
+
+Singular or plural word
+-----------------------
+
+Use this when a word changes with the number of items, such as work or works.
+
+1. In the Field picker (Field on the toolbar), click Singular/plural word.
+2. Choose the list field (for example Works).
+3. Type the singular and the plural words (for example work, then works).
+
+The editor inserts {{Works | plural: work, works}}. If either word has a comma,
+the editor separates the two forms with a slash instead. The form asks for the
+list, and the contract uses the singular word for one item and the plural word
+for more than one.
+
 COMPONENTS AND ASSEMBLED CONTRACTS
 
 A component is a piece of reusable contract wording, such as a payment clause.
@@ -490,7 +532,18 @@ Writing a component
 
 Importing wording from Word
 
-Click Import Word. ContractBuilder reads the paragraphs,
+Click Import Word and choose the file. You are asked how much to import:
+Whole document, or Part of it. For Part of it, the document is shown as a
+list of its headings, paragraphs, lists and tables, each with a box. Click a
+box (or press Space) to tick it, or Shift-click to tick everything between;
+Select all and Clear help. A list or a table is one item and is taken whole.
+Warnings for the highlighted item, and anything worth knowing about your choice
+(for example that you skipped some items between your first and last), are shown
+below the list. Continue to review takes only the ticked items to the same review
+window as a whole import, where you can still edit and where nothing is saved
+until you choose Save as component.
+
+For either choice, ContractBuilder reads the paragraphs,
 headings, bold and italic text, lists and simple tables, in order. It lists
 anything it could not bring across (pictures, comments, merged table cells,
 footnotes and so on) so you can check the result before saving. Page layout,
