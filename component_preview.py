@@ -30,10 +30,12 @@ def _append(segments: list[Segment], text: str, *tags: str) -> None:
 
 PREVIEW_KEY = (
     "Highlighted text is a field, filled in when the document is made. "
-    "Tinted bands mark conditional sections; Grey tags label inline choices such as \u201cIf Publisher Type is "
-    "Non-profit\u201d, \u201cOtherwise\u201d and \u201cEnd of choice\u201d. "
-    "They are instructions and are not printed. Use Preview as to check a chosen field value. Blue underlined text is a supported link; "
-    "orange underlined text has an unsupported target and will be plain text in Word."
+    "Tinted bands mark conditional sections; Grey tags label inline choices such as "
+    "\u201cIf Publisher Type is Non-profit\u201d, \u201cOtherwise\u201d and \u201cEnd of choice\u201d. "
+    "They are instructions and are not printed. "
+    "Use the Preview as control to check a chosen field value. "
+    "Blue underlined text is a supported link; orange underlined text has an "
+    "unsupported target and will be plain text in Word."
 )
 
 
@@ -144,14 +146,22 @@ def conditional_preview_warnings(markdown: str) -> list[str]:
     return warnings
 
 
-def conditional_preview_choices(components: Iterable[object]) -> list[tuple[str, str]]:
-    """List distinct explicit field/value conditions in the included components."""
-    choices: list[tuple[str, str]] = []
+def conditional_preview_choices(
+    components: Iterable[object],
+) -> list[tuple[str, object]]:
+    """List distinct values that can be selected for conditional fields.
+
+    Explicit values become individual options. Presence conditions expose both
+    the filled-in and blank states, so those alternatives can also be previewed.
+    """
+    choices: list[tuple[str, object]] = []
     seen: set[tuple[str, str]] = set()
     for component in components:
         if isinstance(component, str):
             markdown = component
         elif isinstance(component, Mapping):
+            if not bool(component.get("included", True)):
+                continue
             markdown = str(component.get("markdown") or "")
         else:
             markdown = str(component or "")
@@ -160,12 +170,19 @@ def conditional_preview_choices(components: Iterable[object]) -> list[tuple[str,
             if kind != "if":
                 continue
             name, value, _negate = parse_condition(payload)
-            if not name or value is None:
+            if not name:
                 continue
-            key = (" ".join(name.split()).casefold(), value.casefold())
-            if key not in seen:
-                seen.add(key)
-                choices.append((name, value))
+            candidates = (True, False) if value is None else (value,)
+            for candidate in candidates:
+                option_key = (
+                    " ".join(name.split()).casefold(),
+                    ("filled" if candidate is True else "blank")
+                    if isinstance(candidate, bool)
+                    else str(candidate).casefold(),
+                )
+                if option_key not in seen:
+                    seen.add(option_key)
+                    choices.append((name, candidate))
     return choices
 
 
@@ -179,7 +196,10 @@ def _preview_value(preview_values: Mapping[str, object], field_name: str):
 
 def _condition_matches(chosen: object, expected: str | None, negate: bool) -> bool:
     if expected is None:
-        matched = bool(str(chosen or "").strip())
+        if isinstance(chosen, bool):
+            matched = chosen
+        else:
+            matched = chosen is not None and bool(str(chosen).strip())
     else:
         matched = str(chosen or "").strip().casefold() == expected.strip().casefold()
     return not matched if negate else matched
