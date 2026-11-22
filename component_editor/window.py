@@ -10,7 +10,11 @@ import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from component_preview import PREVIEW_KEY, render_markdown_preview
+from component_preview import (
+    PREVIEW_KEY,
+    conditional_preview_warnings,
+    render_markdown_preview,
+)
 from library import ComponentLibrary
 
 from .backup_dialog import LibraryBackupDialog
@@ -319,6 +323,18 @@ class ComponentEditorWindow(
     def _configure_preview_tags(self):
         configure_preview_tags(self.preview)
 
+    def _update_content_notice(self, source: str):
+        """Show field validation and conditional-wording warnings together."""
+        warnings = []
+        field_warning = malformed_field_message(source)
+        if field_warning:
+            warnings.append(field_warning)
+        warnings.extend(conditional_preview_warnings(source))
+        if warnings:
+            self.content_notice.configure(text="\n".join(warnings))
+        elif not self.protected_content:
+            self.content_notice.configure(text="")
+
     def _on_wording_modified(self, _event=None):
         if not self.wording.edit_modified():
             return
@@ -330,11 +346,7 @@ class ComponentEditorWindow(
         source = self.wording.get("1.0", "end-1c")
         if not self.editor_markdown_mode:
             source = plain_text_to_markdown(source)
-        warning = malformed_field_message(source)
-        if warning:
-            self.content_notice.configure(text=warning)
-        elif not self.protected_content:
-            self.content_notice.configure(text="")
+        self._update_content_notice(source)
         self._schedule_preview()
 
     def _schedule_preview(self, _event=None):
