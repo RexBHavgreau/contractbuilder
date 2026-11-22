@@ -314,4 +314,4 @@ def test_preview_key_explains_tinted_blocks_and_preview_as_control():
     assert "Grey tags" in PREVIEW_KEY
     assert "Preview as" in PREVIEW_KEY
     assert "not printed" in PREVIEW_KEY
-\n
+
