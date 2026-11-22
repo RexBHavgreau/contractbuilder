@@ -471,7 +471,12 @@ class AssemblyBuilderWindow:
         choice_values = {"All alternatives": None}
         labels = ["All alternatives"]
         for field_name, value in choices:
-            label = f"{field_name} — {value}"
+            display_value = (
+                "filled in" if value is True
+                else "not filled in" if value is False
+                else str(value)
+            )
+            label = f"{field_name} — {display_value}"
             choice_values[label] = {field_name: value}
             labels.append(label)
         self.preview_choice_values = choice_values
