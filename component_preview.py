@@ -6,7 +6,7 @@ pages, use a browser engine, or introduce another runtime dependency.
 """
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 from core import TOKEN, classify, parse_condition
 from markdown_fields import protect_fields, restore_fields
@@ -30,9 +30,9 @@ def _append(segments: list[Segment], text: str, *tags: str) -> None:
 
 PREVIEW_KEY = (
     "Highlighted text is a field, filled in when the document is made. "
-    "Grey tags are choices in the wording, such as \u201cIf Publisher Type is "
+    "Tinted bands mark conditional sections; Grey tags label inline choices such as \u201cIf Publisher Type is "
     "Non-profit\u201d, \u201cOtherwise\u201d and \u201cEnd of choice\u201d. "
-    "They are instructions and are not printed. Blue underlined text is a supported link; "
+    "They are instructions and are not printed. Use Preview as to check a chosen field value. Blue underlined text is a supported link; "
     "orange underlined text has an unsupported target and will be plain text in Word."
 )
 
@@ -58,6 +58,202 @@ def marker_label(inner: str) -> tuple[str, str] | None:
     return None
 
 
+def _marker_on_own_line(source: str, start: int, end: int) -> bool:
+    """Whether a marker is the only non-whitespace text on its source line."""
+    line_start = source.rfind("\n", 0, start) + 1
+    line_end = source.find("\n", end)
+    if line_end < 0:
+        line_end = len(source)
+    return not source[line_start:start].strip() and not source[end:line_end].strip()
+
+
+def conditional_preview_warnings(markdown: str) -> list[str]:
+    """Plain-English warnings for hand-written conditional blocks."""
+    if not isinstance(markdown, str):
+        raise TypeError("Component wording must be text.")
+
+    warnings: list[str] = []
+    stack: list[dict[str, object]] = []
+
+    def warn(message: str) -> None:
+        if message not in warnings:
+            warnings.append(message)
+
+    for match in TOKEN.finditer(markdown):
+        kind, payload = classify(match.group(1))
+        if kind == "if":
+            name, value, _negate = parse_condition(payload)
+            stack.append({
+                "name": name or "this field",
+                "value": value,
+                "block": _marker_on_own_line(markdown, match.start(), match.end()),
+                "start": match.start(),
+                "branches": [[match.end(), None]],
+            })
+        elif kind == "else":
+            if not stack:
+                warn("An Otherwise marker has no matching opening condition.")
+                continue
+            frame = stack[-1]
+            branches = frame["branches"]
+            branches[-1][1] = match.start()
+            branches.append([match.end(), None])
+            value = frame["value"]
+            if value is not None:
+                warn(
+                    f"The form will offer only {value} for {frame['name']}; "
+                    "use Choice wording… to list every value."
+                )
+        elif kind == "end":
+            if not stack:
+                warn("A closing conditional marker has no matching opening condition.")
+                continue
+            frame = stack.pop()
+            branches = frame["branches"]
+            branches[-1][1] = match.start()
+
+            if frame["block"] and not _marker_on_own_line(
+                markdown, match.start(), match.end()
+            ):
+                warn(
+                    "This conditional section opens on its own line, but its closing "
+                    "marker is not on its own line. Put {{/if}} on a separate line."
+                )
+
+            before = markdown[int(frame["start"]) - 1:int(frame["start"])]
+            after = markdown[match.end():match.end() + 1]
+            starts_with_space = any(
+                start < len(markdown) and markdown[start:start + 1] == " "
+                for start, _end in branches
+            )
+            ends_with_space = any(
+                end is not None and end > start and markdown[end - 1:end] == " "
+                for start, end in branches
+            )
+            if (before == " " and starts_with_space) or (after == " " and ends_with_space):
+                warn(
+                    "A conditional phrase leaves double spaces beside it. Remove the "
+                    "extra space inside the wording or next to the conditional markers."
+                )
+
+    for frame in stack:
+        warn(
+            f"The condition for {frame['name']} has no closing {{{{/if}}}} marker. "
+            "Add {{/if}} after the wording it controls."
+        )
+    return warnings
+
+
+def conditional_preview_choices(components: Iterable[object]) -> list[tuple[str, str]]:
+    """List distinct explicit field/value conditions in the included components."""
+    choices: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for component in components:
+        if isinstance(component, str):
+            markdown = component
+        elif isinstance(component, Mapping):
+            markdown = str(component.get("markdown") or "")
+        else:
+            markdown = str(component or "")
+        for match in TOKEN.finditer(markdown):
+            kind, payload = classify(match.group(1))
+            if kind != "if":
+                continue
+            name, value, _negate = parse_condition(payload)
+            if not name or value is None:
+                continue
+            key = (" ".join(name.split()).casefold(), value.casefold())
+            if key not in seen:
+                seen.add(key)
+                choices.append((name, value))
+    return choices
+
+
+def _preview_value(preview_values: Mapping[str, object], field_name: str):
+    target = " ".join(str(field_name or "").split()).casefold()
+    for name, value in preview_values.items():
+        if " ".join(str(name or "").split()).casefold() == target:
+            return True, value
+    return False, None
+
+
+def _condition_matches(chosen: object, expected: str | None, negate: bool) -> bool:
+    if expected is None:
+        matched = bool(str(chosen or "").strip())
+    else:
+        matched = str(chosen or "").strip().casefold() == expected.strip().casefold()
+    return not matched if negate else matched
+
+
+def _select_conditional_wording(
+    markdown: str, preview_values: Mapping[str, object] | None
+) -> str:
+    """Resolve selected fields' conditions; leave other alternatives visible."""
+    if not preview_values:
+        return markdown
+
+    output: list[str] = []
+    stack: list[dict[str, object]] = []
+    active = True
+    cursor = 0
+
+    for match in TOKEN.finditer(markdown):
+        if active:
+            output.append(markdown[cursor:match.start()])
+        kind, payload = classify(match.group(1))
+
+        if kind == "if":
+            name, expected, negate = parse_condition(payload)
+            found, chosen = _preview_value(preview_values, name)
+            parent_active = active
+            selected = found
+            matched = _condition_matches(chosen, expected, negate) if found else None
+            frame = {
+                "parent_active": parent_active,
+                "selected": selected,
+                "matched": matched,
+            }
+            stack.append(frame)
+            if selected:
+                active = parent_active and bool(matched)
+            else:
+                if parent_active:
+                    output.append(match.group(0))
+                active = parent_active
+
+        elif kind == "else":
+            if not stack:
+                if active:
+                    output.append(match.group(0))
+            else:
+                frame = stack[-1]
+                if frame["selected"]:
+                    active = bool(frame["parent_active"]) and not bool(frame["matched"])
+                else:
+                    if active:
+                        output.append(match.group(0))
+                    active = bool(frame["parent_active"])
+
+        elif kind == "end":
+            if not stack:
+                if active:
+                    output.append(match.group(0))
+            else:
+                frame = stack.pop()
+                if not frame["selected"] and active:
+                    output.append(match.group(0))
+                active = bool(frame["parent_active"])
+
+        elif active:
+            output.append(match.group(0))
+
+        cursor = match.end()
+
+    if active:
+        output.append(markdown[cursor:])
+    return "".join(output)
+
+
 def _field_aware_segments(text: str, styles: Sequence[str] = ()) -> list[Segment]:
     result: list[Segment] = []
     cursor = 0
@@ -68,8 +264,22 @@ def _field_aware_segments(text: str, styles: Sequence[str] = ()) -> list[Segment
             _append(result, match.group(0), *styles, "field")
         else:
             label, marker_tag = marker
+            # Standalone block markers get a tinted band; inline markers stay compact tags.
+            line_start = text.rfind("\n", 0, match.start()) + 1
+            line_end = text.find("\n", match.end())
+            if line_end < 0:
+                line_end = len(text)
+            block_tag = (
+                ("marker_band",)
+                if not text[line_start:match.start()].strip()
+                and not text[match.end():line_end].strip()
+                else ()
+            )
             # Thin spaces keep a tag from running into the words either side.
-            _append(result, "\u2009" + label + "\u2009", *styles, "marker", marker_tag)
+            _append(
+                result, "\u2009" + label + "\u2009",
+                *styles, "marker", marker_tag, *block_tag,
+            )
         cursor = match.end()
     _append(result, text[cursor:], *styles)
     return result
@@ -246,6 +456,11 @@ def configure_preview_tags(widget) -> None:
         font=("TkDefaultFont", 9, "italic"),
     )
     widget.tag_configure(
+        "marker_band", foreground="#243d5a", background="#dce9f6",
+        font=("TkDefaultFont", 9, "bold"), spacing1=3, spacing3=3,
+        lmargin1=6, lmargin2=6,
+    )
+    widget.tag_configure(
         "table_header", font=("TkDefaultFont", 9, "bold"), background="#eeeeee",
     )
     widget.tag_configure("table_cell", font=("TkFixedFont", 9))
@@ -267,16 +482,21 @@ def configure_preview_tags(widget) -> None:
 
 
 def render_markdown_preview(
-    markdown: str, paragraph_styles: Sequence[str] = ()
+    markdown: str,
+    paragraph_styles: Sequence[str] = (),
+    preview_values: Mapping[str, object] | None = None,
 ) -> list[Segment]:
     """Return a list of (text, style-tags) segments for a Tk Text widget.
 
     ``paragraph_styles`` is the per-paragraph choice stored beside the wording
     (T-061): one name per ordinary top-level paragraph, "" for Normal.
+    ``preview_values`` resolves conditional blocks for selected fields; unselected
+    fields retain their labelled alternatives.
     """
     if not isinstance(markdown, str):
         raise TypeError("Component wording must be text.")
 
+    markdown = _select_conditional_wording(markdown, preview_values)
     protected, replacements = protect_fields(markdown)
     parser = create_parser(allow_unsafe_links=True)
     tokens = parser.parse(protected)
