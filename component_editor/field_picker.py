@@ -184,6 +184,9 @@ class FieldPickerDialog:
         ).grid(row=3, column=1, sticky="e", pady=(4, 0))
         self.one_off_status = ttk.Label(outer, text="", foreground="#8a5a00")
         self.one_off_status.pack(anchor="w")
+        ttk.Button(
+            outer, text="Singular/plural word…", command=self.open_singular_plural
+        ).pack(anchor="w", pady=(0, 7))
         self.tree = ttk.Treeview(
             outer, columns=("kind", "description"), show="tree headings",
             selectmode="browse",
@@ -302,6 +305,11 @@ class FieldPickerDialog:
             self.window.focus_force()
         else:
             self.window.destroy()
+
+    def open_singular_plural(self):
+        from .singular_plural_dialog import SingularPluralDialog
+
+        SingularPluralDialog(self.window, self.library, self.on_insert)
 
     def new_field(self):
         FieldCreatorDialog(self.window, self.library, self._created)
