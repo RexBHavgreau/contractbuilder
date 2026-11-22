@@ -45,6 +45,26 @@ class DocxImportWarning:
 
 
 @dataclass(frozen=True)
+class DocxBlock:
+    """One block of the draft, with its place in the Word file (T-064-A).
+
+    ``kind`` is "heading", "paragraph", "list" or "table". ``markdown`` is the
+    block's own Markdown; joining the blocks with blank lines gives the draft's
+    ``markdown``. ``position`` is the block's index among the children of the
+    Word body. ``paragraph_numbers`` are the body paragraph numbers the block
+    came from (empty for a table, which is found by ``position``).
+    """
+
+    kind: str
+    markdown: str
+    style: str
+    level: int | None
+    position: int
+    paragraph_numbers: tuple[int, ...]
+    warnings: tuple["DocxImportWarning", ...]
+
+
+@dataclass(frozen=True)
 class DocxImport:
     """Markdown draft and any non-blocking import warnings."""
 
@@ -53,6 +73,8 @@ class DocxImport:
     # One entry per ordinary top-level paragraph, in order ("" = Normal): the
     # Word style names the app also offers (T-061). Kept beside the Markdown.
     paragraph_styles: tuple[str, ...] = ()
+    # The same content as ``markdown``, one entry per block, in order (T-064-A).
+    blocks: tuple[DocxBlock, ...] = ()
 
 
 # Word style names (any capitals) the editor offers as paragraph styles.
@@ -616,6 +638,19 @@ def _flush_list(items, blocks):
         items.clear()
 
 
+def _flush_list_block(items, numbers, start, position, blocks, block_info, warnings):
+    """Close the open list run as one block; returns None for the next run's start."""
+    if items:
+        blocks.append("\n".join(items))
+        block_info.append(DocxBlock(
+            "list", blocks[-1], "", None, position, tuple(numbers),
+            tuple(warnings[start:]) if start is not None else (),
+        ))
+        items.clear()
+        numbers.clear()
+    return None
+
+
 def _paragraph_style_name(paragraph, styles: dict) -> str:
     """The Word display name of the paragraph's style, or "" for none."""
     style_id = _paragraph_style_id(paragraph)
@@ -671,18 +706,24 @@ def import_docx(path: str | Path) -> DocxImport:
     table_number = 0
     text_styles = []            # style of each ordinary paragraph, in order
     unoffered = {}              # Word style name -> paragraphs given Normal
+    block_info = []             # DocxBlock for each entry of ``blocks``
+    list_numbers = []           # body paragraph numbers in the open list run
+    list_start = None           # warnings index where the open list run began
+    list_position = 0           # body position where the open list run began
 
-    for child in body:
+    for position, child in enumerate(body):
         if child.tag == W + "p":
             paragraph_number += 1
             location = f"paragraph {paragraph_number}"
+            mark = len(warnings)
             list_info = _list_info(child, styles, numbering)
             value = _paragraph_markdown(
                 child, styles, warnings, location, relationships=relationships
             )
             if list_info is not None:
                 if active_list_id is not None and list_info["num_id"] != active_list_id:
-                    _flush_list(list_items, blocks)
+                    list_start = _flush_list_block(
+                        list_items, list_numbers, list_start, list_position, blocks, block_info, warnings)
                     previous_level = 0
                 active_list_id = list_info["num_id"]
                 level = list_info["level"]
@@ -700,10 +741,15 @@ def import_docx(path: str | Path) -> DocxImport:
                         ))
                 marker = "- " if list_info["kind"] == "bullet" else "1. "
                 if value:
+                    if not list_items:
+                        list_start = mark
+                        list_position = position
                     list_items.append("    " * level + marker + value)
+                    list_numbers.append(paragraph_number)
                 previous_level = level
             else:
-                _flush_list(list_items, blocks)
+                list_start = _flush_list_block(
+                    list_items, list_numbers, list_start, list_position, blocks, block_info, warnings)
                 active_list_id = None
                 previous_level = 0
                 if value:
@@ -715,6 +761,8 @@ def import_docx(path: str | Path) -> DocxImport:
                         ))
                     blocks.append(value)
                     level = _heading_level(child, styles)
+                    is_heading = level is not None and level <= 3
+                    block_style = _paragraph_style_name(child, styles)
                     if level is None or level > 3:
                         name = _paragraph_style_name(child, styles)
                         offered = _KNOWN_PARAGRAPH_STYLES.get(name.casefold(), "")
@@ -733,18 +781,28 @@ def import_docx(path: str | Path) -> DocxImport:
                                 % ("centered" if alignment == "center" else "right-aligned"),
                                 location,
                             ))
+                    block_info.append(DocxBlock(
+                        "heading" if is_heading else "paragraph", value, block_style,
+                        level if is_heading else None, position, (paragraph_number,),
+                        tuple(warnings[mark:]),
+                    ))
         elif child.tag == W + "tbl":
-            _flush_list(list_items, blocks)
+            list_start = _flush_list_block(
+                list_items, list_numbers, list_start, list_position, blocks, block_info, warnings)
             active_list_id = None
             previous_level = 0
             table_number += 1
+            mark = len(warnings)
             value = _table_markdown(
                 child, table_number, styles, numbering, warnings, relationships
             )
             if value:
                 blocks.append(value)
+                block_info.append(DocxBlock(
+                    "table", value, "", None, position, (), tuple(warnings[mark:]),
+                ))
 
-    _flush_list(list_items, blocks)
+    _flush_list_block(list_items, list_numbers, list_start, list_position, blocks, block_info, warnings)
     markdown = "\n\n".join(blocks)
     for name, count in sorted(unoffered.items()):
         warnings.append(DocxImportWarning(
@@ -755,7 +813,10 @@ def import_docx(path: str | Path) -> DocxImport:
             "style " + name,
         ))
     styles_list = _importable_styles(markdown, text_styles)
-    return DocxImport(markdown=markdown, warnings=tuple(warnings), paragraph_styles=styles_list)
+    return DocxImport(
+        markdown=markdown, warnings=tuple(warnings), paragraph_styles=styles_list,
+        blocks=tuple(block_info),
+    )
 
 
 def _importable_styles(markdown: str, text_styles) -> tuple[str, ...]:
