@@ -311,3 +311,36 @@ def test_revisions_remain_reproducible_after_two_component_edits(tmp_path):
     )
     assert clause_v2["number"] == 2
     assert closing_v2["number"] == 2
+
+def test_assembly_preview_can_show_a_selected_conditional_alternative():
+    components = [
+        {
+            "component_name": "Fee clause",
+            "component_version_number": 1,
+            "markdown": (
+                "The fee is {{#if Publisher Type = Non-profit}}waived"
+                "{{else}}due{{/if}}."
+            ),
+            "included": True,
+        },
+        {
+            "component_name": "Omitted clause",
+            "markdown": "{{#if Publisher Type = Non-profit}}hidden{{/if}}",
+            "included": False,
+        },
+    ]
+    all_segments = preview_segments_for_components(components)
+    all_text = "".join(value for value, _tags in all_segments)
+    assert "Otherwise" in all_text
+    assert "End of choice" in all_text
+    assert "Omitted clause" not in all_text
+
+    selected_segments = preview_segments_for_components(
+        components, preview_values={"Publisher Type": "Non-profit"}
+    )
+    selected_text = "".join(value for value, _tags in selected_segments)
+    assert "waived" in selected_text
+    assert "due" not in selected_text
+    assert "Otherwise" not in selected_text
+    assert "End of choice" not in selected_text
+
