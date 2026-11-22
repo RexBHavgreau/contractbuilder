@@ -1,3 +1,12 @@
+---
+date: 2026-11-22
+task: T-049-B
+author: GPT-6
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/107
+ci_run: pending (update after the run on the latest commit)
+size: pending (size-gated task)
+---
+
 # T-049-B — guided singular/plural wording
 
 Implemented on 2026-11-22 in the `work/T-049-B` branch.
