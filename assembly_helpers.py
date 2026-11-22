@@ -26,8 +26,11 @@ def included_component_markdown(revision: Mapping[str, object]) -> list[str]:
     ]
 
 
-def preview_segments_for_components(components: Sequence[Mapping[str, object]]):
-    """Render one ordered preview while parsing each component independently."""
+def preview_segments_for_components(
+    components: Sequence[Mapping[str, object]],
+    preview_values: Mapping[str, object] | None = None,
+):
+    """Render an ordered preview, optionally resolving one field's alternatives."""
     segments = []
     visible = 0
     for component in components:
@@ -43,6 +46,7 @@ def preview_segments_for_components(components: Sequence[Mapping[str, object]]):
         segments.extend(render_markdown_preview(
             str(component.get("markdown") or ""),
             list(component.get("paragraph_styles") or ()),
+            preview_values=preview_values,
         ))
         visible += 1
     return segments
