@@ -56,3 +56,12 @@ def test_guide_explains_asking_once_for_a_number_inside_the_template_help():
     assert start < guide.index("ASKING ONCE FOR A NUMBER") < end
     assert "{{Copies | number-words}}" in section
     assert "Not available yet" in section
+
+
+def test_guide_explains_building_choice_and_plural_wording_with_the_buttons():
+    guide = GUIDE.read_text(encoding="utf-8")
+    start = guide.index("BUILDING CHOICE AND SINGULAR OR PLURAL WORDING WITH THE BUTTONS")
+    section = guide[start:guide.index("COMPONENTS AND ASSEMBLED CONTRACTS", start)]
+    for words in ("Choice wording", "Singular/plural word", "Non-profit", "Sole proprietor",
+                  "{{Works | plural: work, works}}", "must be one of the choices"):
+        assert words in section
