@@ -367,11 +367,7 @@ class ComponentEditorWindow(
             return
         raw = self.wording.get("1.0", "end-1c")
         source = raw if self.editor_markdown_mode else plain_text_to_markdown(raw)
-        warning = malformed_field_message(source)
-        if warning:
-            self.content_notice.configure(text=warning)
-        elif not self.protected_content:
-            self.content_notice.configure(text="")
+        self._update_content_notice(source)
         try:
             segments = render_markdown_preview(source, self.paragraph_styles)
         except (TypeError, ValueError) as exc:
