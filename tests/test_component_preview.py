@@ -193,7 +193,7 @@ def test_preview_distinguishes_safe_hyperlinks_from_unsupported_targets():
 
 def test_block_condition_markers_receive_the_tinted_band_style():
     _text, segments = _rendered(
-        "{{#if Include Schedule}}\\n\\nSchedule text.\\n\\n{{/if}}"
+        "{{#if Include Schedule}}\n\nSchedule text.\n\n{{/if}}"
     )
     band_markers = [
         (value, tags) for value, tags in segments if "marker_band" in tags
@@ -216,12 +216,12 @@ def test_conditional_warnings_explain_single_else_value_and_double_spaces():
 
 def test_conditional_warnings_explain_missing_and_misplaced_closing_markers():
     missing = conditional_preview_warnings(
-        "Intro.\\n\\n{{#if Include Schedule}}\\n\\nSchedule text."
+        "Intro.\n\n{{#if Include Schedule}}\n\nSchedule text."
     )
     assert any("no closing {{/if}} marker" in warning for warning in missing)
 
     misplaced = conditional_preview_warnings(
-        "{{#if Include Schedule}}\\n\\nSchedule text {{/if}}\\n\\nEnd."
+        "{{#if Include Schedule}}\n\nSchedule text {{/if}}\n\nEnd."
     )
     assert any("closing marker is not on its own line" in warning for warning in misplaced)
 
@@ -231,8 +231,8 @@ def test_conditional_warnings_leave_valid_inline_and_block_conditions_alone():
         "The fee is {{#if Rush}}higher{{else}}standard{{/if}}."
     ) == []
     assert conditional_preview_warnings(
-        "Intro.\\n\\n{{#if Include Schedule}}\\n\\nSchedule text."
-        "\\n\\n{{/if}}\\n\\nEnd."
+        "Intro.\n\n{{#if Include Schedule}}\n\nSchedule text."
+        "\n\n{{/if}}\n\nEnd."
     ) == []
 
 
