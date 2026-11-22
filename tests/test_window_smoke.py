@@ -336,8 +336,12 @@ def test_conditional_warnings_and_preview_as_selector_in_both_windows(tmp_path):
             "of {{#if Publisher Type = Non-profit}} a non-profit "
             "{{else}} a sole proprietor {{/if}} organized"
         )
-        editor._update_content_notice(source)
+        _replace_wording(editor, source)
+        editor._update_preview()
         editor_notice = editor.content_notice.cget("text")
+        editor_preview = editor.preview.get("1.0", "end-1c")
+        assert "If Publisher Type is Non-profit" in editor_preview
+        assert "{{#if" not in editor_preview
         assert "form will offer only Non-profit" in editor_notice
         assert "double spaces" in editor_notice
         assert "marker_band" in editor.preview.tag_names()
