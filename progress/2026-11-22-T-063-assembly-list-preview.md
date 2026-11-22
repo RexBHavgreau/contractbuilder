@@ -2,7 +2,7 @@
 date: 2026-11-22
 task: T-063
 author: Claude
-pull_request: pending (update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/108
 ci_run: pending (update after the run on the latest commit)
 size: pending; adds assembly_picker_window.py (a small Tk module, no dependency) and moves the preview tag setup into one shared function; confirm release and component-enabled sizes from the CI summary
 ---
