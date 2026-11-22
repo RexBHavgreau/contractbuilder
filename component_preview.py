@@ -225,6 +225,47 @@ def configure_paragraph_style_tags(widget) -> None:
     )
 
 
+def configure_preview_tags(widget) -> None:
+    """Text tags for every preview pane (the editor, the builder, the import
+    review and the saved-assemblies list), set up in one place."""
+    widget.tag_configure(
+        "heading_1", font=("TkDefaultFont", 17, "bold"), spacing1=10, spacing3=6,
+    )
+    widget.tag_configure(
+        "heading_2", font=("TkDefaultFont", 14, "bold"), spacing1=8, spacing3=5,
+    )
+    widget.tag_configure(
+        "heading_3", font=("TkDefaultFont", 12, "bold"), spacing1=6, spacing3=4,
+    )
+    widget.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
+    widget.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
+    widget.tag_configure("field", background="#fff0c2", foreground="#714d00")
+    widget.tag_configure("list_marker", foreground="#555555", lmargin1=10)
+    widget.tag_configure(
+        "marker", foreground="#4f4f4f", background="#e6e6e6",
+        font=("TkDefaultFont", 9, "italic"),
+    )
+    widget.tag_configure(
+        "table_header", font=("TkDefaultFont", 9, "bold"), background="#eeeeee",
+    )
+    widget.tag_configure("table_cell", font=("TkFixedFont", 9))
+    widget.tag_configure("table_border", foreground="#777777", font=("TkFixedFont", 9))
+    widget.tag_configure("code", font=("TkFixedFont", 9), background="#f1f1f1")
+    widget.tag_configure(
+        "code_block", font=("TkFixedFont", 9), background="#f4f4f4", lmargin1=8, lmargin2=8,
+    )
+    widget.tag_configure("blockquote", foreground="#555555", lmargin1=12)
+    widget.tag_configure("link", underline=True, foreground="#245a8d")
+    widget.tag_configure("link_warning", underline=True, foreground="#a05a00")
+    widget.tag_configure("rule", foreground="#888888")
+    widget.tag_configure("source_text", foreground="#666666")
+    widget.tag_configure(
+        "component_label", foreground="#555555", font=("TkDefaultFont", 9, "bold"),
+        spacing1=9, spacing3=3,
+    )
+    configure_paragraph_style_tags(widget)
+
+
 def render_markdown_preview(
     markdown: str, paragraph_styles: Sequence[str] = ()
 ) -> list[Segment]:

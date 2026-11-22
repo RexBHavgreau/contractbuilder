@@ -21,7 +21,7 @@ from assembly_helpers import (  # noqa: F401  (re-exported for callers and tests
 )
 import assembly_open_dialog
 import assembly_review_dialog
-from component_preview import PREVIEW_KEY, configure_paragraph_style_tags
+from component_preview import PREVIEW_KEY, configure_preview_tags
 from library import ComponentLibrary
 import shell_selection
 from docx_compose import ComponentText
@@ -260,52 +260,7 @@ class AssemblyBuilderWindow:
         ).pack(side="right", padx=(0, 7))
 
     def _configure_preview_tags(self):
-        self.preview.tag_configure(
-            "heading_1", font=("TkDefaultFont", 17, "bold"),
-            spacing1=10, spacing3=6,
-        )
-        self.preview.tag_configure(
-            "heading_2", font=("TkDefaultFont", 14, "bold"),
-            spacing1=8, spacing3=5,
-        )
-        self.preview.tag_configure(
-            "heading_3", font=("TkDefaultFont", 12, "bold"),
-            spacing1=6, spacing3=4,
-        )
-        self.preview.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
-        self.preview.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
-        self.preview.tag_configure(
-            "field", background="#fff0c2", foreground="#714d00"
-        )
-        self.preview.tag_configure("list_marker", foreground="#555555")
-        self.preview.tag_configure(
-            "marker", foreground="#4f4f4f", background="#e6e6e6",
-            font=("TkDefaultFont", 9, "italic"),
-        )
-        self.preview.tag_configure(
-            "table_header", font=("TkDefaultFont", 9, "bold"),
-            background="#eeeeee",
-        )
-        self.preview.tag_configure("table_cell", font=("TkFixedFont", 9))
-        self.preview.tag_configure(
-            "table_border", foreground="#777777", font=("TkFixedFont", 9)
-        )
-        self.preview.tag_configure(
-            "code", font=("TkFixedFont", 9), background="#f1f1f1"
-        )
-        self.preview.tag_configure(
-            "code_block", font=("TkFixedFont", 9), background="#f4f4f4",
-            lmargin1=8, lmargin2=8,
-        )
-        self.preview.tag_configure("blockquote", foreground="#555555", lmargin1=12)
-        self.preview.tag_configure("link", underline=True, foreground="#245a8d")
-        self.preview.tag_configure("rule", foreground="#888888")
-        self.preview.tag_configure("source_text", foreground="#666666")
-        configure_paragraph_style_tags(self.preview)
-        self.preview.tag_configure(
-            "component_label", foreground="#555555",
-            font=("TkDefaultFont", 9, "bold"), spacing1=9, spacing3=3,
-        )
+        configure_preview_tags(self.preview)
 
     def _load_last_shell(self):
         remembered = shell_selection.last_shell()

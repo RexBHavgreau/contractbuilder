@@ -8,7 +8,7 @@ import re
 from typing import TYPE_CHECKING
 
 import core
-from component_preview import configure_paragraph_style_tags
+from component_preview import configure_paragraph_style_tags, configure_preview_tags  # noqa: F401
 
 from .tables import _is_markdown_table_separator
 from safe_hyperlinks import safe_hyperlink_target
@@ -168,52 +168,3 @@ def _style_markdown_widget(widget: tk.Text, raw_view: bool = False) -> None:
                     f"1.0 + {line_start + match.end()} chars",
                 )
         offset += len(line)
-
-
-def configure_preview_tags(widget) -> None:
-    """Text tags for the Components window's preview pane."""
-    widget.tag_configure(
-        "heading_1", font=("TkDefaultFont", 17, "bold"),
-        spacing1=10, spacing3=6,
-    )
-    widget.tag_configure(
-        "heading_2", font=("TkDefaultFont", 14, "bold"),
-        spacing1=8, spacing3=5,
-    )
-    widget.tag_configure(
-        "heading_3", font=("TkDefaultFont", 12, "bold"),
-        spacing1=6, spacing3=4,
-    )
-    widget.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
-    widget.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
-    widget.tag_configure(
-        "field", background="#fff0c2", foreground="#714d00"
-    )
-    widget.tag_configure(
-        "list_marker", foreground="#555555", lmargin1=10
-    )
-    widget.tag_configure(
-        "table_header", font=("TkDefaultFont", 9, "bold"),
-        background="#eeeeee",
-    )
-    widget.tag_configure("table_cell", font=("TkFixedFont", 9))
-    widget.tag_configure(
-        "table_border", foreground="#777777", font=("TkFixedFont", 9)
-    )
-    widget.tag_configure(
-        "code", font=("TkFixedFont", 9), background="#f1f1f1"
-    )
-    widget.tag_configure(
-        "code_block", font=("TkFixedFont", 9), background="#f4f4f4",
-        lmargin1=8, lmargin2=8,
-    )
-    widget.tag_configure("blockquote", foreground="#555555", lmargin1=12)
-    widget.tag_configure("link", underline=True, foreground="#245a8d")
-    widget.tag_configure("link_warning", underline=True, foreground="#a05a00")
-    widget.tag_configure("rule", foreground="#888888")
-    widget.tag_configure("source_text", foreground="#666666")
-    configure_paragraph_style_tags(widget)
-    widget.tag_configure(
-        "marker", foreground="#4f4f4f", background="#e6e6e6",
-        font=("TkDefaultFont", 9, "italic"),
-    )

@@ -48,6 +48,25 @@ def preview_segments_for_components(components: Sequence[Mapping[str, object]]):
     return segments
 
 
+def revision_preview_segments(revision: Mapping[str, object], has_updates: bool = False):
+    """The preview of one saved revision, as the builder shows it (T-063).
+
+    Only the pinned versions are shown, never newer wording; components left out
+    of the recipe are absent. ``has_updates`` adds a plain note that newer
+    wording exists, so the preview is not mistaken for the latest text.
+    """
+    segments = []
+    if has_updates:
+        segments.append((
+            "Newer wording is available for some components. This preview shows the "
+            "versions this revision is pinned to.\n\n", ("source_text",),
+        ))
+    body = preview_segments_for_components(list(revision.get("components") or ()))
+    if not body:
+        body = [("No components are included in this revision.", ("source_text",))]
+    return segments + body
+
+
 def shell_file_sha256(path: str | Path) -> str:
     """Hash a shell incrementally so even a large file is not read at once."""
     digest = hashlib.sha256()
