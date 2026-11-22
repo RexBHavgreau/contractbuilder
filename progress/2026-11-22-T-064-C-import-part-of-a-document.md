@@ -2,7 +2,7 @@
 date: 2026-11-22
 task: T-064-C
 author: Claude
-pull_request: pending (update when the PR is opened)
+pull_request: https://github.com/RexBHavgreau/contractbuilder/pull/113
 ci_run: pending (update after the run on the latest commit)
 size: pending; adds import_choice_dialog.py, import_selection.py and import_selection_dialog.py (small Tk and pure modules, no dependency); confirm release and component-enabled sizes from the CI summary
 ---
