@@ -184,6 +184,9 @@ class FieldPickerDialog:
         ).grid(row=3, column=1, sticky="e", pady=(4, 0))
         self.one_off_status = ttk.Label(outer, text="", foreground="#8a5a00")
         self.one_off_status.pack(anchor="w")
+        ttk.Button(
+            outer, text="Singular/plural word…", command=self.open_singular_plural
+        ).pack(anchor="w", pady=(0, 7))
         self.tree = ttk.Treeview(
             outer, columns=("kind", "description"), show="tree headings",
             selectmode="browse",
@@ -208,7 +211,6 @@ class FieldPickerDialog:
             variable=self.keep_open,
         ).pack(side="left")
         ttk.Button(controls, text="Add starter fields…", command=self.add_starter).pack(side="left", padx=(12, 0))
-        ttk.Button(controls, text="Singular/plural word…", command=self.open_singular_plural).pack(side="left", padx=(6, 0))
         ttk.Button(controls, text="New field…", command=self.new_field).pack(side="right")
         ttk.Button(controls, text="Edit…", command=self.edit_field).pack(side="right", padx=5)
         ttk.Button(controls, text="Archive", command=self.archive_field).pack(side="right")
