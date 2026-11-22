@@ -30,7 +30,7 @@ def _append(segments: list[Segment], text: str, *tags: str) -> None:
 
 PREVIEW_KEY = (
     "Highlighted text is a field, filled in when the document is made. "
-    "Tinted bands mark conditional sections; grey tags label inline choices such as "
+    "Tinted bands mark conditional sections; Grey tags label inline choices such as "
     "\"If Publisher Type is Non-profit\", \"Otherwise\" and \"End of choice\". "
     "They are instructions and are not printed. Use Preview as to check a chosen field value. "
     "Blue underlined text is a supported link; orange underlined text has an unsupported "
@@ -445,6 +445,8 @@ def render_markdown_preview(
 
     ``paragraph_styles`` is the per-paragraph choice stored beside the wording
     (T-061): one name per ordinary top-level paragraph, "" for Normal.
+    ``preview_values`` resolves conditional blocks for the selected field values;
+    unselected fields retain their labelled alternatives.
     """
     if not isinstance(markdown, str):
         raise TypeError("Component wording must be text.")
