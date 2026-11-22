@@ -3,7 +3,12 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from component_preview import render_markdown_preview  # noqa: E402
+from component_preview import (  # noqa: E402
+    PREVIEW_KEY,
+    conditional_preview_choices,
+    conditional_preview_warnings,
+    render_markdown_preview,
+)
 
 
 def _rendered(markdown):
@@ -185,3 +190,128 @@ def test_preview_distinguishes_safe_hyperlinks_from_unsupported_targets():
         value == "unsafe link" and "link_warning" in tags
         for value, tags in segments
     )
+
+def test_block_condition_markers_receive_the_tinted_band_style():
+    _text, segments = _rendered(
+        "{{#if Include Schedule}}\\n\\nSchedule text.\\n\\n{{/if}}"
+    )
+    band_markers = [
+        (value, tags) for value, tags in segments if "marker_band" in tags
+    ]
+    assert len(band_markers) == 2
+    assert any("If Include Schedule is filled in" in value for value, _ in band_markers)
+    assert any("End of choice" in value for value, _ in band_markers)
+
+
+def test_conditional_warnings_explain_single_else_value_and_double_spaces():
+    warnings = conditional_preview_warnings(
+        "of {{#if Publisher Type = Non-profit}} a non-profit "
+        "{{else}} a sole proprietor {{/if}} organized"
+    )
+    joined = " ".join(warnings)
+    assert "form will offer only Non-profit" in joined
+    assert "use Choice wording" in joined
+    assert "double spaces" in joined
+
+
+def test_conditional_warnings_explain_missing_and_misplaced_closing_markers():
+    missing = conditional_preview_warnings(
+        "Intro.\\n\\n{{#if Include Schedule}}\\n\\nSchedule text."
+    )
+    assert any("no closing {{/if}} marker" in warning for warning in missing)
+
+    misplaced = conditional_preview_warnings(
+        "{{#if Include Schedule}}\\n\\nSchedule text {{/if}}\\n\\nEnd."
+    )
+    assert any("closing marker is not on its own line" in warning for warning in misplaced)
+
+
+def test_conditional_warnings_leave_valid_inline_and_block_conditions_alone():
+    assert conditional_preview_warnings(
+        "The fee is {{#if Rush}}higher{{else}}standard{{/if}}."
+    ) == []
+    assert conditional_preview_warnings(
+        "Intro.\\n\\n{{#if Include Schedule}}\\n\\nSchedule text."
+        "\\n\\n{{/if}}\\n\\nEnd."
+    ) == []
+
+
+def test_conditional_preview_choices_lists_each_distinct_explicit_value():
+    choices = conditional_preview_choices(
+        [
+            {"markdown": "{{#if Publisher Type = Non-profit}}A{{/if}}"},
+            {"markdown": "{{#if Publisher Type = Sole proprietor}}B{{/if}}"},
+            {"markdown": "{{#if Include Schedule}}C{{/if}}"},
+            {"markdown": "{{#if publisher type = Non-profit}}D{{/if}}"},
+            {"included": False, "markdown": "{{#if Internal Flag}}hidden{{/if}}"},
+        ]
+    )
+    assert choices == [
+        ("Publisher Type", "Non-profit"),
+        ("Publisher Type", "Sole proprietor"),
+        ("Include Schedule", True),
+        ("Include Schedule", False),
+    ]
+
+
+def test_preview_as_value_resolves_the_matching_conditional_branch():
+    markdown = (
+        "The fee is {{#if Publisher Type = Non-profit}}waived"
+        "{{else}}due{{/if}}."
+    )
+    nonprofit, _segments = _rendered(markdown)
+    assert "Otherwise" in nonprofit
+
+    nonprofit_text, _ = _rendered_with_values(
+        markdown, {"Publisher Type": "Non-profit"}
+    )
+    assert "waived" in nonprofit_text
+    assert "due" not in nonprofit_text
+    assert "If Publisher Type" not in nonprofit_text
+
+    proprietor_text, _ = _rendered_with_values(
+        markdown, {"Publisher Type": "Sole proprietor"}
+    )
+    assert "due" in proprietor_text
+    assert "waived" not in proprietor_text
+    assert "Otherwise" not in proprietor_text
+
+
+def test_preview_as_value_resolves_nested_conditions_and_leaves_unselected_fields_visible():
+    markdown = (
+        "{{#if Publisher Type = Non-profit}}"
+        "{{#if Include Schedule}}Schedule included{{else}}No schedule{{/if}}"
+        "{{else}}Sole proprietor{{/if}}"
+    )
+    chosen_outer = render_markdown_preview(
+        markdown, preview_values={"Publisher Type": "Non-profit"}
+    )
+    chosen_outer_text = "".join(value for value, _tags in chosen_outer)
+    assert "Schedule included" in chosen_outer_text
+    assert "No schedule" in chosen_outer_text
+    assert "If Include Schedule is filled in" in chosen_outer_text
+
+    chosen_both = render_markdown_preview(
+        markdown,
+        preview_values={
+            "Publisher Type": "Non-profit",
+            "Include Schedule": True,
+        },
+    )
+    chosen_both_text = "".join(value for value, _tags in chosen_both)
+    assert "Schedule included" in chosen_both_text
+    assert "No schedule" not in chosen_both_text
+    assert "If Include Schedule" not in chosen_both_text
+
+
+def _rendered_with_values(markdown, preview_values):
+    segments = render_markdown_preview(markdown, preview_values=preview_values)
+    return "".join(text for text, _tags in segments), segments
+
+
+def test_preview_key_explains_tinted_blocks_and_preview_as_control():
+    assert "Tinted bands" in PREVIEW_KEY
+    assert "Grey tags" in PREVIEW_KEY
+    assert "Preview as" in PREVIEW_KEY
+    assert "not printed" in PREVIEW_KEY
+\n
