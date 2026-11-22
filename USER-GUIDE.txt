@@ -425,8 +425,13 @@ STARTING A CONTRACT
 The first screen has a "Build contract from" row with three choices:
 
 - **Existing contract assembly**: open a contract you saved before. The list
-  shows the saved assemblies; choose one and press Open. The fields appear
-  straight away, filled in with the wording of the latest saved version.
+  shows the saved assemblies, and the contract itself is previewed beside the
+  one you highlight, so you can see what it says before opening it. The preview
+  shows the wording the assembly is saved with; if newer wording exists for some
+  parts, it says so. Choose one and press Open (or Enter, or double-click): the
+  fields appear straight away. "Earlier revisions…" lets you highlight an older
+  revision and see it in the preview first, and "Edit in Build an assembly…"
+  opens the builder if you want to change the assembly itself.
 - **New contract assembly**: choose the components and build a new contract.
 - **Word file**: fill in a Word document that has {{fields}}.
 

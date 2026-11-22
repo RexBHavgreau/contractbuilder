@@ -6,7 +6,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-from component_preview import configure_paragraph_style_tags, render_markdown_preview
+from component_preview import configure_preview_tags, render_markdown_preview
 from docx_to_markdown import DocxImportError, import_docx
 import paragraph_styles as styles_rules
 
@@ -103,7 +103,6 @@ class ImportReviewDialog:
         preview_scroll.grid(row=0, column=1, sticky="ns")
         self.preview.configure(yscrollcommand=preview_scroll.set)
         self._configure_preview()
-        configure_paragraph_style_tags(self.preview)
         self.source_view_variable = tk.BooleanVar(master=self.window, value=False)
         ttk.Checkbutton(
             outer,
@@ -135,26 +134,7 @@ class ImportReviewDialog:
         self.window.destroy()
 
     def _configure_preview(self):
-        self.preview.tag_configure("heading_1", font=("TkDefaultFont", 16, "bold"))
-        self.preview.tag_configure("heading_2", font=("TkDefaultFont", 14, "bold"))
-        self.preview.tag_configure("heading_3", font=("TkDefaultFont", 12, "bold"))
-        self.preview.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
-        self.preview.tag_configure("italic", font=("TkDefaultFont", 10, "italic"))
-        self.preview.tag_configure("field", background="#fff0c2", foreground="#714d00")
-        self.preview.tag_configure("list_marker", foreground="#555555")
-        self.preview.tag_configure(
-            "marker", foreground="#4f4f4f", background="#e6e6e6",
-            font=("TkDefaultFont", 9, "italic"),
-        )
-        self.preview.tag_configure("table_header", font=("TkDefaultFont", 9, "bold"))
-        self.preview.tag_configure("table_cell", font=("TkFixedFont", 9))
-        self.preview.tag_configure("table_border", foreground="#777777")
-        self.preview.tag_configure("code", font=("TkFixedFont", 9))
-        self.preview.tag_configure("code_block", font=("TkFixedFont", 9))
-        self.preview.tag_configure("blockquote", foreground="#555555")
-        self.preview.tag_configure("link", underline=True, foreground="#245a8d")
-        self.preview.tag_configure("rule", foreground="#888888")
-        self.preview.tag_configure("source_text", foreground="#666666")
+        configure_preview_tags(self.preview)
 
     def _style_source(self):
         _style_markdown_widget(self.source, self.source_view_variable.get())
