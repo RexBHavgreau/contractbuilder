@@ -36,7 +36,7 @@ def test_plural_placeholder_preserves_capitalization():
         ("Works", "", "works", "both the singular and plural"),
         ("Works", "work", "", "both the singular and plural"),
         ("Bad{{Field}}", "work", "works", "valid List field name"),
-        ("Works", "work\n", "works", "single line"),
+        ("Works", "work and\nmore", "works", "single line"),
     ],
 )
 def test_plural_placeholder_rejects_incomplete_or_unsafe_values(
