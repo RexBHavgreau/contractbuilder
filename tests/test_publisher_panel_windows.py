@@ -251,7 +251,8 @@ def test_a_field_without_help_looks_as_before_and_help_is_not_in_the_document(ro
     helped = FieldInput(frame, F("Name", "text"), 2, help_text="Type the full name.")
     yesno = FieldInput(frame, F("Include", "yesno"), 4)
     yesno_help = FieldInput(frame, F("Include", "yesno"), 6, help_text="Tick to include.")
-    assert (plain.rows_used, helped.rows_used, yesno.rows_used, yesno_help.rows_used) == (2, 2, 1, 2)
+    # Since T-049-B, a plain field without help takes one row (no blank row below it).
+    assert (plain.rows_used, helped.rows_used, yesno.rows_used, yesno_help.rows_used) == (1, 2, 1, 2)
     assert plain.help_label is None and helped.help_label is not None
     assert helped.get() == ""                                         # help is guidance, never a value
 
