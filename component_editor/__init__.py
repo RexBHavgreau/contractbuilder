@@ -16,6 +16,7 @@ tests run without a display:
 ``table_dialog``       table grid dialog
 ``field_dialog``       legacy one-off insert dialog
 ``field_picker``       searchable picker and guided field creator
+``singular_plural_dialog`` guided number-dependent word insertion
 ``import_dialog``      Word import review dialog
 ``history_dialog``     version history dialog
 ``toolbar``            toolbar buttons, wrapping and state (window mixin)
@@ -85,6 +86,10 @@ from .field_picker import (  # noqa: F401,E402
 )
 # Preserve the public dialog hook used by existing integrations and tests.
 FieldInsertDialog = FieldPickerDialog
+from .singular_plural_dialog import (  # noqa: F401,E402
+    SingularPluralDialog,
+    build_singular_plural_placeholder,
+)
 from .conditional_walkthrough import (  # noqa: F401,E402
     ConditionalWordingDialog,
     build_conditional_text,
