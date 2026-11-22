@@ -217,3 +217,8 @@ def configure_preview_tags(widget) -> None:
         "marker", foreground="#4f4f4f", background="#e6e6e6",
         font=("TkDefaultFont", 9, "italic"),
     )
+    widget.tag_configure(
+        "marker_band", foreground="#243d5a", background="#dce9f6",
+        font=("TkDefaultFont", 9, "bold"), spacing1=3, spacing3=3,
+        lmargin1=6, lmargin2=6,
+    )
