@@ -6,9 +6,13 @@ open, so a test can substitute one by patching the package.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import component_editor as _package
+import import_choice_dialog
+from docx_to_markdown import DocxImportError, import_docx
+from import_selection_dialog import ImportSelectionDialog
 
 from .clipboard_actions import EDIT_FRAME_TEXT, RAW_FRAME_TEXT
 from .fields import available_field_names
@@ -250,5 +254,37 @@ class WordingActionsMixin:
             title="Import from a Word file",
             filetypes=(("Word documents", "*.docx"), ("All files", "*.*")),
         )
-        if path:
+        if not path:
+            return
+        mode = import_choice_dialog.ask_import_mode(self.window, Path(path).name)
+        if mode == import_choice_dialog.WHOLE:
             _package.ImportReviewDialog(self, path)
+        elif mode == import_choice_dialog.PART:
+            self._import_part_of(path)
+
+    def _import_part_of(self, path):
+        """Read the file, let the user tick the blocks they want, then review them."""
+        try:
+            imported = import_docx(path)
+        except (DocxImportError, OSError) as exc:
+            messagebox.showerror(
+                "Could not import Word file",
+                f"{exc}\n\nChoose an unencrypted .docx file and try again.",
+                parent=self.window,
+            )
+            return
+        if not imported.blocks:
+            messagebox.showinfo(
+                "Nothing to choose from",
+                "The Word file did not contain any importable body wording.",
+                parent=self.window,
+            )
+            return
+        stem = Path(path).stem
+        ImportSelectionDialog(
+            self.window, imported,
+            lambda chosen: _package.ImportReviewDialog(
+                self, path, imported=chosen, default_name=f"{stem} (selection)"
+            ),
+            file_name=Path(path).name,
+        )
